@@ -13,7 +13,7 @@ fn it_works() {
         std::fs::create_dir_all(dir).unwrap();
     }
     let mut database=Database::new(dir);
-    if let Some(testd)=database.create_collection("test"){
+    if let Some(testd)=database.collection("test"){
         let range=1..=10;
         for i in range.clone(){
             if let Some(row)=testd.insert(Activity::Active,0,0){

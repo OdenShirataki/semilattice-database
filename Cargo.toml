@@ -3,22 +3,12 @@ name = "semilattice-database"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A library for databases that has convenient datasets that group together commonly used fields and gives you the flexibility to create your own fields."
 
-[dependencies.versatile-data]
-path = "../versatile-data"
+repository = "https://github.com/OdenShirataki/semilattice-database"
 
-[dependencies.avltriee]
-path = "../avltriee"
+keywords = ["database","library"]
+license = "MIT/Apache-2.0"
 
-[dependencies.file_mmap]
-path = "../file_mmap"
-
-[dependencies.idx_sized]
-path = "../idx_sized"
-
-[dependencies.various_data_file]
-path = "../various_data_file"
-
-[dependencies.idx_binary]
-path = "../idx_binary"
+[dependencies]
+versatile-data={ path="../versatile-data" , version="0.22" }

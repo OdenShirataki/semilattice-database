@@ -21,7 +21,7 @@ impl Database{
             ,collections:HashMap::new()
         }
     }
-    pub fn create_collection(&mut self,name:&str)->Option<&mut Data>{
+    pub fn collection(&mut self,name:&str)->Option<&mut Data>{
         if let Some(data)=Data::new(&(self.root_dir.to_string()+"/"+name)){
             self.collections.insert(name.to_string(),data);
         }
