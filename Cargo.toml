@@ -1,0 +1,24 @@
+[package]
+name = "semilattice-database"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.versatile-data]
+path = "../versatile-data"
+
+[dependencies.avltriee]
+path = "../avltriee"
+
+[dependencies.file_mmap]
+path = "../file_mmap"
+
+[dependencies.idx_sized]
+path = "../idx_sized"
+
+[dependencies.various_data_file]
+path = "../various_data_file"
+
+[dependencies.idx_binary]
+path = "../idx_binary"
