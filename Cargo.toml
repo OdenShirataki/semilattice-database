@@ -1,9 +1,9 @@
 [package]
 name = "semilattice-database"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
-description = "A library for databases that has convenient datasets that group together commonly used fields and gives you the flexibility to create your own fields."
+description = "This is a new database engine under development.A database is not a tree."
 
 repository = "https://github.com/OdenShirataki/semilattice-database"
 
