@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 
 description = "This is a new database engine under development.A database is not a tree."
@@ -12,3 +12,4 @@ license = "MIT/Apache-2.0"
 
 [dependencies]
 versatile-data={ path="../versatile-data" , version="0.22" }
+idx_binary={ path="../idx_binary" , version="0.3" }
