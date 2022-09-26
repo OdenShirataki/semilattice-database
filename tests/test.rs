@@ -14,6 +14,7 @@ fn it_works() {
     }
     let mut database=Database::new(dir);
     if let Some(testd)=database.collection("test"){
+        let testd=testd.data_mut();
         let range=1..=10;
         for i in range.clone(){
             if let Some(row)=testd.insert(Activity::Active,0,0){
