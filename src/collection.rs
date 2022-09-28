@@ -73,23 +73,17 @@ impl<'a> Transaction<'a>{
         if let Some(mut collection)=self.database.collection_by_id_mut(self.collection_id){
             let data=collection.data_mut();
             for record in self.records.iter(){
-                if let Some(row)=if record.original_row==0{
-                    data.insert(record.activity,record.term_begin,record.term_end)
+                if record.original_row==0{
+                    data.insert(record.activity,record.term_begin,record.term_end,&record.fields);
                 }else{
-                    data.update(record.original_row,record.activity,record.term_begin,record.term_end)
-                }{
-                    for (fk,fv) in &record.fields{
-                        data.update_field(row,&fk,fv);
+                    if let Some(row)=data.update(record.original_row,record.activity,record.term_begin,record.term_end)
+                    {
+                        for (fk,fv) in &record.fields{
+                            data.update_field(row,&fk,fv);
+                        }
                     }
                 }
             }
-            
         }
-        /*
-        for t in self.record.iter(){
-            if let Some(r)=d.insert(t.activity,t.term_begin,t.term_end){
-                
-            }
-        }*/
     }
 }
