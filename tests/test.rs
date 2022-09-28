@@ -13,39 +13,42 @@ fn it_works() {
         std::fs::create_dir_all(dir).unwrap();
     }
     let mut database=Database::new(dir);
-    if let Some(testd)=database.collection("test"){
-        let testd=testd.data_mut();
-        let range=1..=10;
+    
+    let range=1..=10;
+    if let Some(mut t1)=database.transaction("test1"){
         for i in range.clone(){
-            if let Some(row)=testd.insert(Activity::Active,0,0){
-                testd.update_field(row,"num",i.to_string());
-                testd.update_field(row,"num_by3",(i*3).to_string());
-            }
+            t1.insert(Activity::Active,0,0,vec![
+                ("num".to_string(),i.to_string())
+                ,("num_by3".to_string(),(i*3).to_string())
+            ]);
         }
-        testd.update(3,Activity::Inactive,0,0);
-        testd.load_fields();
-        let mut sam=0.0;
+        t1.update(3,Activity::Inactive,0,0,vec![]);
+        t1.commit();
+    }
+    if let Some(t1)=database.collection("test1"){
+        let t1=t1.data();
+        let mut sum=0.0;
         for i in range.clone(){
-            sam+=testd.field_num(i,"num");
+            sum+=t1.field_num(i,"num");
             println!(
                 "{},{},{},{},{},{},{},{}"
-                ,testd.serial(i)
-                ,if testd.activity(i)==Activity::Active{
+                ,t1.serial(i)
+                ,if t1.activity(i)==Activity::Active{
                     "Active"
                 }else{
                     "Inactive"
                 }
-                ,testd.uuid_str(i)
-                ,testd.last_updated(i)
-                ,testd.term_begin(i)
-                ,testd.term_end(i)
-                ,testd.field_str(i,"num")
-                ,testd.field_str(i,"num_by3")
+                ,t1.uuid_str(i)
+                ,t1.last_updated(i)
+                ,t1.term_begin(i)
+                ,t1.term_end(i)
+                ,t1.field_str(i,"num")
+                ,t1.field_str(i,"num_by3")
             );
         }
-        assert_eq!(sam,55.0);
+        assert_eq!(sum,55.0);
 
-        let r=testd
+        let r=t1
             .search(&Condition::Field("num".to_string(),Field::Range(b"3".to_vec(),b"8".to_vec())))
             .search_default()   //Automatic execution of the following two lines
             //.search(SearchCondition::Term(Term::In(chrono::Local::now().timestamp())))
