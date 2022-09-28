@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 
 description = "This is a new database engine under development.A database is not a tree."
