@@ -14,18 +14,37 @@ fn it_works() {
     }
     let mut database=Database::new(dir);
     
+    let collection_person=database.collection_id("person");
+    //let collection_history=database.collection_id("history");
+
+    let mut t=database.begin_transaction();
+    t.insert(collection_person,Activity::Active,0,0,vec![
+        ("name","Joe".to_string())
+        ,("birthday","1972-08-02".to_string())
+    ]);
+    t.insert(collection_person,Activity::Active,0,0,vec![
+        ("name","Tom".to_string())
+        ,("birthday","2000-12-12".to_string())
+    ]);
+    t.insert(collection_person,Activity::Active,0,0,vec![
+        ("name","Billy".to_string())
+        ,("birthday","1982-03-03".to_string())
+    ]);
+    t.commit();
+    
+    let test1=database.collection_id("test1");
+    let mut t=database.begin_transaction();
     let range=1..=10;
-    if let Some(mut t1)=database.transaction("test1"){
-        for i in range.clone(){
-            t1.insert(Activity::Active,0,0,vec![
-                ("num".to_string(),i.to_string())
-                ,("num_by3".to_string(),(i*3).to_string())
-            ]);
-        }
-        t1.update(3,Activity::Inactive,0,0,vec![]);
-        t1.commit();
+    for i in range.clone(){
+        t.insert(test1,Activity::Active,0,0,vec![
+            ("num",i.to_string())
+            ,("num_by3",(i*3).to_string())
+        ]);
     }
-    if let Some(t1)=database.collection("test1"){
+    t.update(test1,3,Activity::Inactive,0,0,vec![]);
+    t.commit();
+
+    if let Some(t1)=database.collection(test1){
         let t1=t1.data();
         let mut sum=0.0;
         for i in range.clone(){
