@@ -12,10 +12,17 @@ mod collection;
 pub use collection::Collection;
 
 mod relation;
-pub use relation::RelationIndexes;
+pub use relation::{
+    CollectionRow
+    ,RelationIndexes
+};
 
 mod transaction;
 use transaction::Transaction;
+pub use transaction::{
+    TransactionRecord
+    ,UpdateOrNew
+};
 
 pub struct Database{
     root_dir:String
@@ -124,5 +131,21 @@ impl Database{
     }
     pub fn begin_transaction(&mut self)->Transaction{
         Transaction::new(self)
+    }
+    pub fn data(&self,collection_id:u32)->Option<&Data>{
+        if let Some(collection)=self.collections.get(&collection_id){
+            Some(collection.data())
+        }else{
+            None
+        }
+    }
+    pub fn relation_mut(&mut self)->&mut RelationIndexes{
+        &mut self.relation
+    }
+    pub fn relation(&self)->&RelationIndexes{
+        &self.relation
+    }
+    pub fn childs(&self,parent:&CollectionRow){
+        self.relation.childs(parent);
     }
 }

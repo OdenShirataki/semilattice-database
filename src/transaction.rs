@@ -4,32 +4,39 @@ use versatile_data::{
     ,KeyValue
 };
 
+use crate::CollectionRow;
+
+pub enum UpdateOrNew{
+    New
+    ,Update(u32)
+}
 pub struct TransactionRecord<'a>{
     collection_id:u32
-    ,original_row:u32
+    ,update_or_new:UpdateOrNew
     ,activity:Activity
     ,term_begin:i64
     ,term_end:i64
     ,fields:Vec<KeyValue<'a>>
-    ,childs:Vec<TransactionRecord<'a>>
+    ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>
 }
-impl TransactionRecord<'_>{
+impl<'a> TransactionRecord<'a>{
     pub fn new(
         collection_id:u32
-        ,original_row:u32
+        ,update_or_new:UpdateOrNew
         ,activity:Activity
         ,term_begin:i64
         ,term_end:i64
-        ,fields:Vec<KeyValue>
-    )->TransactionRecord{
+        ,fields:Vec<KeyValue<'a>>
+        ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>
+    )->TransactionRecord<'a>{
         TransactionRecord{
             collection_id
-            ,original_row
+            ,update_or_new
             ,activity
             ,term_begin
             ,term_end
             ,fields
-            ,childs:Vec::new()
+            ,childs
         }
     }
 }
@@ -45,26 +52,40 @@ impl<'a> Transaction<'a>{
             ,records:Vec::new()
         }
     }
-    pub fn insert(&mut self,collection_id:u32,activity:Activity,term_begin:i64,term_end:i64,fields:Vec<KeyValue<'a>>){
-        let t=TransactionRecord::new(collection_id,0,activity,term_begin,term_end,fields);
-        self.records.push(t);
+    pub fn update(&mut self,records:&mut Vec::<TransactionRecord<'a>>){
+        self.records.append(records);
     }
-    pub fn update(&mut self,collection_id:u32,row:u32,activity:Activity,term_begin:i64,term_end:i64,fields:Vec<KeyValue<'a>>){
-        let t=TransactionRecord::new(collection_id,row,activity,term_begin,term_end,fields);
-        self.records.push(t);
-    }
+ 
     pub fn commit(&mut self){
-        for r in self.records.iter(){
-            if let Some(collection)=self.database.collection_mut(r.collection_id){
+        Self::marge_data(&mut self.database,&self.records,None);
+    }
+
+    fn marge_data(database:&mut super::Database,records:&Vec::<TransactionRecord>,parent:Option<(&str,CollectionRow)>){
+        for r in records.iter(){
+            if let Some(collection)=database.collection_mut(r.collection_id){
                 let data=collection.data_mut();
-                if r.original_row==0{
-                    data.insert(r.activity,r.term_begin,r.term_end,&r.fields);
+                if let Some(row)=if let UpdateOrNew::Update(original_row)=r.update_or_new{
+                    data.update(original_row,r.activity,r.term_begin,r.term_end,&r.fields);
+                    Some(original_row)
                 }else{
-                    if let Some(row)=data.update(r.original_row,r.activity,r.term_begin,r.term_end,&r.fields)
-                    {
-                        for (fk,fv) in &r.fields{
-                            data.update_field(row,&fk,fv);
-                        }
+                    data.insert(r.activity,r.term_begin,r.term_end,&r.fields)
+                }{
+                    if let Some((relation_key,parent_collection_row))=parent{
+                        database.relation_mut().insert(
+                            relation_key
+                            ,parent_collection_row
+                            ,CollectionRow::new(r.collection_id,row)
+                        );
+                    }
+                    for (relation_key,childs) in &r.childs{
+                        Self::marge_data(
+                            database
+                            ,&childs
+                            ,Some((
+                                relation_key
+                                ,CollectionRow::new(r.collection_id,row)
+                            ))
+                        );
                     }
                 }
             }

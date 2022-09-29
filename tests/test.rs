@@ -1,9 +1,15 @@
 #[cfg(test)]
-use versatile_data::prelude::*;
-use semilattice_database::Database;
 
 #[test]
 fn it_works() {
+    use versatile_data::prelude::*;
+    use semilattice_database::{
+        Database
+        ,TransactionRecord
+        ,UpdateOrNew
+        ,CollectionRow
+    };
+
     let dir="D:/sl-test/";
 
     if std::path::Path::new(dir).exists(){
@@ -15,33 +21,131 @@ fn it_works() {
     let mut database=Database::new(dir);
     
     let collection_person=database.collection_id("person");
-    //let collection_history=database.collection_id("history");
+    let collection_history=database.collection_id("history");
 
     let mut t=database.begin_transaction();
-    t.insert(collection_person,Activity::Active,0,0,vec![
-        ("name","Joe".to_string())
-        ,("birthday","1972-08-02".to_string())
-    ]);
-    t.insert(collection_person,Activity::Active,0,0,vec![
-        ("name","Tom".to_string())
-        ,("birthday","2000-12-12".to_string())
-    ]);
-    t.insert(collection_person,Activity::Active,0,0,vec![
-        ("name","Billy".to_string())
-        ,("birthday","1982-03-03".to_string())
+    t.update(&mut vec![
+        TransactionRecord::new(
+            collection_person
+            ,UpdateOrNew::New
+            ,Activity::Active
+            ,0
+            ,0
+            ,vec![
+                ("name","Joe".to_string())
+                ,("birthday","1972-08-02".to_string())
+            ]
+            ,vec![("history",vec![
+                TransactionRecord::new(
+                    collection_history
+                    ,UpdateOrNew::New
+                    ,Activity::Active
+                    ,0
+                    ,0
+                    ,vec![
+                        ("date","1972-08-02".to_string())
+                        ,("event","Birth".to_string())
+                    ]
+                    ,vec![]
+                )
+                ,TransactionRecord::new(
+                    collection_history
+                    ,UpdateOrNew::New
+                    ,Activity::Active
+                    ,0
+                    ,0
+                    ,vec![
+                        ("date","1999-12-31".to_string())
+                        ,("event","Mariage".to_string())
+                    ]
+                    ,vec![]
+                )
+            ])]
+        )
+        ,TransactionRecord::new(
+            collection_person
+            ,UpdateOrNew::New
+            ,Activity::Active
+            ,0
+            ,0
+            ,vec![
+                ("name","Tom".to_string())
+                ,("birthday","2000-12-12".to_string())
+            ]
+            ,vec![("history",vec![
+                TransactionRecord::new(
+                    collection_history
+                    ,UpdateOrNew::New
+                    ,Activity::Active
+                    ,0
+                    ,0
+                    ,vec![
+                        ("date","2000-12-12".to_string())
+                        ,("event","Birth".to_string())
+                    ]
+                    ,vec![]
+                )
+            ])]
+        )
+        ,TransactionRecord::new(
+            collection_person
+            ,UpdateOrNew::New
+            ,Activity::Active
+            ,0
+            ,0
+            ,vec![
+                ("name","Billy".to_string())
+                ,("birthday","1982-03-03".to_string())
+            ]
+            ,vec![]
+        )
     ]);
     t.commit();
+
+    let relation=database.relation();
+    if let Some(p)=database.data(collection_person){
+        for i in 1..=3{
+            println!(
+                "{},{}"
+                ,p.field_str(i,"name")
+                ,p.field_str(i,"birthday")
+            );
+            for h in relation.childs(&CollectionRow::new(collection_person,i)){
+                if let Some(col)=database.data(h.collection_id()){
+                    let row=h.row();
+                    println!(
+                        " {} : {}"
+                        ,col.field_str(row,"date")
+                        ,col.field_str(row,"event")
+                    );
+                    
+                }
+            }
+        }
+    }
     
     let test1=database.collection_id("test1");
     let mut t=database.begin_transaction();
     let range=1..=10;
     for i in range.clone(){
-        t.insert(test1,Activity::Active,0,0,vec![
-            ("num",i.to_string())
-            ,("num_by3",(i*3).to_string())
+        t.update(&mut vec![
+            TransactionRecord::new(
+                test1
+                ,UpdateOrNew::New
+                ,Activity::Active
+                ,0
+                ,0
+                ,vec![
+                    ("num",i.to_string())
+                    ,("num_by3",(i*3).to_string())
+                ]
+                ,vec![]
+            )
         ]);
     }
-    t.update(test1,3,Activity::Inactive,0,0,vec![]);
+    t.update(&mut vec![
+        TransactionRecord::new(test1,UpdateOrNew::Update(3),Activity::Inactive,0,0,vec![],vec![])
+    ]);
     t.commit();
 
     if let Some(t1)=database.collection(test1){
