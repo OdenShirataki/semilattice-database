@@ -7,7 +7,6 @@ use versatile_data::prelude::*;
 use semilattice_database::{
     Database
     ,TransactionRecord
-    ,UpdateOrNew
     ,CollectionRow
 };
 
@@ -28,7 +27,7 @@ let mut t=database.begin_transaction();
 t.update(&mut vec![
     TransactionRecord::new(
         collection_person
-        ,UpdateOrNew::New
+        ,Update::New
         ,Activity::Active
         ,0
         ,0
@@ -39,7 +38,7 @@ t.update(&mut vec![
         ,vec![("history",vec![
             TransactionRecord::new(
                 collection_history
-                ,UpdateOrNew::New
+                ,Update::New
                 ,Activity::Active
                 ,0
                 ,0
@@ -51,7 +50,7 @@ t.update(&mut vec![
             )
             ,TransactionRecord::new(
                 collection_history
-                ,UpdateOrNew::New
+                ,Update::New
                 ,Activity::Active
                 ,0
                 ,0
@@ -65,7 +64,7 @@ t.update(&mut vec![
     )
     ,TransactionRecord::new(
         collection_person
-        ,UpdateOrNew::New
+        ,Update::New
         ,Activity::Active
         ,0
         ,0
@@ -76,7 +75,7 @@ t.update(&mut vec![
         ,vec![("history",vec![
             TransactionRecord::new(
                 collection_history
-                ,UpdateOrNew::New
+                ,Update::New
                 ,Activity::Active
                 ,0
                 ,0
@@ -90,7 +89,7 @@ t.update(&mut vec![
     )
     ,TransactionRecord::new(
         collection_person
-        ,UpdateOrNew::New
+        ,Update::New
         ,Activity::Active
         ,0
         ,0

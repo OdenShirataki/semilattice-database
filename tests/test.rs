@@ -6,7 +6,6 @@ fn it_works() {
     use semilattice_database::{
         Database
         ,TransactionRecord
-        ,UpdateOrNew
         ,CollectionRow
     };
 
@@ -27,7 +26,7 @@ fn it_works() {
     t.update(&mut vec![
         TransactionRecord::new(
             collection_person
-            ,UpdateOrNew::New
+            ,Update::New
             ,Activity::Active
             ,0
             ,0
@@ -38,7 +37,7 @@ fn it_works() {
             ,vec![("history",vec![
                 TransactionRecord::new(
                     collection_history
-                    ,UpdateOrNew::New
+                    ,Update::New
                     ,Activity::Active
                     ,0
                     ,0
@@ -50,7 +49,7 @@ fn it_works() {
                 )
                 ,TransactionRecord::new(
                     collection_history
-                    ,UpdateOrNew::New
+                    ,Update::New
                     ,Activity::Active
                     ,0
                     ,0
@@ -64,7 +63,7 @@ fn it_works() {
         )
         ,TransactionRecord::new(
             collection_person
-            ,UpdateOrNew::New
+            ,Update::New
             ,Activity::Active
             ,0
             ,0
@@ -75,7 +74,7 @@ fn it_works() {
             ,vec![("history",vec![
                 TransactionRecord::new(
                     collection_history
-                    ,UpdateOrNew::New
+                    ,Update::New
                     ,Activity::Active
                     ,0
                     ,0
@@ -89,7 +88,7 @@ fn it_works() {
         )
         ,TransactionRecord::new(
             collection_person
-            ,UpdateOrNew::New
+            ,Update::New
             ,Activity::Active
             ,0
             ,0
@@ -131,7 +130,7 @@ fn it_works() {
         t.update(&mut vec![
             TransactionRecord::new(
                 test1
-                ,UpdateOrNew::New
+                ,Update::New
                 ,Activity::Active
                 ,0
                 ,0
@@ -144,7 +143,7 @@ fn it_works() {
         ]);
     }
     t.update(&mut vec![
-        TransactionRecord::new(test1,UpdateOrNew::Update(3),Activity::Inactive,0,0,vec![],vec![])
+        TransactionRecord::new(test1,Update::Row(3),Activity::Inactive,0,0,vec![],vec![])
     ]);
     t.commit();
     if let Some(t1)=database.collection(test1){

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 pub use versatile_data::{
     Data
     ,IdxSized
+    ,Update
 };
 pub use idx_binary::IdxBinary;
 
@@ -23,7 +24,6 @@ mod transaction;
 use transaction::Transaction;
 pub use transaction::{
     TransactionRecord
-    ,UpdateOrNew
 };
 
 pub struct Database{
