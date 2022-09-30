@@ -147,7 +147,7 @@ impl Database{
     pub fn relation(&self)->&RelationIndexes{
         &self.relation
     }
-    pub fn childs(&self,parent:&CollectionRow){
-        self.relation.childs(parent);
+    pub fn childs(&self,key:&str,parent:&CollectionRow){
+        self.relation.childs(key,parent);
     }
 }

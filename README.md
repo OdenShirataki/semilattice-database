@@ -110,7 +110,7 @@ if let Some(p)=database.data(collection_person){
             ,p.field_str(i,"name")
             ,p.field_str(i,"birthday")
         );
-        for h in relation.childs(&CollectionRow::new(collection_person,i)){
+        for h in relation.childs("history",&CollectionRow::new(collection_person,i)){
             if let Some(col)=database.data(h.collection_id()){
                 let row=h.row();
                 println!(
