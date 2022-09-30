@@ -13,6 +13,7 @@ pub struct TransactionRecord<'a>{
     ,term_begin:i64
     ,term_end:i64
     ,fields:Vec<KeyValue<'a>>
+    ,parents:Vec<(&'a str,CollectionRow)>
     ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>
 }
 impl<'a> TransactionRecord<'a>{
@@ -23,6 +24,7 @@ impl<'a> TransactionRecord<'a>{
         ,term_begin:i64
         ,term_end:i64
         ,fields:Vec<KeyValue<'a>>
+        ,parents:Vec<(&'a str,CollectionRow)>
         ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>
     )->TransactionRecord<'a>{
         TransactionRecord{
@@ -32,6 +34,7 @@ impl<'a> TransactionRecord<'a>{
             ,term_begin
             ,term_end
             ,fields
+            ,parents
             ,childs
         }
     }
@@ -56,12 +59,19 @@ impl<'a> Transaction<'a>{
         Self::marge_data(&mut self.database,&self.records,None);
     }
 
-    fn marge_data(database:&mut super::Database,records:&Vec::<TransactionRecord>,parent:Option<(&str,CollectionRow)>){
+    fn marge_data(database:&mut super::Database,records:&Vec::<TransactionRecord>,incidentally_parent:Option<(&str,CollectionRow)>){
         for r in records.iter(){
             if let Some(collection)=database.collection_mut(r.collection_id){
                 let data=collection.data_mut();
                 if let Some(row)=data.update(r.update,r.activity,r.term_begin,r.term_end,&r.fields){
-                    if let Some((relation_key,parent_collection_row))=parent{
+                    for (relation_key,parent) in &r.parents{
+                        database.relation_mut().insert(
+                            relation_key
+                            ,*parent
+                            ,CollectionRow::new(r.collection_id,row)
+                        );
+                    }
+                    if let Some((relation_key,parent_collection_row))=incidentally_parent{
                         database.relation_mut().insert(
                             relation_key
                             ,parent_collection_row

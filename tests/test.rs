@@ -34,6 +34,7 @@ fn it_works() {
                 ("name","Joe".to_string())
                 ,("birthday","1972-08-02".to_string())
             ]
+            ,vec![]
             ,vec![("history",vec![
                 TransactionRecord::new(
                     collection_history
@@ -46,6 +47,7 @@ fn it_works() {
                         ,("event","Birth".to_string())
                     ]
                     ,vec![]
+                    ,vec![]
                 )
                 ,TransactionRecord::new(
                     collection_history
@@ -57,6 +59,7 @@ fn it_works() {
                         ("date","1999-12-31".to_string())
                         ,("event","Mariage".to_string())
                     ]
+                    ,vec![]
                     ,vec![]
                 )
             ])]
@@ -71,6 +74,7 @@ fn it_works() {
                 ("name","Tom".to_string())
                 ,("birthday","2000-12-12".to_string())
             ]
+            ,vec![]
             ,vec![("history",vec![
                 TransactionRecord::new(
                     collection_history
@@ -82,6 +86,7 @@ fn it_works() {
                         ("date","2000-12-12".to_string())
                         ,("event","Birth".to_string())
                     ]
+                    ,vec![]
                     ,vec![]
                 )
             ])]
@@ -96,6 +101,7 @@ fn it_works() {
                 ("name","Billy".to_string())
                 ,("birthday","1982-03-03".to_string())
             ]
+            ,vec![]
             ,vec![]
         )
     ]);
@@ -139,11 +145,12 @@ fn it_works() {
                     ,("num_by3",(i*3).to_string())
                 ]
                 ,vec![]
+                ,vec![]
             )
         ]);
     }
     t.update(&mut vec![
-        TransactionRecord::new(test1,Update::Row(3),Activity::Inactive,0,0,vec![],vec![])
+        TransactionRecord::new(test1,Update::Row(3),Activity::Inactive,0,0,vec![],vec![],vec![])
     ]);
     t.commit();
     if let Some(t1)=database.collection(test1){
