@@ -6,6 +6,7 @@ use versatile_data::{
 
 use crate::CollectionRow;
 
+#[derive(Debug)]
 pub enum UpdateOrNew{
     New
     ,Update(u32)

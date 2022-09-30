@@ -9,12 +9,14 @@ pub use versatile_data::{
 pub use idx_binary::IdxBinary;
 
 mod collection;
-pub use collection::Collection;
+pub use collection::{
+    Collection
+    ,CollectionRow
+};
 
 mod relation;
 pub use relation::{
-    CollectionRow
-    ,RelationIndexes
+    RelationIndexes
 };
 
 mod transaction;

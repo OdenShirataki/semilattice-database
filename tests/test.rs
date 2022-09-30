@@ -147,7 +147,6 @@ fn it_works() {
         TransactionRecord::new(test1,UpdateOrNew::Update(3),Activity::Inactive,0,0,vec![],vec![])
     ]);
     t.commit();
-
     if let Some(t1)=database.collection(test1){
         let t1=t1.data();
         let mut sum=0.0;
