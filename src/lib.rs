@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 pub use versatile_data::{
-    Data
+    Data as Collection
     ,IdxSized
     ,Update
 };
@@ -11,13 +11,12 @@ pub use idx_binary::IdxBinary;
 
 mod collection;
 pub use collection::{
-    Collection
-    ,CollectionRow
+    CollectionRow
 };
 
 mod relation;
 pub use relation::{
-    RelationIndexes
+    RelationIndex
 };
 
 mod transaction;
@@ -30,7 +29,7 @@ pub struct Database{
     root_dir:String
     ,collections_map:HashMap<String,u32>
     ,collections:BTreeMap<u32,Collection>
-    ,relation:RelationIndexes
+    ,relation:RelationIndex
 }
 impl Database{
     pub fn new(dir:&str)->Database{
@@ -56,7 +55,7 @@ impl Database{
                 root_dir
                 ,collections:BTreeMap::new()
                 ,collections_map:HashMap::new()
-                ,relation:RelationIndexes::new(
+                ,relation:RelationIndex::new(
                     relation_key_names
                     ,relation_key
                     ,relation_parent
@@ -86,11 +85,11 @@ impl Database{
                                         }
                                         if s[1]==name{
                                             if let Some(path)=d.path().to_str(){
-                                                if let Some(data)=Data::new(path){
+                                                if let Some(data)=Collection::new(path){
                                                     self.collections_map.insert(name.to_string(),max_id);
                                                     self.collections.insert(
                                                         max_id
-                                                        ,Collection::new(max_id,data)
+                                                        ,data
                                                     );
                                                     return max_id;
                                                 }
@@ -105,11 +104,11 @@ impl Database{
             }
         }
         let collection_id=max_id+1;
-        if let Some(data)=Data::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name)){
+        if let Some(data)=Collection::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name)){
             self.collections_map.insert(name.to_string(),collection_id);
             self.collections.insert(
                 collection_id
-                ,Collection::new(collection_id,data)
+                ,data
             );
         }
         collection_id
@@ -134,17 +133,10 @@ impl Database{
     pub fn begin_transaction(&mut self)->Transaction{
         Transaction::new(self)
     }
-    pub fn data(&self,collection_id:u32)->Option<&Data>{
-        if let Some(collection)=self.collections.get(&collection_id){
-            Some(collection.data())
-        }else{
-            None
-        }
-    }
-    pub fn relation_mut(&mut self)->&mut RelationIndexes{
+    pub fn relation_mut(&mut self)->&mut RelationIndex{
         &mut self.relation
     }
-    pub fn relation(&self)->&RelationIndexes{
+    pub fn relation(&self)->&RelationIndex{
         &self.relation
     }
     pub fn childs(&self,key:&str,parent:&CollectionRow){

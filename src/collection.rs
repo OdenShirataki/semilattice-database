@@ -1,29 +1,5 @@
 use std::cmp::Ordering;
 
-use versatile_data::Data;
-
-pub struct Collection{
-    id:u32
-    ,data:Data
-}
-impl Collection{
-    pub fn new(id:u32,data:Data)->Collection{
-        Collection{
-            id
-            ,data
-        }
-    }
-    pub fn id(&self)->u32{
-        self.id
-    }
-    pub fn data(&self)->&Data{
-        &self.data
-    }
-    pub fn data_mut(&mut self)->&mut Data{
-        &mut self.data
-    }
-}
-
 #[derive(Clone,Copy,Default,Debug)]
 pub struct CollectionRow{
     collection_id:u32

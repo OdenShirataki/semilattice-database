@@ -107,8 +107,11 @@ fn it_works() {
     ]);
     t.commit();
 
+    t.delete(collection_person,2);
+    t.commit();
+
     let relation=database.relation();
-    if let Some(p)=database.data(collection_person){
+    if let Some(p)=database.collection(collection_person){
         for i in 1..=3{
             println!(
                 "{},{}"
@@ -116,7 +119,7 @@ fn it_works() {
                 ,p.field_str(i,"birthday")
             );
             for h in relation.childs("history",&CollectionRow::new(collection_person,i)){
-                if let Some(col)=database.data(h.collection_id()){
+                if let Some(col)=database.collection(h.collection_id()){
                     let row=h.row();
                     println!(
                         " {} : {}"
@@ -154,7 +157,6 @@ fn it_works() {
     ]);
     t.commit();
     if let Some(t1)=database.collection(test1){
-        let t1=t1.data();
         let mut sum=0.0;
         for i in range.clone(){
             sum+=t1.field_num(i,"num");
