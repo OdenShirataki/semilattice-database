@@ -11,5 +11,5 @@ keywords = ["database","library"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
-versatile-data={ path="../versatile-data" , version="0.28" }
+versatile-data={ path="../versatile-data" , version="0.29" }
 idx_binary={ path="../idx_binary" , version="0.3" }
