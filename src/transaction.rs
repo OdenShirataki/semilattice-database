@@ -83,31 +83,30 @@ impl<'a> Transaction<'a>{
     fn register_recursive(database:&mut super::Database,records:&Vec::<TransactionRecord>,incidentally_parent:Option<(&str,CollectionRow)>){
         for r in records.iter(){
             if let Some(data)=database.collection_mut(r.collection_id){
-                if let Some(row)=data.update(r.update,r.activity,r.term_begin,r.term_end,&r.fields){
-                    for (relation_key,parent) in &r.parents{
-                        database.relation_mut().insert(
+                let row=data.update(r.update,r.activity,r.term_begin,r.term_end,&r.fields);
+                for (relation_key,parent) in &r.parents{
+                    database.relation_mut().insert(
+                        relation_key
+                        ,*parent
+                        ,CollectionRow::new(r.collection_id,row)
+                    );
+                }
+                if let Some((relation_key,parent_collection_row))=incidentally_parent{
+                    database.relation_mut().insert(
+                        relation_key
+                        ,parent_collection_row
+                        ,CollectionRow::new(r.collection_id,row)
+                    );
+                }
+                for (relation_key,childs) in &r.childs{
+                    Self::register_recursive(
+                        database
+                        ,&childs
+                        ,Some((
                             relation_key
-                            ,*parent
                             ,CollectionRow::new(r.collection_id,row)
-                        );
-                    }
-                    if let Some((relation_key,parent_collection_row))=incidentally_parent{
-                        database.relation_mut().insert(
-                            relation_key
-                            ,parent_collection_row
-                            ,CollectionRow::new(r.collection_id,row)
-                        );
-                    }
-                    for (relation_key,childs) in &r.childs{
-                        Self::register_recursive(
-                            database
-                            ,&childs
-                            ,Some((
-                                relation_key
-                                ,CollectionRow::new(r.collection_id,row)
-                            ))
-                        );
-                    }
+                        ))
+                    );
                 }
             }
         }
