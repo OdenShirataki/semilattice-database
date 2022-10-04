@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 
 description = "This is a new database engine under development.A database is not a tree."
@@ -11,5 +11,5 @@ keywords = ["database","library"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
-versatile-data="0.32"
+versatile-data="0.33"
 idx_binary="0.3"

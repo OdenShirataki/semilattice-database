@@ -179,10 +179,10 @@ fn it_works() {
         assert_eq!(sum,55.0);
 
         let r=t1
-            .search(Condition::Field("num".to_string(),Field::Range(b"3".to_vec(),b"8".to_vec())))
+            .search_field("num",Field::Range(b"3".to_vec(),b"8".to_vec()))
             .search_default()   //Automatic execution of the following two lines
-            //.search(SearchCondition::Term(Term::In(chrono::Local::now().timestamp())))
-            //.search(SearchCondition::Activity(Activity::Active))
+            //.search_term(Term::In(chrono::Local::now().timestamp()))
+            //.search_activity(Activity::Active)
             .result()
         ;
         println!("{:?}",r);
