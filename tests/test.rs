@@ -9,7 +9,7 @@ fn it_works() {
         ,CollectionRow
     };
 
-    let dir="D:/sl-test/";
+    let dir="./sl-test/";
 
     if std::path::Path::new(dir).exists(){
         std::fs::remove_dir_all(dir).unwrap();
@@ -17,10 +17,10 @@ fn it_works() {
     }else{
         std::fs::create_dir_all(dir).unwrap();
     }
-    let mut database=Database::new(dir);
+    let mut database=Database::new(dir).unwrap();
     
-    let collection_person=database.collection_id("person");
-    let collection_history=database.collection_id("history");
+    let collection_person=database.collection_id("person").unwrap();
+    let collection_history=database.collection_id("history").unwrap();
 
     let mut t=database.begin_transaction();
     t.update(&mut vec![
@@ -132,7 +132,7 @@ fn it_works() {
         }
     }
     
-    let test1=database.collection_id("test1");
+    let test1=database.collection_id("test1").unwrap();
     let mut t=database.begin_transaction();
     let range=1..=10;
     for i in range.clone(){

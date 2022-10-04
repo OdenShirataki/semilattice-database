@@ -32,7 +32,7 @@ pub struct Database{
     ,relation:RelationIndex
 }
 impl Database{
-    pub fn new(dir:&str)->Database{
+    pub fn new(dir:&str)->Result<Database,std::io::Error>{
         let root_dir=if dir.ends_with("/") || dir.ends_with("\\"){
             let mut d=dir.to_string();
             d.pop();
@@ -40,35 +40,24 @@ impl Database{
         }else{
             dir.to_string()
         };
-        let db=if let (
-            Ok(relation_key_names)
-            ,Ok(relation_key)
-            ,Ok(relation_parent)
-            ,Ok(relation_child)
-        )=(
-            IdxBinary::new(&(root_dir.to_string()+"/relation_key_name"))
-            ,IdxSized::new(&(root_dir.to_string()+"/relation_key.i"))
-            ,IdxSized::new(&(root_dir.to_string()+"/relation_parent.i"))
-            ,IdxSized::new(&(root_dir.to_string()+"/relation_child.i"))
-        ){
-            Some(Database{
-                root_dir
-                ,collections:BTreeMap::new()
-                ,collections_map:HashMap::new()
-                ,relation:RelationIndex::new(
-                    relation_key_names
-                    ,relation_key
-                    ,relation_parent
-                    ,relation_child
-                )
-            })
-        }else{
-            None
-        };
-        db.expect("Fatal error: Can't Create/Open database")
+        let relation_key_names=IdxBinary::new(&(root_dir.to_string()+"/relation_key_name"))?;
+        let relation_key=IdxSized::new(&(root_dir.to_string()+"/relation_key.i"))?;
+        let relation_parent=IdxSized::new(&(root_dir.to_string()+"/relation_parent.i"))?;
+        let relation_child=IdxSized::new(&(root_dir.to_string()+"/relation_child.i"))?;
+        Ok(Database{
+            root_dir
+            ,collections:BTreeMap::new()
+            ,collections_map:HashMap::new()
+            ,relation:RelationIndex::new(
+                relation_key_names
+                ,relation_key
+                ,relation_parent
+                ,relation_child
+            )
+        })
     }
 
-    fn collection_by_name_or_create(&mut self,name:&str)->u32{
+    fn collection_by_name_or_create(&mut self,name:&str)->Result<u32,std::io::Error>{
         let mut max_id=0;
         let collections_dir=self.root_dir.to_string()+"/collection/";
         if let Ok(dir)=std::fs::read_dir(&collections_dir){
@@ -85,14 +74,13 @@ impl Database{
                                         }
                                         if s[1]==name{
                                             if let Some(path)=d.path().to_str(){
-                                                if let Some(data)=Collection::new(path){
-                                                    self.collections_map.insert(name.to_string(),max_id);
-                                                    self.collections.insert(
-                                                        max_id
-                                                        ,data
-                                                    );
-                                                    return max_id;
-                                                }
+                                                let data=Collection::new(path)?;
+                                                self.collections_map.insert(name.to_string(),max_id);
+                                                self.collections.insert(
+                                                    max_id
+                                                    ,data
+                                                );
+                                                return Ok(max_id);
                                             }
                                         }
                                     }
@@ -104,14 +92,13 @@ impl Database{
             }
         }
         let collection_id=max_id+1;
-        if let Some(data)=Collection::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name)){
-            self.collections_map.insert(name.to_string(),collection_id);
-            self.collections.insert(
-                collection_id
-                ,data
-            );
-        }
-        collection_id
+        let data=Collection::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name))?;
+        self.collections_map.insert(name.to_string(),collection_id);
+        self.collections.insert(
+            collection_id
+            ,data
+        );
+        Ok(collection_id)
     }
     pub fn collection(&self,id:u32)->Option<&Collection>{
         self.collections.get(&id)
@@ -119,15 +106,11 @@ impl Database{
     pub fn collection_mut(&mut self,id:u32)->Option<&mut Collection>{
         self.collections.get_mut(&id)
     }
-    pub fn collection_id(&mut self,name:&str)->u32{
-        if !self.collections_map.contains_key(name){
-            self.collection_by_name_or_create(name)
+    pub fn collection_id(&mut self,name:&str)->Result<u32,std::io::Error>{
+        if self.collections_map.contains_key(name){
+            Ok(*self.collections_map.get(name).unwrap())
         }else{
-            if let Some(id)=self.collections_map.get(name){
-                *id
-            }else{
-                0
-            }
+            self.collection_by_name_or_create(name)
         }
     }
     pub fn begin_transaction(&mut self)->Transaction{
