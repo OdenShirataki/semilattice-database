@@ -1,3 +1,4 @@
+use file_mmap::FileMmap;
 use idx_binary::IdxBinary;
 use versatile_data::IdxSized;
 
@@ -9,36 +10,42 @@ struct RelationIndexRows{
     ,child:IdxSized<CollectionRow>
 }
 pub struct RelationIndex{
-    key_names:IdxBinary
+    fragment:Fragment
+    ,key_names:IdxBinary
     ,rows:RelationIndexRows
 }
 impl RelationIndex{
     pub fn new(
-        key_names:IdxBinary
-        ,key:IdxSized<u32>
-        ,parent:IdxSized<CollectionRow>
-        ,child:IdxSized<CollectionRow>
-    )->RelationIndex{
-        RelationIndex{
-            key_names
+        root_dir:&str
+    )->Result<RelationIndex,std::io::Error>{
+        Ok(RelationIndex{
+            key_names:IdxBinary::new(&(root_dir.to_string()+"/relation_key_name"))?
+            ,fragment:Fragment::new(&(root_dir.to_string()+"/relation.f"))?
             ,rows:RelationIndexRows{
-                key
-                ,parent
-                ,child
+                key:IdxSized::new(&(root_dir.to_string()+"/relation_key.i"))?
+                ,parent:IdxSized::new(&(root_dir.to_string()+"/relation_parent.i"))?
+                ,child:IdxSized::new(&(root_dir.to_string()+"/relation_child.i"))?
             }
-        }
+        })
     }
     pub fn insert(&mut self,relation_key:&str,parent:CollectionRow,child:CollectionRow){
         if let Some(key_id)=self.key_names.entry(relation_key.as_bytes()){
-            self.rows.key.insert(key_id);
-            self.rows.parent.insert(parent);
-            self.rows.child.insert(child);
+            if let Some(row)=self.fragment.pop(){
+                self.rows.key.update(row,key_id);
+                self.rows.parent.update(row,parent);
+                self.rows.child.update(row,child);
+            }else{
+                self.rows.key.insert(key_id);
+                self.rows.parent.insert(parent);
+                self.rows.child.insert(child);
+            }
         }
     }
     pub fn delete(&mut self,row:u32){
         self.rows.key.delete(row);
         self.rows.parent.delete(row);
         self.rows.child.delete(row);
+        self.fragment.insert_blank(row);
     }
     pub fn childs_all(&self,parent:&CollectionRow)->Vec<CollectionRow>{
         let mut ret:Vec<CollectionRow>=Vec::new();
@@ -77,5 +84,56 @@ impl RelationIndex{
     pub fn index_child(&self)->&IdxSized<CollectionRow>{
         &self.rows.child
     }
-    
+}
+
+struct Fragment{
+    filemmap:FileMmap
+    ,blank_list: Vec<u32>
+    ,blank_count: u32
+}
+impl Fragment{
+    pub fn new(path:&str) -> Result<Fragment,std::io::Error>{
+        let u32size=std::mem::size_of::<u32>();
+
+        let init_size=u32size as u64;
+        let filemmap=FileMmap::new(path,init_size)?;
+        let blank_list=filemmap.offset(0) as *mut u32;
+
+        let len=filemmap.len();
+
+        let blank_count=if len==init_size{
+            0
+        }else{
+            len / u32size as u64 - 1
+        } as u32;
+        
+        Ok(Fragment{
+            filemmap
+            ,blank_list:unsafe {Vec::from_raw_parts(blank_list,1,0)}
+            ,blank_count
+        })
+    }
+    pub fn insert_blank(&mut self,id:u32){
+        self.filemmap.append(
+            &[0,0,0,0]
+        );
+        unsafe{
+            *(self.blank_list.as_ptr() as *mut u32).offset(self.blank_count as isize)=id;
+        }
+        self.blank_count+=1;
+    }
+    pub fn pop(&mut self)->Option<u32>{
+        if self.blank_count>0{
+            let p=unsafe{
+                (self.blank_list.as_ptr() as *mut u32).offset(self.blank_count as isize - 1)
+            };
+            let last=unsafe{*p};
+            unsafe{*p=0;}
+            let _=self.filemmap.set_len(self.filemmap.len()-std::mem::size_of::<u32>() as u64);
+            self.blank_count-=1;
+            Some(last)
+        }else{
+            None
+        }
+    }
 }

@@ -40,20 +40,11 @@ impl Database{
         }else{
             dir.to_string()
         };
-        let relation_key_names=IdxBinary::new(&(root_dir.to_string()+"/relation_key_name"))?;
-        let relation_key=IdxSized::new(&(root_dir.to_string()+"/relation_key.i"))?;
-        let relation_parent=IdxSized::new(&(root_dir.to_string()+"/relation_parent.i"))?;
-        let relation_child=IdxSized::new(&(root_dir.to_string()+"/relation_child.i"))?;
         Ok(Database{
-            root_dir
+            root_dir:root_dir.to_string()
             ,collections:BTreeMap::new()
             ,collections_map:HashMap::new()
-            ,relation:RelationIndex::new(
-                relation_key_names
-                ,relation_key
-                ,relation_parent
-                ,relation_child
-            )
+            ,relation:RelationIndex::new(&root_dir)?
         })
     }
 
