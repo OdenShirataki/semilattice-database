@@ -62,27 +62,25 @@ impl Database{
         let collections_dir=self.root_dir.to_string()+"/collection/";
         if let Ok(dir)=std::fs::read_dir(&collections_dir){
             for d in dir.into_iter(){
-                if let Ok(d)=d{
-                    if let Ok(dt)=d.file_type(){
-                        if dt.is_dir(){
-                            if let Some(fname)=d.path().file_name(){
-                                if let Some(fname)=fname.to_str(){
-                                    let s: Vec<&str>=fname.split("_").collect();
-                                    if s.len()>1{
-                                        if let Ok(i)=s[0].parse(){
-                                            max_id=std::cmp::max(max_id,i);
-                                        }
-                                        if s[1]==name{
-                                            if let Some(path)=d.path().to_str(){
-                                                let data=Collection::new(path)?;
-                                                self.collections_map.insert(name.to_string(),max_id);
-                                                self.collections.insert(
-                                                    max_id
-                                                    ,data
-                                                );
-                                                return Ok(max_id);
-                                            }
-                                        }
+                let d=d.unwrap();
+                let dt=d.file_type().unwrap();
+                if dt.is_dir(){
+                    if let Some(fname)=d.path().file_name(){
+                        if let Some(fname)=fname.to_str(){
+                            let s: Vec<&str>=fname.split("_").collect();
+                            if s.len()>1{
+                                if let Ok(i)=s[0].parse(){
+                                    max_id=std::cmp::max(max_id,i);
+                                }
+                                if s[1]==name{
+                                    if let Some(path)=d.path().to_str(){
+                                        let data=Collection::new(path)?;
+                                        self.collections_map.insert(name.to_string(),max_id);
+                                        self.collections.insert(
+                                            max_id
+                                            ,data
+                                        );
+                                        return Ok(max_id);
                                     }
                                 }
                             }
