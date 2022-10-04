@@ -8,6 +8,7 @@ description = "This is a new database engine under development.A database is not
 repository = "https://github.com/OdenShirataki/semilattice-database"
 
 keywords = ["database","library"]
+categories = ["database"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
