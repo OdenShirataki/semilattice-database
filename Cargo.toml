@@ -1,9 +1,9 @@
 [package]
 name = "semilattice-database"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 
-description = "This is a new database engine under development.A database is not a tree."
+description = "Data is connected by a directed graph, and each node has an arbitrarily defined key-value..A database is not a tree."
 
 repository = "https://github.com/OdenShirataki/semilattice-database"
 
