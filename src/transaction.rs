@@ -2,6 +2,7 @@ use versatile_data::{
     Activity
     ,KeyValue
     ,Update
+    ,UpdateTerm
 };
 
 use crate::{
@@ -17,8 +18,8 @@ pub struct TransactionRecord<'a>{
     collection_id:u32
     ,update:Update
     ,activity:Activity
-    ,term_begin:i64
-    ,term_end:i64
+    ,term_begin:UpdateTerm
+    ,term_end:UpdateTerm
     ,fields:Vec<KeyValue<'a>>
     ,parents:UpdateParent<'a>
     ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>
@@ -28,8 +29,8 @@ impl<'a> TransactionRecord<'a>{
         collection_id:u32
         ,update:Update
         ,activity:Activity
-        ,term_begin:i64
-        ,term_end:i64
+        ,term_begin:UpdateTerm
+        ,term_end:UpdateTerm
         ,fields:Vec<KeyValue<'a>>
         ,parents:UpdateParent<'a>
         ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>

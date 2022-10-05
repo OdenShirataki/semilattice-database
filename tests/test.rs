@@ -29,8 +29,8 @@ fn it_works() {
             collection_person
             ,Update::New
             ,Activity::Active
-            ,0
-            ,0
+            ,UpdateTerm::Inherit
+            ,UpdateTerm::Inherit
             ,vec![
                 ("name","Joe".to_string())
                 ,("birthday","1972-08-02".to_string())
@@ -41,8 +41,8 @@ fn it_works() {
                     collection_history
                     ,Update::New
                     ,Activity::Active
-                    ,0
-                    ,0
+                    ,UpdateTerm::Inherit
+                    ,UpdateTerm::Inherit
                     ,vec![
                         ("date","1972-08-02".to_string())
                         ,("event","Birth".to_string())
@@ -54,8 +54,8 @@ fn it_works() {
                     collection_history
                     ,Update::New
                     ,Activity::Active
-                    ,0
-                    ,0
+                    ,UpdateTerm::Inherit
+                    ,UpdateTerm::Inherit
                     ,vec![
                         ("date","1999-12-31".to_string())
                         ,("event","Mariage".to_string())
@@ -69,8 +69,8 @@ fn it_works() {
             collection_person
             ,Update::New
             ,Activity::Active
-            ,0
-            ,0
+            ,UpdateTerm::Inherit
+            ,UpdateTerm::Inherit
             ,vec![
                 ("name","Tom".to_string())
                 ,("birthday","2000-12-12".to_string())
@@ -81,8 +81,8 @@ fn it_works() {
                     collection_history
                     ,Update::New
                     ,Activity::Active
-                    ,0
-                    ,0
+                    ,UpdateTerm::Inherit
+                    ,UpdateTerm::Inherit
                     ,vec![
                         ("date","2000-12-12".to_string())
                         ,("event","Birth".to_string())
@@ -96,8 +96,8 @@ fn it_works() {
             collection_person
             ,Update::New
             ,Activity::Active
-            ,0
-            ,0
+            ,UpdateTerm::Inherit
+            ,UpdateTerm::Inherit
             ,vec![
                 ("name","Billy".to_string())
                 ,("birthday","1982-03-03".to_string())
@@ -142,8 +142,8 @@ fn it_works() {
                 test1
                 ,Update::New
                 ,Activity::Active
-                ,0
-                ,0
+                ,UpdateTerm::Inherit
+                ,UpdateTerm::Inherit
                 ,vec![
                     ("num",i.to_string())
                     ,("num_by3",(i*3).to_string())
@@ -154,7 +154,16 @@ fn it_works() {
         ]);
     }
     t.update(&mut vec![
-        TransactionRecord::new(test1,Update::Row(3),Activity::Inactive,0,0,vec![],UpdateParent::Overwrite(vec![]),vec![])
+        TransactionRecord::new(
+            test1
+            ,Update::Row(3)
+            ,Activity::Inactive
+            ,UpdateTerm::Inherit
+            ,UpdateTerm::Inherit
+            ,vec![]
+            ,UpdateParent::Overwrite(vec![])
+            ,vec![]
+        )
     ]);
     t.commit();
     if let Some(t1)=database.collection(test1){
