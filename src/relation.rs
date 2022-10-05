@@ -94,18 +94,9 @@ struct Fragment{
 }
 impl Fragment{
     pub fn new(path:&str) -> Result<Fragment,std::io::Error>{
-        let init_size=U32SIZE as u64;
-        let filemmap=FileMmap::new(path,init_size)?;
+        let filemmap=FileMmap::new(path,U32SIZE as u64)?;
         let blank_list=filemmap.offset(0) as *mut u32;
-
-        let len=filemmap.len();
-
-        let blank_count=if len==init_size{
-            0
-        }else{
-            len / U32SIZE as u64 - 1
-        } as u32;
-        
+        let blank_count:u32=(filemmap.len() / U32SIZE as u64 - 1) as u32;       
         Ok(Fragment{
             filemmap
             ,blank_list:unsafe {Vec::from_raw_parts(blank_list,1,0)}
