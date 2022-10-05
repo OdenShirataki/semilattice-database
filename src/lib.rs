@@ -22,6 +22,7 @@ mod transaction;
 use transaction::Transaction;
 pub use transaction::{
     TransactionRecord
+    ,UpdateParent
 };
 
 pub struct Database{

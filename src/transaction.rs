@@ -4,8 +4,15 @@ use versatile_data::{
     ,Update
 };
 
-use crate::CollectionRow;
+use crate::{
+    Database
+    ,CollectionRow
+};
 
+pub enum UpdateParent<'a>{
+    Inherit
+    ,Overwrite(Vec<(&'a str,CollectionRow)>)
+}
 pub struct TransactionRecord<'a>{
     collection_id:u32
     ,update:Update
@@ -13,7 +20,7 @@ pub struct TransactionRecord<'a>{
     ,term_begin:i64
     ,term_end:i64
     ,fields:Vec<KeyValue<'a>>
-    ,parents:Vec<(&'a str,CollectionRow)>
+    ,parents:UpdateParent<'a>
     ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>
 }
 impl<'a> TransactionRecord<'a>{
@@ -24,7 +31,7 @@ impl<'a> TransactionRecord<'a>{
         ,term_begin:i64
         ,term_end:i64
         ,fields:Vec<KeyValue<'a>>
-        ,parents:Vec<(&'a str,CollectionRow)>
+        ,parents:UpdateParent<'a>
         ,childs:Vec<(&'a str,Vec<TransactionRecord<'a>>)>
     )->TransactionRecord<'a>{
         TransactionRecord{
@@ -41,12 +48,12 @@ impl<'a> TransactionRecord<'a>{
 }
 
 pub struct Transaction<'a>{
-    database:&'a mut super::Database
+    database:&'a mut Database
     ,records:Vec<TransactionRecord<'a>>
     ,deletes:Vec<CollectionRow>
 }
 impl<'a> Transaction<'a>{
-    pub fn new(database:&'a mut super::Database)->Transaction{
+    pub fn new(database:&'a mut Database)->Transaction{
         Transaction{
             database
             ,records:Vec::new()
@@ -68,7 +75,7 @@ impl<'a> Transaction<'a>{
         self.deletes=Vec::new();
     }
 
-    fn delete_recursive(database:&mut super::Database,target:&CollectionRow){
+    fn delete_recursive(database:&mut Database,target:&CollectionRow){
         let c=database.relation.index_parent().select_by_value(target);
         for relation_row in c{
             if let Some(child)=database.relation.index_child().value(relation_row){
@@ -80,17 +87,32 @@ impl<'a> Transaction<'a>{
             database.relation.delete(relation_row);
         }
     }
-    fn register_recursive(database:&mut super::Database,records:&Vec::<TransactionRecord>,incidentally_parent:Option<(&str,CollectionRow)>){
+    fn register_recursive(
+        database:&mut Database
+        ,records:&Vec::<TransactionRecord>
+        ,incidentally_parent:Option<(&str,CollectionRow)>
+    ){
         for r in records.iter(){
             if let Some(data)=database.collection_mut(r.collection_id){
                 let row=data.update(r.update,r.activity,r.term_begin,r.term_end,&r.fields);
-                for (relation_key,parent) in &r.parents{
-                    database.relation_mut().insert(
-                        relation_key
-                        ,*parent
-                        ,CollectionRow::new(r.collection_id,row)
-                    );
+                if let UpdateParent::Overwrite(ref parents)=r.parents{
+                    if let Update::Row(_)=r.update{
+                        let relations=database.relation().index_child().select_by_value(
+                            &CollectionRow::new(r.collection_id,row)
+                        );
+                        for i in relations{
+                            database.relation_mut().delete(i);
+                        }
+                    }
+                    for (relation_key,parent) in parents{
+                        database.relation_mut().insert(
+                            relation_key
+                            ,*parent
+                            ,CollectionRow::new(r.collection_id,row)
+                        );
+                    }
                 }
+                
                 if let Some((relation_key,parent_collection_row))=incidentally_parent{
                     database.relation_mut().insert(
                         relation_key

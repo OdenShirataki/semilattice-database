@@ -8,6 +8,7 @@ use semilattice_database::{
     Database
     ,TransactionRecord
     ,CollectionRow
+    ,UpdateParent
 };
 
 let dir="./sl-test/";
@@ -35,7 +36,7 @@ t.update(&mut vec![
             ("name","Joe".to_string())
             ,("birthday","1972-08-02".to_string())
         ]
-        ,vec![]
+        ,UpdateParent::Overwrite(vec![])
         ,vec![("history",vec![
             TransactionRecord::new(
                 collection_history
@@ -47,7 +48,7 @@ t.update(&mut vec![
                     ("date","1972-08-02".to_string())
                     ,("event","Birth".to_string())
                 ]
-                ,vec![]
+                ,UpdateParent::Overwrite(vec![])
                 ,vec![]
             )
             ,TransactionRecord::new(
@@ -60,7 +61,7 @@ t.update(&mut vec![
                     ("date","1999-12-31".to_string())
                     ,("event","Mariage".to_string())
                 ]
-                ,vec![]
+                ,UpdateParent::Overwrite(vec![])
                 ,vec![]
             )
         ])]
@@ -75,7 +76,7 @@ t.update(&mut vec![
             ("name","Tom".to_string())
             ,("birthday","2000-12-12".to_string())
         ]
-        ,vec![]
+        ,UpdateParent::Overwrite(vec![])
         ,vec![("history",vec![
             TransactionRecord::new(
                 collection_history
@@ -87,7 +88,7 @@ t.update(&mut vec![
                     ("date","2000-12-12".to_string())
                     ,("event","Birth".to_string())
                 ]
-                ,vec![]
+                ,UpdateParent::Overwrite(vec![])
                 ,vec![]
             )
         ])]
@@ -102,7 +103,7 @@ t.update(&mut vec![
             ("name","Billy".to_string())
             ,("birthday","1982-03-03".to_string())
         ]
-        ,vec![]
+        ,UpdateParent::Overwrite(vec![])
         ,vec![]
     )
 ]);
@@ -148,13 +149,13 @@ for i in range.clone(){
                 ("num",i.to_string())
                 ,("num_by3",(i*3).to_string())
             ]
-            ,vec![]
+            ,UpdateParent::Overwrite(vec![])
             ,vec![]
         )
     ]);
 }
 t.update(&mut vec![
-    TransactionRecord::new(test1,Update::Row(3),Activity::Inactive,0,0,vec![],vec![],vec![])
+    TransactionRecord::new(test1,Update::Row(3),Activity::Inactive,0,0,vec![],UpdateParent::Overwrite(vec![]),vec![])
 ]);
 t.commit();
 if let Some(t1)=database.collection(test1){
@@ -183,7 +184,7 @@ if let Some(t1)=database.collection(test1){
         .search_field("num",Field::Range(b"3".to_vec(),b"8".to_vec()))
         .search_default()   //Automatic execution of the following two lines
         //.search_term(Term::In(chrono::Local::now().timestamp()))
-        //.search_actibity(Activity::Active)
+        //.search_activity(Activity::Active)
         .result()
     ;
     println!("{:?}",r);
