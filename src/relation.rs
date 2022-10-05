@@ -86,6 +86,7 @@ impl RelationIndex{
     }
 }
 
+const U32SIZE:usize=std::mem::size_of::<u32>();
 struct Fragment{
     filemmap:FileMmap
     ,blank_list: Vec<u32>
@@ -93,9 +94,7 @@ struct Fragment{
 }
 impl Fragment{
     pub fn new(path:&str) -> Result<Fragment,std::io::Error>{
-        let u32size=std::mem::size_of::<u32>();
-
-        let init_size=u32size as u64;
+        let init_size=U32SIZE as u64;
         let filemmap=FileMmap::new(path,init_size)?;
         let blank_list=filemmap.offset(0) as *mut u32;
 
@@ -104,7 +103,7 @@ impl Fragment{
         let blank_count=if len==init_size{
             0
         }else{
-            len / u32size as u64 - 1
+            len / U32SIZE as u64 - 1
         } as u32;
         
         Ok(Fragment{
@@ -129,7 +128,7 @@ impl Fragment{
             };
             let last=unsafe{*p};
             unsafe{*p=0;}
-            let _=self.filemmap.set_len(self.filemmap.len()-std::mem::size_of::<u32>() as u64);
+            let _=self.filemmap.set_len(self.filemmap.len()-U32SIZE as u64);
             self.blank_count-=1;
             Some(last)
         }else{
