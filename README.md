@@ -7,6 +7,7 @@ use versatile_data::prelude::*;
 use semilattice_database::{
     Database
     ,TransactionRecord
+    ,TransactionOperation
     ,CollectionRow
     ,UpdateParent
 };
@@ -24,93 +25,99 @@ let mut database=Database::new(dir).unwrap();
 let collection_person=database.collection_id("person").unwrap();
 let collection_history=database.collection_id("history").unwrap();
 
-let mut t=database.begin_transaction();
-t.update(&mut vec![
-    TransactionRecord::new(
-        collection_person
-        ,Update::New
-        ,Activity::Active
-        ,UpdateTerm::Inherit
-        ,UpdateTerm::Inherit
-        ,vec![
-            ("name","Joe".to_string())
-            ,("birthday","1972-08-02".to_string())
-        ]
-        ,UpdateParent::Overwrite(vec![])
-        ,vec![("history",vec![
-            TransactionRecord::new(
-                collection_history
-                ,Update::New
-                ,Activity::Active
-                ,UpdateTerm::Inherit
-                ,UpdateTerm::Inherit
-                ,vec![
-                    ("date","1972-08-02".to_string())
-                    ,("event","Birth".to_string())
+if let Ok(mut sess)=database.session("test"){
+    sess.update(vec![
+        TransactionRecord::new(
+            collection_person
+            ,TransactionOperation::New{
+                activity:Activity::Active
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![
+                    ("name","Joe".to_string().into_bytes())
+                    ,("birthday","1972-08-02".to_string().into_bytes())
                 ]
-                ,UpdateParent::Overwrite(vec![])
-                ,vec![]
-            )
-            ,TransactionRecord::new(
-                collection_history
-                ,Update::New
-                ,Activity::Active
-                ,UpdateTerm::Inherit
-                ,UpdateTerm::Inherit
-                ,vec![
-                    ("date","1999-12-31".to_string())
-                    ,("event","Mariage".to_string())
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![("history",vec![
+                    TransactionRecord::new(
+                        collection_history
+                        ,TransactionOperation::New{
+                            activity:Activity::Active
+                            ,term_begin:UpdateTerm::Inherit
+                            ,term_end:UpdateTerm::Inherit
+                            ,fields:vec![
+                                ("date","1972-08-02".to_string().into_bytes())
+                                ,("event","Birth".to_string().into_bytes())
+                            ]
+                            ,parents:UpdateParent::Overwrite(vec![])
+                            ,childs:vec![]
+                        }
+                        
+                    )
+                    ,TransactionRecord::new(
+                        collection_history
+                        ,TransactionOperation::New{
+                            activity:Activity::Active
+                            ,term_begin:UpdateTerm::Inherit
+                            ,term_end:UpdateTerm::Inherit
+                            ,fields:vec![
+                                ("date","1999-12-31".as_bytes().to_vec())
+                                ,("event","Mariage".as_bytes().to_vec())
+                            ]
+                            ,parents:UpdateParent::Overwrite(vec![])
+                            ,childs:vec![]
+                        }
+                    )
+                ])]
+            }
+        )
+        ,TransactionRecord::new(
+            collection_person
+            ,TransactionOperation::New{
+                activity:Activity::Active
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![
+                    ("name","Tom".as_bytes().to_vec())
+                    ,("birthday","2000-12-12".as_bytes().to_vec())
                 ]
-                ,UpdateParent::Overwrite(vec![])
-                ,vec![]
-            )
-        ])]
-    )
-    ,TransactionRecord::new(
-        collection_person
-        ,Update::New
-        ,Activity::Active
-        ,UpdateTerm::Inherit
-        ,UpdateTerm::Inherit
-        ,vec![
-            ("name","Tom".to_string())
-            ,("birthday","2000-12-12".to_string())
-        ]
-        ,UpdateParent::Overwrite(vec![])
-        ,vec![("history",vec![
-            TransactionRecord::new(
-                collection_history
-                ,Update::New
-                ,Activity::Active
-                ,UpdateTerm::Inherit
-                ,UpdateTerm::Inherit
-                ,vec![
-                    ("date","2000-12-12".to_string())
-                    ,("event","Birth".to_string())
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![("history",vec![
+                    TransactionRecord::new(
+                        collection_history
+                        ,TransactionOperation::New{
+                            activity:Activity::Active
+                            ,term_begin:UpdateTerm::Inherit
+                            ,term_end:UpdateTerm::Inherit
+                            ,fields:vec![
+                                ("date","2000-12-12".as_bytes().to_vec())
+                                ,("event","Birth".as_bytes().to_vec())
+                            ]
+                            ,parents:UpdateParent::Overwrite(vec![])
+                            ,childs:vec![]
+                        }
+                        
+                    )
+                ])]
+            }
+        )
+        ,TransactionRecord::new(
+            collection_person
+            ,TransactionOperation::New{
+                activity:Activity::Active
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![
+                    ("name","Billy".as_bytes().to_vec())
+                    ,("birthday","1982-03-03".as_bytes().to_vec())
                 ]
-                ,UpdateParent::Overwrite(vec![])
-                ,vec![]
-            )
-        ])]
-    )
-    ,TransactionRecord::new(
-        collection_person
-        ,Update::New
-        ,Activity::Active
-        ,UpdateTerm::Inherit
-        ,UpdateTerm::Inherit
-        ,vec![
-            ("name","Billy".to_string())
-            ,("birthday","1982-03-03".to_string())
-        ]
-        ,UpdateParent::Overwrite(vec![])
-        ,vec![]
-    )
-]);
-t.commit();
-
-t.delete(collection_person,2);
-t.commit();
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![]
+            }
+        )
+    ]);
+    sess.public();
+}
 
 let relation=database.relation();
 if let Some(p)=database.collection(collection_person){
@@ -133,37 +140,42 @@ if let Some(p)=database.collection(collection_person){
         }
     }
 }
-
 let test1=database.collection_id("test1").unwrap();
+
 let mut t=database.begin_transaction();
 let range=1..=10;
 for i in range.clone(){
     t.update(&mut vec![
         TransactionRecord::new(
             test1
-            ,Update::New
-            ,Activity::Active
-            ,UpdateTerm::Inherit
-            ,UpdateTerm::Inherit
-            ,vec![
-                ("num",i.to_string())
-                ,("num_by3",(i*3).to_string())
-            ]
-            ,UpdateParent::Overwrite(vec![])
-            ,vec![]
+            ,TransactionOperation::New{
+                activity:Activity::Active
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![
+                    ("num",i.to_string().into_bytes())
+                    ,("num_by3",(i*3).to_string().into_bytes())
+                ]
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![]
+            }
+            
         )
     ]);
 }
 t.update(&mut vec![
     TransactionRecord::new(
         test1
-        ,Update::Row(3)
-        ,Activity::Inactive
-        ,UpdateTerm::Inherit
-        ,UpdateTerm::Inherit
-        ,vec![]
-        ,UpdateParent::Overwrite(vec![])
-        ,vec![]
+        ,TransactionOperation::Update{
+            row:3
+            ,activity:Activity::Inactive
+            ,term_begin:UpdateTerm::Inherit
+            ,term_end:UpdateTerm::Inherit
+            ,fields:vec![]
+            ,parents:UpdateParent::Overwrite(vec![])
+            ,childs:vec![]
+        }
+        
     )
 ]);
 t.commit();

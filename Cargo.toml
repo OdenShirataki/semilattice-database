@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.9.0"
+version = "0.10.0"
 edition = "2021"
 
 description = "Data is connected by a directed graph, and each node has an arbitrarily defined key-value..A database is not a tree."
@@ -12,6 +12,8 @@ categories = ["database","database-implementations"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
-versatile-data={path="../versatile-data" , version="0.34"}
+chrono="0.4"
+
+versatile-data={path="../versatile-data" , version="0.37"}
 idx_binary="0.3"
 file_mmap="0.4"

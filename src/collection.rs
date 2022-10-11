@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 #[derive(Clone,Copy,Default,Debug)]
 pub struct CollectionRow{
-    collection_id:u32
+    collection_id:i32
     ,row:u32
 }
 impl PartialOrd for CollectionRow {
@@ -36,7 +36,7 @@ impl Eq for CollectionRow {}
 
 impl CollectionRow{
     pub fn new(
-        collection_id:u32
+        collection_id:i32
         ,row:u32
     )->CollectionRow{
         CollectionRow{
@@ -44,7 +44,7 @@ impl CollectionRow{
             ,row
         }
     }
-    pub fn collection_id(&self)->u32{
+    pub fn collection_id(&self)->i32{
         self.collection_id
     }
     pub fn row(&self)->u32{

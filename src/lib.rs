@@ -4,7 +4,7 @@ use std::collections::HashMap;
 pub use versatile_data::{
     Data as Collection
     ,IdxSized
-    ,Update
+    ,Operation
 };
 pub use idx_binary::IdxBinary;
 
@@ -23,12 +23,16 @@ use transaction::Transaction;
 pub use transaction::{
     TransactionRecord
     ,UpdateParent
+    ,TransactionOperation
 };
+
+mod session;
+use session::Session;
 
 pub struct Database{
     root_dir:String
-    ,collections_map:HashMap<String,u32>
-    ,collections:BTreeMap<u32,Collection>
+    ,collections_map:HashMap<String,i32>
+    ,collections:BTreeMap<i32,Collection>
     ,relation:RelationIndex
 }
 impl Database{
@@ -47,8 +51,13 @@ impl Database{
             ,relation:RelationIndex::new(&root_dir)?
         })
     }
-
-    fn collection_by_name_or_create(&mut self,name:&str)->Result<u32,std::io::Error>{
+    pub fn root_dir(&self)->&str{
+        &self.root_dir
+    }
+    pub fn session<'a>(&'a mut self,name:&'a str)->Result<Session<'a>,std::io::Error>{
+        Session::new(self,name)
+    }
+    fn collection_by_name_or_create(&mut self,name:&str)->Result<i32,std::io::Error>{
         let mut max_id=0;
         let collections_dir=self.root_dir.to_string()+"/collection/";
         if let Ok(dir)=std::fs::read_dir(&collections_dir){
@@ -89,13 +98,13 @@ impl Database{
         );
         Ok(collection_id)
     }
-    pub fn collection(&self,id:u32)->Option<&Collection>{
+    pub fn collection(&self,id:i32)->Option<&Collection>{
         self.collections.get(&id)
     }
-    pub fn collection_mut(&mut self,id:u32)->Option<&mut Collection>{
+    pub fn collection_mut(&mut self,id:i32)->Option<&mut Collection>{
         self.collections.get_mut(&id)
     }
-    pub fn collection_id(&mut self,name:&str)->Result<u32,std::io::Error>{
+    pub fn collection_id(&mut self,name:&str)->Result<i32,std::io::Error>{
         if self.collections_map.contains_key(name){
             Ok(*self.collections_map.get(name).unwrap())
         }else{
