@@ -9,15 +9,55 @@ use versatile_data::{
     ,FieldData
 };
 use crate::{
-    UpdateParent
-    ,CollectionRow
+    CollectionRow
 };
-use crate::transaction::{
-    TransactionRecord
-    ,TransactionOperation
-};
-
 use super::Database;
+
+pub enum UpdateParent<'a>{
+    Inherit
+    ,Overwrite(Vec<(&'a str,CollectionRow)>)
+}
+pub enum Operation<'a>{
+    New{
+        activity:Activity
+        ,term_begin:UpdateTerm
+        ,term_end:UpdateTerm
+        ,fields:Vec<KeyValue<'a>>
+        ,parents:UpdateParent<'a>
+        ,childs:Vec<(&'a str,Vec<SessionRecord<'a>>)>
+    }
+    ,Update{
+        row:u32
+        ,activity:Activity
+        ,term_begin:UpdateTerm
+        ,term_end:UpdateTerm
+        ,fields:Vec<KeyValue<'a>>
+        ,parents:UpdateParent<'a>
+        ,childs:Vec<(&'a str,Vec<SessionRecord<'a>>)>
+    }
+    ,Delete{row:u32}
+}
+pub struct SessionRecord<'a>{
+    collection_id:i32
+    ,operation:Operation<'a>
+}
+impl<'a> SessionRecord<'a>{
+    pub fn new(
+        collection_id:i32
+        ,operation:Operation<'a>
+    )->SessionRecord<'a>{
+        SessionRecord{
+            collection_id
+            ,operation
+        }
+    }
+    pub fn collection_id(&self)->i32{
+        self.collection_id
+    }
+    pub fn operation(&self)->&Operation{
+        &self.operation
+    }
+}
 
 struct SequenceNumber{
     #[allow(dead_code)]
@@ -39,7 +79,7 @@ impl SequenceNumber{
     }
 }
 
-#[derive(Clone,Copy,Default,PartialEq, Eq,PartialOrd, Ord,Debug)]
+#[derive(Clone,Copy,Default,PartialEq,Eq,PartialOrd,Ord)]
 enum SessionOperation{
     #[default]
     New
@@ -312,7 +352,7 @@ impl<'a> Session<'a>{
         data:&mut SessionData
         ,session_dir:&str
         ,sequence:usize
-        ,records:&Vec::<TransactionRecord>
+        ,records:&Vec::<SessionRecord>
         ,incidentally_parent:Option<(&str,u32)>
     ){
         for record in records{
@@ -327,7 +367,7 @@ impl<'a> Session<'a>{
                 data.collection_id.update(session_row,collection_id);
 
                 match record.operation(){
-                    TransactionOperation::New{
+                    Operation::New{
                         activity,term_begin,term_end,fields,parents,childs
                     }=>{
                         data.operation.update(session_row,SessionOperation::New);
@@ -355,7 +395,7 @@ impl<'a> Session<'a>{
                             Self::update_recursive(data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }
-                    ,TransactionOperation::Update{
+                    ,Operation::Update{
                         row,activity,term_begin,term_end,fields,parents,childs
                     }=>{
                         data.operation.update(session_row,SessionOperation::Update);
@@ -388,7 +428,7 @@ impl<'a> Session<'a>{
                             Self::update_recursive(data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }
-                    ,TransactionOperation::Delete{row}=>{
+                    ,Operation::Delete{row}=>{
                         data.collection_row.update(session_row,*row);
                         data.operation.update(session_row,SessionOperation::Delete);
                     }
@@ -396,7 +436,7 @@ impl<'a> Session<'a>{
             }
         }
     }
-    pub fn update(&mut self,records:Vec::<TransactionRecord>){
+    pub fn update(&mut self,records:Vec::<SessionRecord>){
         match self.data{
             Some(ref mut data)=>{
                 let sequence=data.sequence_number.next();

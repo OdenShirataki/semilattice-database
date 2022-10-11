@@ -4,7 +4,6 @@ use std::collections::HashMap;
 pub use versatile_data::{
     Data as Collection
     ,IdxSized
-    ,Operation
 };
 pub use idx_binary::IdxBinary;
 
@@ -18,16 +17,13 @@ pub use relation::{
     RelationIndex
 };
 
-mod transaction;
-use transaction::Transaction;
-pub use transaction::{
-    TransactionRecord
-    ,UpdateParent
-    ,TransactionOperation
-};
-
 mod session;
-use session::Session;
+pub use session::{
+    Session
+    ,SessionRecord
+    ,Operation
+    ,UpdateParent
+};
 
 pub struct Database{
     root_dir:String
@@ -110,9 +106,6 @@ impl Database{
         }else{
             self.collection_by_name_or_create(name)
         }
-    }
-    pub fn begin_transaction(&mut self)->Transaction{
-        Transaction::new(self)
     }
     pub fn relation_mut(&mut self)->&mut RelationIndex{
         &mut self.relation

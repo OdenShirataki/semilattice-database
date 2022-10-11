@@ -5,8 +5,8 @@ fn it_works() {
     use versatile_data::prelude::*;
     use semilattice_database::{
         Database
-        ,TransactionRecord
-        ,TransactionOperation
+        ,SessionRecord
+        ,Operation
         ,CollectionRow
         ,UpdateParent
     };
@@ -26,9 +26,9 @@ fn it_works() {
 
     if let Ok(mut sess)=database.session("test"){
         sess.update(vec![
-            TransactionRecord::new(
+            SessionRecord::new(
                 collection_person
-                ,TransactionOperation::New{
+                ,Operation::New{
                     activity:Activity::Active
                     ,term_begin:UpdateTerm::Inherit
                     ,term_end:UpdateTerm::Inherit
@@ -38,9 +38,9 @@ fn it_works() {
                     ]
                     ,parents:UpdateParent::Overwrite(vec![])
                     ,childs:vec![("history",vec![
-                        TransactionRecord::new(
+                        SessionRecord::new(
                             collection_history
-                            ,TransactionOperation::New{
+                            ,Operation::New{
                                 activity:Activity::Active
                                 ,term_begin:UpdateTerm::Inherit
                                 ,term_end:UpdateTerm::Inherit
@@ -53,9 +53,9 @@ fn it_works() {
                             }
                             
                         )
-                        ,TransactionRecord::new(
+                        ,SessionRecord::new(
                             collection_history
-                            ,TransactionOperation::New{
+                            ,Operation::New{
                                 activity:Activity::Active
                                 ,term_begin:UpdateTerm::Inherit
                                 ,term_end:UpdateTerm::Inherit
@@ -70,9 +70,9 @@ fn it_works() {
                     ])]
                 }
             )
-            ,TransactionRecord::new(
+            ,SessionRecord::new(
                 collection_person
-                ,TransactionOperation::New{
+                ,Operation::New{
                     activity:Activity::Active
                     ,term_begin:UpdateTerm::Inherit
                     ,term_end:UpdateTerm::Inherit
@@ -82,9 +82,9 @@ fn it_works() {
                     ]
                     ,parents:UpdateParent::Overwrite(vec![])
                     ,childs:vec![("history",vec![
-                        TransactionRecord::new(
+                        SessionRecord::new(
                             collection_history
-                            ,TransactionOperation::New{
+                            ,Operation::New{
                                 activity:Activity::Active
                                 ,term_begin:UpdateTerm::Inherit
                                 ,term_end:UpdateTerm::Inherit
@@ -100,9 +100,9 @@ fn it_works() {
                     ])]
                 }
             )
-            ,TransactionRecord::new(
+            ,SessionRecord::new(
                 collection_person
-                ,TransactionOperation::New{
+                ,Operation::New{
                     activity:Activity::Active
                     ,term_begin:UpdateTerm::Inherit
                     ,term_end:UpdateTerm::Inherit
@@ -141,43 +141,44 @@ fn it_works() {
     }
     let test1=database.collection_id("test1").unwrap();
 
-    let mut t=database.begin_transaction();
     let range=1..=10;
-    for i in range.clone(){
-        t.update(&mut vec![
-            TransactionRecord::new(
+    if let Ok(mut sess)=database.session("test"){
+        for i in range.clone(){
+            sess.update(vec![
+                SessionRecord::new(
+                    test1
+                    ,Operation::New{
+                        activity:Activity::Active
+                        ,term_begin:UpdateTerm::Inherit
+                        ,term_end:UpdateTerm::Inherit
+                        ,fields:vec![
+                            ("num",i.to_string().into_bytes())
+                            ,("num_by3",(i*3).to_string().into_bytes())
+                        ]
+                        ,parents:UpdateParent::Overwrite(vec![])
+                        ,childs:vec![]
+                    }
+                    
+                )
+            ]);
+        }
+        sess.update(vec![
+            SessionRecord::new(
                 test1
-                ,TransactionOperation::New{
-                    activity:Activity::Active
+                ,Operation::Update{
+                    row:3
+                    ,activity:Activity::Inactive
                     ,term_begin:UpdateTerm::Inherit
                     ,term_end:UpdateTerm::Inherit
-                    ,fields:vec![
-                        ("num",i.to_string().into_bytes())
-                        ,("num_by3",(i*3).to_string().into_bytes())
-                    ]
+                    ,fields:vec![]
                     ,parents:UpdateParent::Overwrite(vec![])
                     ,childs:vec![]
                 }
                 
             )
         ]);
+        sess.public();
     }
-    t.update(&mut vec![
-        TransactionRecord::new(
-            test1
-            ,TransactionOperation::Update{
-                row:3
-                ,activity:Activity::Inactive
-                ,term_begin:UpdateTerm::Inherit
-                ,term_end:UpdateTerm::Inherit
-                ,fields:vec![]
-                ,parents:UpdateParent::Overwrite(vec![])
-                ,childs:vec![]
-            }
-            
-        )
-    ]);
-    t.commit();
     if let Some(t1)=database.collection(test1){
         let mut sum=0.0;
         for i in range.clone(){
