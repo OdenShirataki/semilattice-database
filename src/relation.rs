@@ -84,6 +84,16 @@ impl RelationIndex{
     pub fn index_child(&self)->&IdxSized<CollectionRow>{
         &self.rows.child
     }
+    pub fn parent(&self,row:u32)->Option<CollectionRow>{
+        self.rows.parent.value(row)
+    }
+    pub fn key(&self,row:u32)->&str{
+        if let Some(key_row)=self.rows.key.value(row){
+            self.key_names.str(key_row)
+        }else{
+            ""
+        }
+    }
 }
 
 const U32SIZE:usize=std::mem::size_of::<u32>();

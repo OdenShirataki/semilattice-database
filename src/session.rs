@@ -260,9 +260,9 @@ impl<'a> Session<'a>{
                                         let parent_collection_row=session_collection_row_map.get(&parent_session_row).unwrap();
 
                                         let key=data.relation.rows.key.value(*session_relation_row).unwrap();
-                                        let key=data.relation.key_names.into_string(key);
+                                        let key=data.relation.key_names.str(key);
                                         self.main_database.relation.insert(
-                                            &key
+                                            key
                                             ,*parent_collection_row
                                             ,cr
                                         );
@@ -343,7 +343,8 @@ impl<'a> Session<'a>{
         }
     }
     fn update_recursive(
-        data:&mut SessionData
+        master_database:&Database
+        ,data:&mut SessionData
         ,session_dir:&str
         ,sequence:usize
         ,records:&Vec::<SessionRecord>
@@ -393,7 +394,7 @@ impl<'a> Session<'a>{
                             ,incidentally_parent
                         );
                         for (key,records) in childs{
-                            Self::update_recursive(data,session_dir,sequence,records,Some((*key,session_row)));
+                            Self::update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }
                     ,Operation::Update{
@@ -412,7 +413,17 @@ impl<'a> Session<'a>{
                         );
                         match parents{
                             UpdateParent::Inherit=>{
-                                //TODO:既存データからとってくる
+                                let parents=master_database.relation().index_child().select_by_value(&CollectionRow::new(collection_id,*row));
+                                for i in parents{
+                                    let parent=master_database.relation().parent(i).unwrap();
+                                    data.relation.insert(
+                                        sequence
+                                        ,master_database.relation().key(i)
+                                        ,session_row
+                                        ,0
+                                        ,parent
+                                    );
+                                }
                             }
                             ,UpdateParent::Overwrite(parents)=>{   
                                 for (key,parent) in parents{
@@ -433,7 +444,7 @@ impl<'a> Session<'a>{
                             ,incidentally_parent
                         );
                         for (key,records) in childs{
-                            Self::update_recursive(data,session_dir,sequence,records,Some((*key,session_row)));
+                            Self::update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }
                     ,Operation::Delete{row}=>{
@@ -448,14 +459,14 @@ impl<'a> Session<'a>{
         match self.data{
             Some(ref mut data)=>{
                 let sequence=data.sequence_number.next();
-                Self::update_recursive(data,&self.session_dir,sequence,&records,None);
+                Self::update_recursive(&self.main_database,data,&self.session_dir,sequence,&records,None);
             }
             ,None=>{
                 if let Ok(data)=Self::new_data(&self.session_dir){
                     self.data=Some(data);
                     if let Some(ref mut data)=self.data{
                         let sequence=data.sequence_number.next();
-                        Self::update_recursive(data,&self.session_dir,sequence,&records,None);
+                        Self::update_recursive(&self.main_database,data,&self.session_dir,sequence,&records,None);
                     }
                 }
             }
