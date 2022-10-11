@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use idx_binary::IdxBinary;
-use file_mmap::FileMmap;
 use versatile_data::{
     IdxSized
     ,KeyValue
@@ -13,126 +11,21 @@ use crate::{
 };
 use super::Database;
 
-pub enum UpdateParent<'a>{
-    Inherit
-    ,Overwrite(Vec<(&'a str,CollectionRow)>)
-}
-pub enum Operation<'a>{
-    New{
-        activity:Activity
-        ,term_begin:UpdateTerm
-        ,term_end:UpdateTerm
-        ,fields:Vec<KeyValue<'a>>
-        ,parents:UpdateParent<'a>
-        ,childs:Vec<(&'a str,Vec<SessionRecord<'a>>)>
-    }
-    ,Update{
-        row:u32
-        ,activity:Activity
-        ,term_begin:UpdateTerm
-        ,term_end:UpdateTerm
-        ,fields:Vec<KeyValue<'a>>
-        ,parents:UpdateParent<'a>
-        ,childs:Vec<(&'a str,Vec<SessionRecord<'a>>)>
-    }
-    ,Delete{row:u32}
-}
-pub struct SessionRecord<'a>{
-    collection_id:i32
-    ,operation:Operation<'a>
-}
-impl<'a> SessionRecord<'a>{
-    pub fn new(
-        collection_id:i32
-        ,operation:Operation<'a>
-    )->SessionRecord<'a>{
-        SessionRecord{
-            collection_id
-            ,operation
-        }
-    }
-    pub fn collection_id(&self)->i32{
-        self.collection_id
-    }
-    pub fn operation(&self)->&Operation{
-        &self.operation
-    }
-}
+mod operation;
+pub use operation::{
+    Operation
+    ,SessionOperation
+    ,SessionRecord
+    ,UpdateParent
+};
 
-struct SequenceNumber{
-    #[allow(dead_code)]
-    filemmap:FileMmap
-    ,sequence_number: Vec<usize>
-}
-impl SequenceNumber{
-    pub fn new(path:&str)->Result<SequenceNumber,std::io::Error>{
-        let filemmap=FileMmap::new(path,std::mem::size_of::<usize>() as u64)?;
-        let ptr=filemmap.as_ptr() as *mut usize;
-        Ok(SequenceNumber{
-            filemmap
-            ,sequence_number:unsafe {Vec::from_raw_parts(ptr,1,0)}
-        })
-    }
-    pub fn next(&mut self)->usize{
-        self.sequence_number[0]+=1;
-        self.sequence_number[0]
-    }
-}
+mod sequence_number;
+use sequence_number::SequenceNumber;
 
-#[derive(Clone,Copy,Default,PartialEq,Eq,PartialOrd,Ord)]
-enum SessionOperation{
-    #[default]
-    New
-    ,Update
-    ,Delete
-}
-
-pub struct SessionRelationRows{
-    sequence:IdxSized<usize>
-    ,key:IdxSized<u32>
-    ,child_session_row:IdxSized<u32>
-    ,parent_session_row:IdxSized<u32>
-    ,parent:IdxSized<CollectionRow>
-    
-}
-pub struct SessionRelation{
-    key_names:IdxBinary
-    ,rows:SessionRelationRows
-}
-impl SessionRelation{
-    pub fn new(session_dir:&str)->SessionRelation{
-        let relation_dir=session_dir.to_string()+"/relation/";
-        if !std::path::Path::new(&relation_dir).exists(){
-            std::fs::create_dir_all(&relation_dir).unwrap();
-        }
-        SessionRelation{
-            key_names:IdxBinary::new(&(relation_dir.to_string()+"/key_name")).unwrap()
-            ,rows:SessionRelationRows{
-                sequence:IdxSized::new(&(relation_dir.to_string()+"/sequence.i")).unwrap()
-                ,key:IdxSized::new(&(relation_dir.to_string()+"/key.i")).unwrap()
-                ,child_session_row:IdxSized::new(&(relation_dir.to_string()+"/child_session_row.i")).unwrap()
-                ,parent_session_row:IdxSized::new(&(relation_dir.to_string()+"/parent_session_row.i")).unwrap()
-                ,parent:IdxSized::new(&(relation_dir.to_string()+"/parent.i")).unwrap()
-            }
-        }
-    }
-    pub fn insert(
-        &mut self
-        ,sequence:usize
-        ,relation_key:&str
-        ,child_session_row:u32
-        ,parent_session_row:u32
-        ,parent:CollectionRow
-    ){
-        if let Some(key_id)=self.key_names.entry(relation_key.as_bytes()){
-            self.rows.sequence.insert(sequence);
-            self.rows.key.insert(key_id);
-            self.rows.child_session_row.insert(child_session_row);
-            self.rows.parent_session_row.insert(parent_session_row);
-            self.rows.parent.insert(parent);
-        }
-    }
-}
+mod relation;
+use relation::{
+    SessionRelation
+};
 
 struct SessionData{
     sequence_number:SequenceNumber
