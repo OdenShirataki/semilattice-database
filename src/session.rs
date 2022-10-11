@@ -90,10 +90,10 @@ enum SessionOperation{
 pub struct SessionRelationRows{
     sequence:IdxSized<usize>
     ,key:IdxSized<u32>
+    ,child_session_row:IdxSized<u32>
     ,parent_session_row:IdxSized<u32>
     ,parent:IdxSized<CollectionRow>
-    ,child_session_row:IdxSized<u32>
-    ,child:IdxSized<CollectionRow>
+    
 }
 pub struct SessionRelation{
     key_names:IdxBinary
@@ -110,10 +110,9 @@ impl SessionRelation{
             ,rows:SessionRelationRows{
                 sequence:IdxSized::new(&(relation_dir.to_string()+"/sequence.i")).unwrap()
                 ,key:IdxSized::new(&(relation_dir.to_string()+"/key.i")).unwrap()
-                ,parent:IdxSized::new(&(relation_dir.to_string()+"/parent.i")).unwrap()
-                ,parent_session_row:IdxSized::new(&(relation_dir.to_string()+"/parent_session_row.i")).unwrap()
-                ,child:IdxSized::new(&(relation_dir.to_string()+"/child.i")).unwrap()
                 ,child_session_row:IdxSized::new(&(relation_dir.to_string()+"/child_session_row.i")).unwrap()
+                ,parent_session_row:IdxSized::new(&(relation_dir.to_string()+"/parent_session_row.i")).unwrap()
+                ,parent:IdxSized::new(&(relation_dir.to_string()+"/parent.i")).unwrap()
             }
         }
     }
@@ -122,17 +121,15 @@ impl SessionRelation{
         ,sequence:usize
         ,relation_key:&str
         ,child_session_row:u32
-        ,child:CollectionRow
         ,parent_session_row:u32
         ,parent:CollectionRow
     ){
         if let Some(key_id)=self.key_names.entry(relation_key.as_bytes()){
             self.rows.sequence.insert(sequence);
             self.rows.key.insert(key_id);
-            self.rows.child.insert(child);
             self.rows.child_session_row.insert(child_session_row);
-            self.rows.parent.insert(parent);
             self.rows.parent_session_row.insert(parent_session_row);
+            self.rows.parent.insert(parent);
         }
     }
 }
@@ -260,7 +257,6 @@ impl<'a> Session<'a>{
                                     for (session_relation_row,parent_session_row) in parent_rows{
                                         let parent_session_row=*parent_session_row;
 
-                                        
                                         let parent_collection_row=session_collection_row_map.get(&parent_session_row).unwrap();
 
                                         let key=data.relation.rows.key.value(*session_relation_row).unwrap();
@@ -330,7 +326,6 @@ impl<'a> Session<'a>{
         data:&mut SessionData
         ,sequence:usize
         ,child_session_row:u32
-        ,child_collection_row:CollectionRow
         ,incidentally_parent:Option<(&str,u32)>
     ){
         if let Some((relation_key,parent_session_row))=incidentally_parent{
@@ -342,7 +337,6 @@ impl<'a> Session<'a>{
                 sequence
                 ,relation_key
                 ,child_session_row
-                ,child_collection_row
                 ,parent_session_row
                 ,parent
             );
@@ -382,13 +376,20 @@ impl<'a> Session<'a>{
                             ,fields
                         );
                         if let UpdateParent::Overwrite(parents)=parents{
-
+                            for (key,parent) in parents{
+                                data.relation.insert(
+                                    sequence
+                                    ,key
+                                    ,session_row
+                                    ,0
+                                    ,*parent
+                                );
+                            }
                         }
                         Self::incidentally_parent(
                             data
                             ,sequence
                             ,session_row
-                            ,CollectionRow::new(collection_id,0)
                             ,incidentally_parent
                         );
                         for (key,records) in childs{
@@ -414,14 +415,21 @@ impl<'a> Session<'a>{
                                 //TODO:既存データからとってくる
                             }
                             ,UpdateParent::Overwrite(parents)=>{   
-                                //TODO:既存データを無視して上書き
+                                for (key,parent) in parents{
+                                    data.relation.insert(
+                                        sequence
+                                        ,key
+                                        ,session_row
+                                        ,0
+                                        ,*parent
+                                    );
+                                }
                             }
                         }
                         Self::incidentally_parent(
                             data
                             ,sequence
                             ,session_row
-                            ,CollectionRow::new(collection_id,*row)
                             ,incidentally_parent
                         );
                         for (key,records) in childs{
