@@ -5,8 +5,7 @@ fn it_works() {
     use versatile_data::prelude::*;
     use semilattice_database::{
         Database
-        ,SessionRecord
-        ,Operation
+        ,Record
         ,CollectionRow
         ,UpdateParent
     };
@@ -26,94 +25,80 @@ fn it_works() {
 
     if let Ok(mut sess)=database.session("test"){
         sess.update(vec![
-            SessionRecord::new(
-                collection_person
-                ,Operation::New{
-                    activity:Activity::Active
-                    ,term_begin:UpdateTerm::Inherit
-                    ,term_end:UpdateTerm::Inherit
-                    ,fields:vec![
-                        ("name","Joe".to_string().into_bytes())
-                        ,("birthday","1972-08-02".to_string().into_bytes())
-                    ]
-                    ,parents:UpdateParent::Overwrite(vec![])
-                    ,childs:vec![("history",vec![
-                        SessionRecord::new(
-                            collection_history
-                            ,Operation::New{
-                                activity:Activity::Active
-                                ,term_begin:UpdateTerm::Inherit
-                                ,term_end:UpdateTerm::Inherit
-                                ,fields:vec![
-                                    ("date","1972-08-02".to_string().into_bytes())
-                                    ,("event","Birth".to_string().into_bytes())
-                                ]
-                                ,parents:UpdateParent::Overwrite(vec![])
-                                ,childs:vec![]
-                            }
-                            
-                        )
-                        ,SessionRecord::new(
-                            collection_history
-                            ,Operation::New{
-                                activity:Activity::Active
-                                ,term_begin:UpdateTerm::Inherit
-                                ,term_end:UpdateTerm::Inherit
-                                ,fields:vec![
-                                    ("date","1999-12-31".as_bytes().to_vec())
-                                    ,("event","Mariage".as_bytes().to_vec())
-                                ]
-                                ,parents:UpdateParent::Overwrite(vec![])
-                                ,childs:vec![]
-                            }
-                        )
-                    ])]
-                }
-            )
-            ,SessionRecord::new(
-                collection_person
-                ,Operation::New{
-                    activity:Activity::Active
-                    ,term_begin:UpdateTerm::Inherit
-                    ,term_end:UpdateTerm::Inherit
-                    ,fields:vec![
-                        ("name","Tom".as_bytes().to_vec())
-                        ,("birthday","2000-12-12".as_bytes().to_vec())
-                    ]
-                    ,parents:UpdateParent::Overwrite(vec![])
-                    ,childs:vec![("history",vec![
-                        SessionRecord::new(
-                            collection_history
-                            ,Operation::New{
-                                activity:Activity::Active
-                                ,term_begin:UpdateTerm::Inherit
-                                ,term_end:UpdateTerm::Inherit
-                                ,fields:vec![
-                                    ("date","2000-12-12".as_bytes().to_vec())
-                                    ,("event","Birth".as_bytes().to_vec())
-                                ]
-                                ,parents:UpdateParent::Overwrite(vec![])
-                                ,childs:vec![]
-                            }
-                            
-                        )
-                    ])]
-                }
-            )
-            ,SessionRecord::new(
-                collection_person
-                ,Operation::New{
-                    activity:Activity::Active
-                    ,term_begin:UpdateTerm::Inherit
-                    ,term_end:UpdateTerm::Inherit
-                    ,fields:vec![
-                        ("name","Billy".as_bytes().to_vec())
-                        ,("birthday","1982-03-03".as_bytes().to_vec())
-                    ]
-                    ,parents:UpdateParent::Overwrite(vec![])
-                    ,childs:vec![]
-                }
-            )
+            Record::New{
+                collection_id:collection_person
+                ,activity:Activity::Active
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![
+                    ("name","Joe".to_string().into_bytes())
+                    ,("birthday","1972-08-02".to_string().into_bytes())
+                ]
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![("history",vec![
+                    Record::New{
+                        collection_id:collection_history
+                        ,activity:Activity::Active
+                        ,term_begin:UpdateTerm::Inherit
+                        ,term_end:UpdateTerm::Inherit
+                        ,fields:vec![
+                            ("date","1972-08-02".to_string().into_bytes())
+                            ,("event","Birth".to_string().into_bytes())
+                        ]
+                        ,parents:UpdateParent::Overwrite(vec![])
+                        ,childs:vec![]
+                    }
+                    ,Record::New{
+                        collection_id:collection_history
+                        ,activity:Activity::Active
+                        ,term_begin:UpdateTerm::Inherit
+                        ,term_end:UpdateTerm::Inherit
+                        ,fields:vec![
+                            ("date","1999-12-31".as_bytes().to_vec())
+                            ,("event","Mariage".as_bytes().to_vec())
+                        ]
+                        ,parents:UpdateParent::Overwrite(vec![])
+                        ,childs:vec![]
+                    }
+                ])]
+            }
+            ,Record::New{
+                collection_id:collection_person
+                ,activity:Activity::Active
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![
+                    ("name","Tom".as_bytes().to_vec())
+                    ,("birthday","2000-12-12".as_bytes().to_vec())
+                ]
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![("history",vec![
+                    Record::New{
+                        collection_id:collection_history
+                        ,activity:Activity::Active
+                        ,term_begin:UpdateTerm::Inherit
+                        ,term_end:UpdateTerm::Inherit
+                        ,fields:vec![
+                            ("date","2000-12-12".as_bytes().to_vec())
+                            ,("event","Birth".as_bytes().to_vec())
+                        ]
+                        ,parents:UpdateParent::Overwrite(vec![])
+                        ,childs:vec![]
+                    }
+                ])]
+            }
+            ,Record::New{
+                collection_id:collection_person
+                ,activity:Activity::Active
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![
+                    ("name","Billy".as_bytes().to_vec())
+                    ,("birthday","1982-03-03".as_bytes().to_vec())
+                ]
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![]
+            }
         ]);
         sess.public();
     }
@@ -145,37 +130,31 @@ fn it_works() {
     if let Ok(mut sess)=database.session("test"){
         for i in range.clone(){
             sess.update(vec![
-                SessionRecord::new(
-                    test1
-                    ,Operation::New{
-                        activity:Activity::Active
-                        ,term_begin:UpdateTerm::Inherit
-                        ,term_end:UpdateTerm::Inherit
-                        ,fields:vec![
-                            ("num",i.to_string().into_bytes())
-                            ,("num_by3",(i*3).to_string().into_bytes())
-                        ]
-                        ,parents:UpdateParent::Overwrite(vec![])
-                        ,childs:vec![]
-                    }
-                    
-                )
-            ]);
-        }
-        sess.update(vec![
-            SessionRecord::new(
-                test1
-                ,Operation::Update{
-                    row:3
-                    ,activity:Activity::Inactive
+                Record::New{
+                    collection_id:test1
+                    ,activity:Activity::Active
                     ,term_begin:UpdateTerm::Inherit
                     ,term_end:UpdateTerm::Inherit
-                    ,fields:vec![]
+                    ,fields:vec![
+                        ("num",i.to_string().into_bytes())
+                        ,("num_by3",(i*3).to_string().into_bytes())
+                    ]
                     ,parents:UpdateParent::Overwrite(vec![])
                     ,childs:vec![]
                 }
-                
-            )
+            ]);
+        }
+        sess.update(vec![
+            Record::Update{
+                collection_id:test1
+                ,row:3
+                ,activity:Activity::Inactive
+                ,term_begin:UpdateTerm::Inherit
+                ,term_end:UpdateTerm::Inherit
+                ,fields:vec![]
+                ,parents:UpdateParent::Overwrite(vec![])
+                ,childs:vec![]
+            }
         ]);
         sess.public();
     }

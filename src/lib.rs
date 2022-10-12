@@ -20,8 +20,7 @@ pub use relation::{
 mod session;
 pub use session::{
     Session
-    ,SessionRecord
-    ,Operation
+    ,Record
     ,UpdateParent
 };
 

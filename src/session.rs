@@ -13,9 +13,8 @@ use super::Database;
 
 mod operation;
 pub use operation::{
-    Operation
+    Record
     ,SessionOperation
-    ,SessionRecord
     ,UpdateParent
 };
 
@@ -240,7 +239,7 @@ impl<'a> Session<'a>{
         ,data:&mut SessionData
         ,session_dir:&str
         ,sequence:usize
-        ,records:&Vec::<SessionRecord>
+        ,records:&Vec::<Record>
         ,incidentally_parent:Option<(&str,u32)>
     ){
         for record in records{
@@ -251,13 +250,11 @@ impl<'a> Session<'a>{
                 data.term_begin.resize_to(session_row).unwrap();
                 data.term_end.resize_to(session_row).unwrap();
 
-                let collection_id=record.collection_id();
-                data.collection_id.update(session_row,collection_id);
-
-                match record.operation(){
-                    Operation::New{
-                        activity,term_begin,term_end,fields,parents,childs
+                match record{
+                    Record::New{
+                        collection_id,activity,term_begin,term_end,fields,parents,childs
                     }=>{
+                        data.collection_id.update(session_row,*collection_id);
                         data.operation.update(session_row,SessionOperation::New);
                         Self::update_row(
                             session_dir
@@ -290,9 +287,10 @@ impl<'a> Session<'a>{
                             Self::update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }
-                    ,Operation::Update{
-                        row,activity,term_begin,term_end,fields,parents,childs
+                    ,Record::Update{
+                        collection_id,row,activity,term_begin,term_end,fields,parents,childs
                     }=>{
+                        data.collection_id.update(session_row,*collection_id);
                         data.operation.update(session_row,SessionOperation::Update);
                         Self::update_row(
                             session_dir
@@ -306,7 +304,7 @@ impl<'a> Session<'a>{
                         );
                         match parents{
                             UpdateParent::Inherit=>{
-                                let parents=master_database.relation().index_child().select_by_value(&CollectionRow::new(collection_id,*row));
+                                let parents=master_database.relation().index_child().select_by_value(&CollectionRow::new(*collection_id,*row));
                                 for i in parents{
                                     let parent=master_database.relation().parent(i).unwrap();
                                     data.relation.insert(
@@ -340,7 +338,8 @@ impl<'a> Session<'a>{
                             Self::update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }
-                    ,Operation::Delete{row}=>{
+                    ,Record::Delete{collection_id,row}=>{
+                        data.collection_id.update(session_row,*collection_id);
                         data.collection_row.update(session_row,*row);
                         data.operation.update(session_row,SessionOperation::Delete);
                     }
@@ -348,7 +347,7 @@ impl<'a> Session<'a>{
             }
         }
     }
-    pub fn update(&mut self,records:Vec::<SessionRecord>){
+    pub fn update(&mut self,records:Vec::<Record>){
         match self.data{
             Some(ref mut data)=>{
                 let sequence=data.sequence_number.next();
