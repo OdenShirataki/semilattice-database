@@ -28,8 +28,8 @@ fn it_works() {
             Record::New{
                 collection_id:collection_person
                 ,activity:Activity::Active
-                ,term_begin:UpdateTerm::Inherit
-                ,term_end:UpdateTerm::Inherit
+                ,term_begin:UpdateTerm::Defalut
+                ,term_end:UpdateTerm::Defalut
                 ,fields:vec![
                     ("name","Joe".to_string().into_bytes())
                     ,("birthday","1972-08-02".to_string().into_bytes())
@@ -39,8 +39,8 @@ fn it_works() {
                     Record::New{
                         collection_id:collection_history
                         ,activity:Activity::Active
-                        ,term_begin:UpdateTerm::Inherit
-                        ,term_end:UpdateTerm::Inherit
+                        ,term_begin:UpdateTerm::Defalut
+                        ,term_end:UpdateTerm::Defalut
                         ,fields:vec![
                             ("date","1972-08-02".to_string().into_bytes())
                             ,("event","Birth".to_string().into_bytes())
@@ -51,8 +51,8 @@ fn it_works() {
                     ,Record::New{
                         collection_id:collection_history
                         ,activity:Activity::Active
-                        ,term_begin:UpdateTerm::Inherit
-                        ,term_end:UpdateTerm::Inherit
+                        ,term_begin:UpdateTerm::Defalut
+                        ,term_end:UpdateTerm::Defalut
                         ,fields:vec![
                             ("date","1999-12-31".as_bytes().to_vec())
                             ,("event","Mariage".as_bytes().to_vec())
@@ -65,8 +65,8 @@ fn it_works() {
             ,Record::New{
                 collection_id:collection_person
                 ,activity:Activity::Active
-                ,term_begin:UpdateTerm::Inherit
-                ,term_end:UpdateTerm::Inherit
+                ,term_begin:UpdateTerm::Defalut
+                ,term_end:UpdateTerm::Defalut
                 ,fields:vec![
                     ("name","Tom".as_bytes().to_vec())
                     ,("birthday","2000-12-12".as_bytes().to_vec())
@@ -76,8 +76,8 @@ fn it_works() {
                     Record::New{
                         collection_id:collection_history
                         ,activity:Activity::Active
-                        ,term_begin:UpdateTerm::Inherit
-                        ,term_end:UpdateTerm::Inherit
+                        ,term_begin:UpdateTerm::Defalut
+                        ,term_end:UpdateTerm::Defalut
                         ,fields:vec![
                             ("date","2000-12-12".as_bytes().to_vec())
                             ,("event","Birth".as_bytes().to_vec())
@@ -90,8 +90,8 @@ fn it_works() {
             ,Record::New{
                 collection_id:collection_person
                 ,activity:Activity::Active
-                ,term_begin:UpdateTerm::Inherit
-                ,term_end:UpdateTerm::Inherit
+                ,term_begin:UpdateTerm::Defalut
+                ,term_end:UpdateTerm::Defalut
                 ,fields:vec![
                     ("name","Billy".as_bytes().to_vec())
                     ,("birthday","1982-03-03".as_bytes().to_vec())
@@ -133,8 +133,8 @@ fn it_works() {
                 Record::New{
                     collection_id:test1
                     ,activity:Activity::Active
-                    ,term_begin:UpdateTerm::Inherit
-                    ,term_end:UpdateTerm::Inherit
+                    ,term_begin:UpdateTerm::Defalut
+                    ,term_end:UpdateTerm::Defalut
                     ,fields:vec![
                         ("num",i.to_string().into_bytes())
                         ,("num_by3",(i*3).to_string().into_bytes())
@@ -150,8 +150,8 @@ fn it_works() {
                 collection_id:test1
                 ,row:3
                 ,activity:Activity::Inactive
-                ,term_begin:UpdateTerm::Inherit
-                ,term_end:UpdateTerm::Inherit
+                ,term_begin:UpdateTerm::Defalut
+                ,term_end:UpdateTerm::Defalut
                 ,fields:vec![]
                 ,depends:UpdateDepends::Overwrite(vec![])
                 ,pends:vec![]
