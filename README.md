@@ -147,6 +147,21 @@ if let Ok(mut sess)=database.session("test"){
     }
     sess.public();
 }
+if let Ok(mut sess)=database.session("test"){
+    sess.update(vec![
+        Record::Update{
+            collection_id:test1
+            ,row:3
+            ,activity:Activity::Inactive
+            ,term_begin:UpdateTerm::Defalut
+            ,term_end:UpdateTerm::Defalut
+            ,fields:vec![]
+            ,depends:UpdateDepends::Overwrite(vec![])
+            ,pends:vec![]
+        }
+    ]);
+    sess.public();
+}
 if let Some(t1)=database.collection(test1){
     let mut sum=0.0;
     for i in range.clone(){

@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.14.0"
+version = "0.14.1"
 edition = "2021"
 
 description = "Data is connected by a directed graph, and each node has an arbitrarily defined key-value..A database is not a tree."

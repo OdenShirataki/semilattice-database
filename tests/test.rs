@@ -144,7 +144,9 @@ fn it_works() {
                 }
             ]);
         }
-        /*  TODO: updae in session
+        sess.public();
+    }
+    if let Ok(mut sess)=database.session("test"){
         sess.update(vec![
             Record::Update{
                 collection_id:test1
@@ -157,7 +159,6 @@ fn it_works() {
                 ,pends:vec![]
             }
         ]);
-         */
         sess.public();
     }
     if let Some(t1)=database.collection(test1){

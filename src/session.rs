@@ -72,6 +72,12 @@ impl<'a> Session<'a>{
             ,relation:SessionRelation::new(&session_dir)
         })
     }
+    pub fn clear(&mut self){
+        self.data=None;
+        if std::path::Path::new(&self.session_dir).exists(){
+            std::fs::remove_dir_all(&self.session_dir).unwrap();
+        }
+    }
     pub fn public(&mut self){
         if let Some(ref data)=self.data{
             let mut session_collection_row_map:HashMap<u32,CollectionRow>=HashMap::new();
@@ -174,10 +180,7 @@ impl<'a> Session<'a>{
                     }
                 }    
             }
-            self.data=None;
-            if std::path::Path::new(&self.session_dir).exists(){
-                std::fs::remove_dir_all(&self.session_dir).unwrap();
-            }
+            self.clear();
         }
     }
     fn delete_recursive(database:&mut Database,target:&CollectionRow){
