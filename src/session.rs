@@ -6,10 +6,10 @@ use versatile_data::{
     ,Activity
     ,FieldData
 };
-use crate::{
-    CollectionRow
+use super::{
+    Database
+    ,CollectionRow
 };
-use super::Database;
 
 mod operation;
 pub use operation::{
@@ -22,9 +22,7 @@ mod sequence_number;
 use sequence_number::SequenceNumber;
 
 mod relation;
-use relation::{
-    SessionRelation
-};
+use relation::SessionRelation;
 
 struct SessionData{
     sequence_number:SequenceNumber
