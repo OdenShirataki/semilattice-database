@@ -102,7 +102,7 @@ fn it_works() {
         ]);
         sess.public();
     }
-
+    
     let relation=database.relation();
     if let Some(p)=database.collection(collection_person){
         for i in 1..=3{
@@ -124,6 +124,24 @@ fn it_works() {
             }
         }
     }
+    /*
+    if let Ok(mut sess)=database.session("test"){
+        sess.update(vec![
+            Record::Update{
+                collection_id:collection_person
+                ,row:1
+                ,activity:Activity::Active
+                ,term_begin:UpdateTerm::Defalut
+                ,term_end:UpdateTerm::Defalut
+                ,fields:vec![("name","Renamed Joe".to_string().into_bytes())]
+                ,depends:UpdateDepends::Inherit
+                ,pends:vec![]
+            }
+        ]);
+        sess=sess.search(Condition::Activity(Activity::Active));
+        sess.public();
+    }
+     */
     let test1=database.collection_id("test1").unwrap();
 
     let range=1..=10;
@@ -146,6 +164,8 @@ fn it_works() {
         }
         sess.public();
     }
+    /*
+    println!("chk1");
     if let Ok(mut sess)=database.session("test"){
         sess.update(vec![
             Record::Update{
@@ -161,6 +181,8 @@ fn it_works() {
         ]);
         sess.public();
     }
+    println!("chk2");
+    */
     if let Some(t1)=database.collection(test1){
         let mut sum=0.0;
         for i in range.clone(){
