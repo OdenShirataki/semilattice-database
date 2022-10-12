@@ -8,20 +8,16 @@ pub use versatile_data::{
 pub use idx_binary::IdxBinary;
 
 mod collection;
-pub use collection::{
-    CollectionRow
-};
+pub use collection::CollectionRow;
 
 mod relation;
-pub use relation::{
-    RelationIndex
-};
+pub use relation::RelationIndex;
 
 mod session;
 pub use session::{
     Session
     ,Record
-    ,UpdateParent
+    ,UpdateDepends
 };
 
 pub struct Database{
@@ -106,13 +102,7 @@ impl Database{
             self.collection_by_name_or_create(name)
         }
     }
-    pub fn relation_mut(&mut self)->&mut RelationIndex{
-        &mut self.relation
-    }
     pub fn relation(&self)->&RelationIndex{
         &self.relation
-    }
-    pub fn childs(&self,key:&str,parent:&CollectionRow){
-        self.relation.childs(key,parent);
     }
 }

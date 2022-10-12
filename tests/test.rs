@@ -7,7 +7,7 @@ fn it_works() {
         Database
         ,Record
         ,CollectionRow
-        ,UpdateParent
+        ,UpdateDepends
     };
 
     let dir="./sl-test/";
@@ -34,8 +34,8 @@ fn it_works() {
                     ("name","Joe".to_string().into_bytes())
                     ,("birthday","1972-08-02".to_string().into_bytes())
                 ]
-                ,parents:UpdateParent::Overwrite(vec![])
-                ,childs:vec![("history",vec![
+                ,depends:UpdateDepends::Overwrite(vec![])
+                ,pends:vec![("history",vec![
                     Record::New{
                         collection_id:collection_history
                         ,activity:Activity::Active
@@ -45,8 +45,8 @@ fn it_works() {
                             ("date","1972-08-02".to_string().into_bytes())
                             ,("event","Birth".to_string().into_bytes())
                         ]
-                        ,parents:UpdateParent::Overwrite(vec![])
-                        ,childs:vec![]
+                        ,depends:UpdateDepends::Overwrite(vec![])
+                        ,pends:vec![]
                     }
                     ,Record::New{
                         collection_id:collection_history
@@ -57,8 +57,8 @@ fn it_works() {
                             ("date","1999-12-31".as_bytes().to_vec())
                             ,("event","Mariage".as_bytes().to_vec())
                         ]
-                        ,parents:UpdateParent::Overwrite(vec![])
-                        ,childs:vec![]
+                        ,depends:UpdateDepends::Overwrite(vec![])
+                        ,pends:vec![]
                     }
                 ])]
             }
@@ -71,8 +71,8 @@ fn it_works() {
                     ("name","Tom".as_bytes().to_vec())
                     ,("birthday","2000-12-12".as_bytes().to_vec())
                 ]
-                ,parents:UpdateParent::Overwrite(vec![])
-                ,childs:vec![("history",vec![
+                ,depends:UpdateDepends::Overwrite(vec![])
+                ,pends:vec![("history",vec![
                     Record::New{
                         collection_id:collection_history
                         ,activity:Activity::Active
@@ -82,8 +82,8 @@ fn it_works() {
                             ("date","2000-12-12".as_bytes().to_vec())
                             ,("event","Birth".as_bytes().to_vec())
                         ]
-                        ,parents:UpdateParent::Overwrite(vec![])
-                        ,childs:vec![]
+                        ,depends:UpdateDepends::Overwrite(vec![])
+                        ,pends:vec![]
                     }
                 ])]
             }
@@ -96,8 +96,8 @@ fn it_works() {
                     ("name","Billy".as_bytes().to_vec())
                     ,("birthday","1982-03-03".as_bytes().to_vec())
                 ]
-                ,parents:UpdateParent::Overwrite(vec![])
-                ,childs:vec![]
+                ,depends:UpdateDepends::Overwrite(vec![])
+                ,pends:vec![]
             }
         ]);
         sess.public();
@@ -111,7 +111,7 @@ fn it_works() {
                 ,p.field_str(i,"name")
                 ,p.field_str(i,"birthday")
             );
-            for h in relation.childs("history",&CollectionRow::new(collection_person,i)){
+            for h in relation.pends("history",&CollectionRow::new(collection_person,i)){
                 if let Some(col)=database.collection(h.collection_id()){
                     let row=h.row();
                     println!(
@@ -139,11 +139,12 @@ fn it_works() {
                         ("num",i.to_string().into_bytes())
                         ,("num_by3",(i*3).to_string().into_bytes())
                     ]
-                    ,parents:UpdateParent::Overwrite(vec![])
-                    ,childs:vec![]
+                    ,depends:UpdateDepends::Overwrite(vec![])
+                    ,pends:vec![]
                 }
             ]);
         }
+        /*  TODO: updae in session
         sess.update(vec![
             Record::Update{
                 collection_id:test1
@@ -152,10 +153,11 @@ fn it_works() {
                 ,term_begin:UpdateTerm::Inherit
                 ,term_end:UpdateTerm::Inherit
                 ,fields:vec![]
-                ,parents:UpdateParent::Overwrite(vec![])
-                ,childs:vec![]
+                ,depends:UpdateDepends::Overwrite(vec![])
+                ,pends:vec![]
             }
         ]);
+         */
         sess.public();
     }
     if let Some(t1)=database.collection(test1){

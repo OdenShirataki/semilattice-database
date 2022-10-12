@@ -5,6 +5,7 @@ use versatile_data::{
     ,UpdateTerm
     ,Activity
     ,FieldData
+    ,Operation
 };
 use super::{
     Database
@@ -15,7 +16,7 @@ mod operation;
 pub use operation::{
     Record
     ,SessionOperation
-    ,UpdateParent
+    ,UpdateDepends
 };
 
 mod sequence_number;
@@ -78,16 +79,16 @@ impl<'a> Session<'a>{
             let mut relation:HashMap<u32,Vec<(u32,u32,CollectionRow)>>=HashMap::new();
             for row in 1..data.relation.rows.sequence.max_rows(){
                 if let (
-                    Some(child)
-                    ,Some(parent_session_row)
-                    ,Some(parent)
+                    Some(session_row)
+                    ,Some(depend_session_row)
+                    ,Some(depend)
                 )=(
-                    data.relation.rows.child_session_row.value(row)
-                    ,data.relation.rows.parent_session_row.value(row)
-                    ,data.relation.rows.parent.value(row)
+                    data.relation.rows.session_row.value(row)
+                    ,data.relation.rows.depend_session_row.value(row)
+                    ,data.relation.rows.depend.value(row)
                 ){
-                    let m=relation.entry(child).or_insert(Vec::new());
-                    m.push((row,parent_session_row,parent));
+                    let m=relation.entry(session_row).or_insert(Vec::new());
+                    m.push((row,depend_session_row,depend));
                 }
             }
             for session_row in 1..data.sequence.max_rows(){
@@ -145,30 +146,29 @@ impl<'a> Session<'a>{
                                     ,collection_row
                                 );
                                 session_collection_row_map.insert(session_row,cr);
-                                if let Some(parent_rows)=relation.get(&session_row){
-                                    for (session_relation_row,parent_session_row,parent) in parent_rows{
+                                if let Some(depend_rows)=relation.get(&session_row){
+                                    for (session_relation_row,depend_session_row,depend) in depend_rows{
                                         let key=data.relation.rows.key.value(*session_relation_row).unwrap();
                                         let key=data.relation.key_names.str(key);
-                                        let parent_session_row=*parent_session_row;
-                                        if parent_session_row==0{
+                                        let depend_session_row=*depend_session_row;
+                                        if depend_session_row==0{
                                             self.main_database.relation.insert(
                                                 key
-                                                ,*session_collection_row_map.get(&parent_session_row).unwrap()
+                                                ,*depend
                                                 ,cr
                                             );
                                         }else{
                                             self.main_database.relation.insert(
                                                 key
-                                                ,*parent
+                                                ,*session_collection_row_map.get(&depend_session_row).unwrap()
                                                 ,cr
                                             );
-                                            
                                         };
                                     }
                                 }
                             }
                             ,SessionOperation::Delete=>{
-                                collection.delete(collection_row);
+                                Self::delete_recursive(self.main_database,&CollectionRow::new(collection_id,collection_row));
                             }
                         }
                     }
@@ -180,7 +180,18 @@ impl<'a> Session<'a>{
             }
         }
     }
-
+    fn delete_recursive(database:&mut Database,target:&CollectionRow){
+        let c=database.relation.index_depend().select_by_value(target);
+        for relation_row in c{
+            if let Some(collection_row)=database.relation.index_pend().value(relation_row){
+                Self::delete_recursive(database,&collection_row);
+                if let Some(collection)=database.collection_mut(collection_row.collection_id()){
+                    collection.update(&Operation::Delete{row:collection_row.row()});
+                }
+            }
+            database.relation.delete(relation_row);
+        }
+    }
     fn update_row(
         session_dir:&str
         ,data:&mut SessionData
@@ -220,23 +231,23 @@ impl<'a> Session<'a>{
             field.update(session_row,value);
         }
     }
-    fn incidentally_parent(
+    fn incidentally_depend(
         data:&mut SessionData
         ,sequence:usize
-        ,child_session_row:u32
-        ,incidentally_parent:Option<(&str,u32)>
+        ,pend_session_row:u32
+        ,incidentally_depend:Option<(&str,u32)>
     ){
-        if let Some((relation_key,parent_session_row))=incidentally_parent{
-            let parent=CollectionRow::new(
-                data.collection_id.value(parent_session_row).unwrap()
-                ,data.collection_row.value(parent_session_row).unwrap()
+        if let Some((relation_key,depend_session_row))=incidentally_depend{
+            let depend=CollectionRow::new(
+                data.collection_id.value(depend_session_row).unwrap()
+                ,data.collection_row.value(depend_session_row).unwrap()
             );
             data.relation.insert(
                 sequence
                 ,relation_key
-                ,child_session_row
-                ,parent_session_row
-                ,parent
+                ,pend_session_row
+                ,depend_session_row
+                ,depend
             );
         }
     }
@@ -246,7 +257,7 @@ impl<'a> Session<'a>{
         ,session_dir:&str
         ,sequence:usize
         ,records:&Vec::<Record>
-        ,incidentally_parent:Option<(&str,u32)>
+        ,incidentally_depend:Option<(&str,u32)>
     ){
         for record in records{
             if let Some(session_row)=data.sequence.insert(sequence){
@@ -258,7 +269,7 @@ impl<'a> Session<'a>{
 
                 match record{
                     Record::New{
-                        collection_id,activity,term_begin,term_end,fields,parents,childs
+                        collection_id,activity,term_begin,term_end,fields,depends,pends
                     }=>{
                         data.collection_id.update(session_row,*collection_id);
                         data.operation.update(session_row,SessionOperation::New);
@@ -272,29 +283,29 @@ impl<'a> Session<'a>{
                             ,term_end
                             ,fields
                         );
-                        if let UpdateParent::Overwrite(parents)=parents{
-                            for (key,parent) in parents{
+                        if let UpdateDepends::Overwrite(depends)=depends{
+                            for (key,depend) in depends{
                                 data.relation.insert(
                                     sequence
                                     ,key
                                     ,session_row
                                     ,0
-                                    ,*parent
+                                    ,*depend
                                 );
                             }
                         }
-                        Self::incidentally_parent(
+                        Self::incidentally_depend(
                             data
                             ,sequence
                             ,session_row
-                            ,incidentally_parent
+                            ,incidentally_depend
                         );
-                        for (key,records) in childs{
+                        for (key,records) in pends{
                             Self::update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }
                     ,Record::Update{
-                        collection_id,row,activity,term_begin,term_end,fields,parents,childs
+                        collection_id,row,activity,term_begin,term_end,fields,depends,pends
                     }=>{
                         data.collection_id.update(session_row,*collection_id);
                         data.operation.update(session_row,SessionOperation::Update);
@@ -308,39 +319,39 @@ impl<'a> Session<'a>{
                             ,term_end
                             ,fields
                         );
-                        match parents{
-                            UpdateParent::Inherit=>{
-                                let parents=master_database.relation().index_child().select_by_value(&CollectionRow::new(*collection_id,*row));
-                                for i in parents{
-                                    let parent=master_database.relation().parent(i).unwrap();
+                        match depends{
+                            UpdateDepends::Inherit=>{
+                                let depends=master_database.relation().index_pend().select_by_value(&CollectionRow::new(*collection_id,*row));
+                                for i in depends{
+                                    let depend=master_database.relation().depend(i).unwrap();
                                     data.relation.insert(
                                         sequence
                                         ,master_database.relation().key(i)
                                         ,session_row
                                         ,0
-                                        ,parent
+                                        ,depend
                                     );
                                 }
                             }
-                            ,UpdateParent::Overwrite(parents)=>{   
-                                for (key,parent) in parents{
+                            ,UpdateDepends::Overwrite(depends)=>{   
+                                for (key,depend) in depends{
                                     data.relation.insert(
                                         sequence
                                         ,key
                                         ,session_row
                                         ,0
-                                        ,*parent
+                                        ,*depend
                                     );
                                 }
                             }
                         }
-                        Self::incidentally_parent(
+                        Self::incidentally_depend(
                             data
                             ,sequence
                             ,session_row
-                            ,incidentally_parent
+                            ,incidentally_depend
                         );
-                        for (key,records) in childs{
+                        for (key,records) in pends{
                             Self::update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
                         }
                     }

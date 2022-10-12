@@ -5,9 +5,9 @@ use crate::CollectionRow;
 pub struct SessionRelationRows{
     pub(super) sequence:IdxSized<usize>
     ,pub(super) key:IdxSized<u32>
-    ,pub(super) child_session_row:IdxSized<u32>
-    ,pub(super) parent_session_row:IdxSized<u32>
-    ,pub(super) parent:IdxSized<CollectionRow>
+    ,pub(super) session_row:IdxSized<u32>
+    ,pub(super) depend_session_row:IdxSized<u32>
+    ,pub(super) depend:IdxSized<CollectionRow>
 }
 pub struct SessionRelation{
     pub(super) key_names:IdxBinary
@@ -24,9 +24,9 @@ impl SessionRelation{
             ,rows:SessionRelationRows{
                 sequence:IdxSized::new(&(relation_dir.to_string()+"/sequence.i")).unwrap()
                 ,key:IdxSized::new(&(relation_dir.to_string()+"/key.i")).unwrap()
-                ,child_session_row:IdxSized::new(&(relation_dir.to_string()+"/child_session_row.i")).unwrap()
-                ,parent_session_row:IdxSized::new(&(relation_dir.to_string()+"/parent_session_row.i")).unwrap()
-                ,parent:IdxSized::new(&(relation_dir.to_string()+"/parent.i")).unwrap()
+                ,session_row:IdxSized::new(&(relation_dir.to_string()+"/session_row.i")).unwrap()
+                ,depend_session_row:IdxSized::new(&(relation_dir.to_string()+"/depend_session_row.i")).unwrap()
+                ,depend:IdxSized::new(&(relation_dir.to_string()+"/depend.i")).unwrap()
             }
         }
     }
@@ -34,16 +34,16 @@ impl SessionRelation{
         &mut self
         ,sequence:usize
         ,relation_key:&str
-        ,child_session_row:u32
-        ,parent_session_row:u32
-        ,parent:CollectionRow
+        ,session_row:u32
+        ,depend_session_row:u32
+        ,depend:CollectionRow
     ){
         if let Some(key_id)=self.key_names.entry(relation_key.as_bytes()){
             self.rows.sequence.insert(sequence);
             self.rows.key.insert(key_id);
-            self.rows.child_session_row.insert(child_session_row);
-            self.rows.parent_session_row.insert(parent_session_row);
-            self.rows.parent.insert(parent);
+            self.rows.session_row.insert(session_row);
+            self.rows.depend_session_row.insert(depend_session_row);
+            self.rows.depend.insert(depend);
         }
     }
 }

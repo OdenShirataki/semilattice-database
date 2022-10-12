@@ -3,9 +3,7 @@ use versatile_data::{
     ,UpdateTerm
     ,Activity
 };
-use crate::{
-    CollectionRow
-};
+use crate::CollectionRow;
 
 #[derive(Clone,Copy,Default,PartialEq,Eq,PartialOrd,Ord)]
 pub enum SessionOperation{
@@ -15,7 +13,7 @@ pub enum SessionOperation{
     ,Delete
 }
 
-pub enum UpdateParent<'a>{
+pub enum UpdateDepends<'a>{
     Inherit
     ,Overwrite(Vec<(&'a str,CollectionRow)>)
 }
@@ -27,8 +25,8 @@ pub enum Record<'a>{
         ,term_begin:UpdateTerm
         ,term_end:UpdateTerm
         ,fields:Vec<KeyValue<'a>>
-        ,parents:UpdateParent<'a>
-        ,childs:Vec<(&'a str,Vec<Record<'a>>)>
+        ,depends:UpdateDepends<'a>
+        ,pends:Vec<(&'a str,Vec<Record<'a>>)>
     }
     ,Update{
         collection_id:i32
@@ -37,8 +35,8 @@ pub enum Record<'a>{
         ,term_begin:UpdateTerm
         ,term_end:UpdateTerm
         ,fields:Vec<KeyValue<'a>>
-        ,parents:UpdateParent<'a>
-        ,childs:Vec<(&'a str,Vec<Record<'a>>)>
+        ,depends:UpdateDepends<'a>
+        ,pends:Vec<(&'a str,Vec<Record<'a>>)>
     }
     ,Delete{
         collection_id:i32

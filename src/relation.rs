@@ -6,8 +6,8 @@ use crate::collection::CollectionRow;
 
 struct RelationIndexRows{
     key:IdxSized<u32>
-    ,parent:IdxSized<CollectionRow>
-    ,child:IdxSized<CollectionRow>
+    ,depend:IdxSized<CollectionRow>
+    ,pend:IdxSized<CollectionRow>
 }
 pub struct RelationIndex{
     fragment:Fragment
@@ -18,59 +18,53 @@ impl RelationIndex{
     pub fn new(
         root_dir:&str
     )->Result<RelationIndex,std::io::Error>{
+        let dir=root_dir.to_string()+"/relation/";
+        if !std::path::Path::new(&dir).exists(){
+            std::fs::create_dir_all(&dir).unwrap();
+        }
         Ok(RelationIndex{
-            key_names:IdxBinary::new(&(root_dir.to_string()+"/relation_key_name"))?
-            ,fragment:Fragment::new(&(root_dir.to_string()+"/relation.f"))?
+            key_names:IdxBinary::new(&(dir.to_string()+"/key_name"))?
+            ,fragment:Fragment::new(&(dir.to_string()+"/fragment.f"))?
             ,rows:RelationIndexRows{
-                key:IdxSized::new(&(root_dir.to_string()+"/relation_key.i"))?
-                ,parent:IdxSized::new(&(root_dir.to_string()+"/relation_parent.i"))?
-                ,child:IdxSized::new(&(root_dir.to_string()+"/relation_child.i"))?
+                key:IdxSized::new(&(dir.to_string()+"/key.i"))?
+                ,depend:IdxSized::new(&(dir.to_string()+"/depend.i"))?
+                ,pend:IdxSized::new(&(dir.to_string()+"/pend.i"))?
             }
         })
     }
-    pub fn insert(&mut self,relation_key:&str,parent:CollectionRow,child:CollectionRow){
+    pub fn insert(&mut self,relation_key:&str,depend:CollectionRow,pend:CollectionRow){
         if let Some(key_id)=self.key_names.entry(relation_key.as_bytes()){
             if let Some(row)=self.fragment.pop(){
                 self.rows.key.update(row,key_id);
-                self.rows.parent.update(row,parent);
-                self.rows.child.update(row,child);
+                self.rows.depend.update(row,depend);
+                self.rows.pend.update(row,pend);
             }else{
                 self.rows.key.insert(key_id);
-                self.rows.parent.insert(parent);
-                self.rows.child.insert(child);
+                self.rows.depend.insert(depend);
+                self.rows.pend.insert(pend);
             }
         }
     }
     pub fn delete(&mut self,row:u32){
         self.rows.key.delete(row);
-        self.rows.parent.delete(row);
-        self.rows.child.delete(row);
+        self.rows.depend.delete(row);
+        self.rows.pend.delete(row);
         self.fragment.insert_blank(row);
     }
-    pub fn childs_all(&self,parent:&CollectionRow)->Vec<CollectionRow>{
-        let mut ret:Vec<CollectionRow>=Vec::new();
-        let c=self.rows.parent.select_by_value(parent);
-        for i in c{
-            if let Some(child)=self.rows.child.value(i){
-                ret.push(child);
-            }
-        }
-        ret
-    }
-    pub fn childs(&self,key:&str,parent:&CollectionRow)->Vec<CollectionRow>{
+    pub fn pends(&self,key:&str,depend:&CollectionRow)->Vec<CollectionRow>{
         let mut ret:Vec<CollectionRow>=Vec::new();
         if let Some(key)=self.key_names.row(key.as_bytes()){
-            let c=self.rows.parent.select_by_value(parent);
+            let c=self.rows.depend.select_by_value(depend);
             for i in c{
                 if let (
                     Some(key_row)
-                    ,Some(child)
+                    ,Some(collection_row)
                 )=(
                     self.rows.key.value(i)
-                    ,self.rows.child.value(i)
+                    ,self.rows.pend.value(i)
                 ){
                     if key_row==key{
-                        ret.push(child);
+                        ret.push(collection_row);
                     }
                 }
                 
@@ -78,14 +72,14 @@ impl RelationIndex{
         }
         ret
     }
-    pub fn index_parent(&self)->&IdxSized<CollectionRow>{
-        &self.rows.parent
+    pub fn index_depend(&self)->&IdxSized<CollectionRow>{
+        &self.rows.depend
     }
-    pub fn index_child(&self)->&IdxSized<CollectionRow>{
-        &self.rows.child
+    pub fn index_pend(&self)->&IdxSized<CollectionRow>{
+        &self.rows.pend
     }
-    pub fn parent(&self,row:u32)->Option<CollectionRow>{
-        self.rows.parent.value(row)
+    pub fn depend(&self,row:u32)->Option<CollectionRow>{
+        self.rows.depend.value(row)
     }
     pub fn key(&self,row:u32)->&str{
         if let Some(key_row)=self.rows.key.value(row){
