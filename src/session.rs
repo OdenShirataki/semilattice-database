@@ -75,17 +75,19 @@ impl<'a> Session<'a>{
         if let Some(ref data)=self.data{
             let mut session_collection_row_map:HashMap<u32,CollectionRow>=HashMap::new();
 
-            let mut relation:HashMap<u32,Vec<(u32,u32)>>=HashMap::new();
+            let mut relation:HashMap<u32,Vec<(u32,u32,CollectionRow)>>=HashMap::new();
             for row in 1..data.relation.rows.sequence.max_rows(){
                 if let (
                     Some(child)
+                    ,Some(parent_session_row)
                     ,Some(parent)
                 )=(
                     data.relation.rows.child_session_row.value(row)
                     ,data.relation.rows.parent_session_row.value(row)
+                    ,data.relation.rows.parent.value(row)
                 ){
                     let m=relation.entry(child).or_insert(Vec::new());
-                    m.push((row,parent));
+                    m.push((row,parent_session_row,parent));
                 }
             }
             for session_row in 1..data.sequence.max_rows(){
@@ -144,18 +146,24 @@ impl<'a> Session<'a>{
                                 );
                                 session_collection_row_map.insert(session_row,cr);
                                 if let Some(parent_rows)=relation.get(&session_row){
-                                    for (session_relation_row,parent_session_row) in parent_rows{
-                                        let parent_session_row=*parent_session_row;
-
-                                        let parent_collection_row=session_collection_row_map.get(&parent_session_row).unwrap();
-
+                                    for (session_relation_row,parent_session_row,parent) in parent_rows{
                                         let key=data.relation.rows.key.value(*session_relation_row).unwrap();
                                         let key=data.relation.key_names.str(key);
-                                        self.main_database.relation.insert(
-                                            key
-                                            ,*parent_collection_row
-                                            ,cr
-                                        );
+                                        let parent_session_row=*parent_session_row;
+                                        if parent_session_row==0{
+                                            self.main_database.relation.insert(
+                                                key
+                                                ,*session_collection_row_map.get(&parent_session_row).unwrap()
+                                                ,cr
+                                            );
+                                        }else{
+                                            self.main_database.relation.insert(
+                                                key
+                                                ,*parent
+                                                ,cr
+                                            );
+                                            
+                                        };
                                     }
                                 }
                             }
