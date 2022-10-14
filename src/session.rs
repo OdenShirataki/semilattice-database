@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 use versatile_data::{
     IdxSized
-    ,Activity
     ,FieldData
-    ,Condition
-    ,Term
+    ,Activity
 };
 use super::Database;
 
@@ -12,7 +10,7 @@ mod operation;
 pub use operation::{
     Record
     ,SessionOperation
-    ,UpdateDepends
+    ,Depends
 };
 
 mod sequence_number;
@@ -23,6 +21,18 @@ use relation::SessionRelation;
 
 mod update;
 use update::*;
+
+mod search;
+use search::SessionSearch;
+
+#[derive(Debug)]
+struct TemporaryDataEntity{
+    activity:Activity
+    ,term_begin:i64
+    ,term_end:i64
+    ,fields:HashMap<String,Vec<u8>>
+}
+type TemporaryData=HashMap<i32,HashMap<u32,TemporaryDataEntity>>;
 
 struct SessionData{
     sequence_number:SequenceNumber
@@ -39,8 +49,8 @@ struct SessionData{
 pub struct Session<'a>{
     main_database:&'a mut Database
     ,session_dir:String
-    ,data:Option<SessionData>
-    ,search_condition:Vec<Condition>
+    ,session_data:Option<SessionData>
+    ,temporary_data:TemporaryData
 }
 impl<'a> Session<'a>{
     pub fn new(
@@ -54,8 +64,8 @@ impl<'a> Session<'a>{
         Ok(Session{
             main_database
             ,session_dir:session_dir.to_string()
-            ,data:Some(Self::new_data(&session_dir)?)
-            ,search_condition:Vec::new()
+            ,session_data:Some(Self::new_data(&session_dir)?)
+            ,temporary_data:HashMap::new()
         })
     }
     
@@ -74,41 +84,35 @@ impl<'a> Session<'a>{
         })
     }
     pub fn clear(&mut self){
-        self.data=None;
+        self.session_data=None;
         if std::path::Path::new(&self.session_dir).exists(){
             std::fs::remove_dir_all(&self.session_dir).unwrap();
         }
     }
     pub fn public(&mut self){
-        if let Some(ref mut data)=self.data{
+        if let Some(ref mut data)=self.session_data{
             public(data,self.main_database);
             self.clear();
         }
     }
     pub fn update(&mut self,records:Vec::<Record>){
-        match self.data{
+        match self.session_data{
             Some(ref mut data)=>{
                 let sequence=data.sequence_number.next();
-                update_recursive(&self.main_database,data,&self.session_dir,sequence,&records,None);
+                update_recursive(&self.main_database,data,&mut self.temporary_data,&self.session_dir,sequence,&records,None);
             }
             ,None=>{
                 if let Ok(data)=Self::new_data(&self.session_dir){
-                    self.data=Some(data);
-                    if let Some(ref mut data)=self.data{
+                    self.session_data=Some(data);
+                    if let Some(ref mut data)=self.session_data{
                         let sequence=data.sequence_number.next();
-                        update_recursive(&self.main_database,data,&self.session_dir,sequence,&records,None);
+                        update_recursive(&self.main_database,data,&mut self.temporary_data,&self.session_dir,sequence,&records,None);
                     }
                 }
             }
         }
     }
-    pub fn search_default(mut self)->Self{
-        self.search_condition.push(Condition::Term(Term::In(chrono::Local::now().timestamp())));
-        self.search_condition.push(Condition::Activity(Activity::Active));
-        self
-    }
-    pub fn search(mut self,condition:Condition)->Self{
-        self.search_condition.push(condition);
-        self
+    pub fn begin_search(&self,collection_id:i32)->SessionSearch{
+        SessionSearch::new(self,collection_id)
     }
 }

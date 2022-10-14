@@ -1,6 +1,6 @@
 use versatile_data::{
     KeyValue
-    ,UpdateTerm
+    ,Term
     ,Activity
 };
 use crate::CollectionRow;
@@ -13,7 +13,7 @@ pub enum SessionOperation{
     ,Delete
 }
 
-pub enum UpdateDepends<'a>{
+pub enum Depends<'a>{
     Inherit
     ,Overwrite(Vec<(&'a str,CollectionRow)>)
 }
@@ -22,20 +22,20 @@ pub enum Record<'a>{
     New{
         collection_id:i32
         ,activity:Activity
-        ,term_begin:UpdateTerm
-        ,term_end:UpdateTerm
+        ,term_begin:Term
+        ,term_end:Term
         ,fields:Vec<KeyValue<'a>>
-        ,depends:UpdateDepends<'a>
+        ,depends:Depends<'a>
         ,pends:Vec<(&'a str,Vec<Record<'a>>)>
     }
     ,Update{
         collection_id:i32
         ,row:u32
         ,activity:Activity
-        ,term_begin:UpdateTerm
-        ,term_end:UpdateTerm
+        ,term_begin:Term
+        ,term_end:Term
         ,fields:Vec<KeyValue<'a>>
-        ,depends:UpdateDepends<'a>
+        ,depends:Depends<'a>
         ,pends:Vec<(&'a str,Vec<Record<'a>>)>
     }
     ,Delete{

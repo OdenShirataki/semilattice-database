@@ -2,16 +2,16 @@ use std::collections::HashMap;
 
 use versatile_data::{
     Activity
-    ,UpdateTerm
     ,KeyValue
     ,FieldData
     ,Operation
+    ,Term
 };
 
 use crate::{
     Database
     ,Record
-    ,UpdateDepends
+    ,Depends
     ,CollectionRow
 };
 
@@ -68,10 +68,10 @@ pub(super) fn public(
                         }else{
                             Activity::Inactive
                         };
-                        let term_begin=UpdateTerm::Overwrite(
+                        let term_begin=Term::Overwrite(
                             session_data.term_begin.value(session_row).unwrap()
                         );
-                        let term_end=UpdateTerm::Overwrite(
+                        let term_end=Term::Overwrite(
                             session_data.term_end.value(session_row).unwrap()
                         );
                         let collection_row=if collection_row==0{
@@ -153,22 +153,14 @@ pub(super) fn update_row(
     ,session_row:u32
     ,collection_row:u32
     ,activity:&Activity
-    ,term_begin:&UpdateTerm
-    ,term_end:&UpdateTerm
+    ,term_begin:i64
+    ,term_end:i64
     ,fields:&Vec<KeyValue>
 ){
     data.collection_row.update(session_row,collection_row);
     data.activity.update(session_row,*activity as u8);
-    data.term_begin.update(session_row,if let UpdateTerm::Overwrite(term_begin)=term_begin{
-        *term_begin
-    }else{
-        chrono::Local::now().timestamp()
-    });
-    data.term_end.update(session_row,if let UpdateTerm::Overwrite(term_end)=term_end{
-        *term_end
-    }else{
-        0
-    });
+    data.term_begin.update(session_row,term_begin);
+    data.term_end.update(session_row,term_end);
     for (key,value) in fields{
         let field=if data.fields.contains_key(*key){
             data.fields.get_mut(*key).unwrap()
@@ -190,6 +182,7 @@ pub(super) fn update_row(
 pub(super) fn update_recursive(
     master_database:&Database
     ,data:&mut SessionData
+    ,temporary_data:&mut super::TemporaryData
     ,session_dir:&str
     ,sequence:usize
     ,records:&Vec::<Record>
@@ -207,6 +200,16 @@ pub(super) fn update_recursive(
                 Record::New{
                     collection_id,activity,term_begin,term_end,fields,depends,pends
                 }=>{
+                    let term_begin=if let Term::Overwrite(term_begin)=term_begin{
+                        *term_begin
+                    }else{
+                        chrono::Local::now().timestamp()
+                    };
+                    let term_end=if let Term::Overwrite(term_end)=term_end{
+                        *term_end
+                    }else{
+                        0
+                    };
                     data.collection_id.update(session_row,*collection_id);
                     data.operation.update(session_row,SessionOperation::New);
                     update_row(
@@ -219,7 +222,7 @@ pub(super) fn update_recursive(
                         ,term_end
                         ,fields
                     );
-                    if let UpdateDepends::Overwrite(depends)=depends{
+                    if let Depends::Overwrite(depends)=depends{
                         for (key,depend) in depends{
                             data.relation.insert(
                                 sequence
@@ -237,12 +240,33 @@ pub(super) fn update_recursive(
                         ,incidentally_depend
                     );
                     for (key,records) in pends{
-                        update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
+                        update_recursive(master_database,data,temporary_data,session_dir,sequence,records,Some((*key,session_row)));
                     }
                 }
                 ,Record::Update{
                     collection_id,row,activity,term_begin,term_end,fields,depends,pends
                 }=>{
+                    let term_begin=if let Term::Overwrite(term_begin)=term_begin{
+                        *term_begin
+                    }else{
+                        chrono::Local::now().timestamp()
+                    };
+                    let term_end=if let Term::Overwrite(term_end)=term_end{
+                        *term_end
+                    }else{
+                        0
+                    };
+                    let col=temporary_data.entry(*collection_id).or_insert(HashMap::new());
+                    let entity=col.entry(*row).or_insert(super::TemporaryDataEntity{
+                        activity:*activity
+                        ,term_begin
+                        ,term_end
+                        ,fields:HashMap::new()
+                    });
+                    for (key,value) in fields{
+                        entity.fields.insert(key.to_string(),value.to_vec());
+                    }
+
                     data.collection_id.update(session_row,*collection_id);
                     data.operation.update(session_row,SessionOperation::Update);
                     update_row(
@@ -256,7 +280,7 @@ pub(super) fn update_recursive(
                         ,fields
                     );
                     match depends{
-                        UpdateDepends::Inherit=>{
+                        Depends::Inherit=>{
                             let depends=master_database.relation().index_pend().select_by_value(&CollectionRow::new(*collection_id,*row));
                             for i in depends{
                                 let depend=master_database.relation().depend(i).unwrap();
@@ -269,7 +293,7 @@ pub(super) fn update_recursive(
                                 );
                             }
                         }
-                        ,UpdateDepends::Overwrite(depends)=>{   
+                        ,Depends::Overwrite(depends)=>{   
                             for (key,depend) in depends{
                                 data.relation.insert(
                                     sequence
@@ -288,7 +312,7 @@ pub(super) fn update_recursive(
                         ,incidentally_depend
                     );
                     for (key,records) in pends{
-                        update_recursive(master_database,data,session_dir,sequence,records,Some((*key,session_row)));
+                        update_recursive(master_database,data,temporary_data,session_dir,sequence,records,Some((*key,session_row)));
                     }
                 }
                 ,Record::Delete{collection_id,row}=>{

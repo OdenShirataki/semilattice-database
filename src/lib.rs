@@ -17,7 +17,7 @@ mod session;
 pub use session::{
     Session
     ,Record
-    ,UpdateDepends
+    ,Depends
 };
 
 pub struct Database{
