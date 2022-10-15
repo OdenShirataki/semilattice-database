@@ -61,15 +61,68 @@ impl<'a> Session<'a>{
         if !std::path::Path::new(&session_dir).exists(){
             std::fs::create_dir_all(&session_dir).unwrap();
         }
+        let session_data=Self::new_data(&session_dir)?;
+        let mut temporary_data=HashMap::new();
+
+        for i in session_data.sequence.triee().iter(){
+            let row=i.row();
+
+            let collection_id=session_data.collection_id.value(row).unwrap();
+            if collection_id>0{
+                let col=temporary_data.entry(collection_id).or_insert(HashMap::new());
+                let collection_row=session_data.collection_row.value(row).unwrap();
+                let mut fields=HashMap::new();
+
+                for (key,val) in &session_data.fields{
+                    if let Some(v)=val.get(collection_row){
+                        fields.insert(key.to_string(), v.to_vec());
+                    }
+                }
+                col.insert(collection_row,TemporaryDataEntity{
+                    activity:if session_data.activity.value(row).unwrap()==1{
+                        Activity::Active
+                    }else{
+                        Activity::Inactive
+                    }
+                    ,term_begin:session_data.term_begin.value(row).unwrap()
+                    ,term_end:session_data.term_end.value(row).unwrap()
+                    ,fields
+                });
+            }
+        }
+        
         Ok(Session{
             main_database
             ,session_dir:session_dir.to_string()
-            ,session_data:Some(Self::new_data(&session_dir)?)
-            ,temporary_data:HashMap::new()
+            ,session_data:Some(session_data)
+            ,temporary_data
         })
     }
     
     fn new_data(session_dir:&str)->Result<SessionData,std::io::Error>{
+        let mut fields=HashMap::new();
+
+        let fields_dir=session_dir.to_string()+"/fields/";
+        if !std::path::Path::new(&fields_dir).exists(){
+            std::fs::create_dir_all(fields_dir.to_owned()).unwrap();
+        }
+        let d=std::fs::read_dir(fields_dir).unwrap();
+        for p in d{
+            if let Ok(p)=p{
+                let path=p.path();
+                if path.is_dir(){
+                    if let Some(fname)=path.file_name(){
+                        if let Some(str_fname)=fname.to_str(){
+                            if let Some(p)=path.to_str(){
+                                let field=FieldData::new(&(p.to_string()+"/")).unwrap();
+                                fields.insert(String::from(str_fname),field);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         Ok(SessionData{
             sequence_number:SequenceNumber::new(&(session_dir.to_string()+"/sequece_number.i"))?
             ,sequence:IdxSized::new(&(session_dir.to_string()+"/sequence.i"))?
@@ -79,7 +132,7 @@ impl<'a> Session<'a>{
             ,activity:IdxSized::new(&(session_dir.to_string()+"/activity.i"))?
             ,term_begin:IdxSized::new(&(session_dir.to_string()+"/term_begin.i"))?
             ,term_end:IdxSized::new(&(session_dir.to_string()+"/term_end.i"))?
-            ,fields:HashMap::new()
+            ,fields
             ,relation:SessionRelation::new(&session_dir)
         })
     }

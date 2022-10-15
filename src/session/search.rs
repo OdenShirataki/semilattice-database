@@ -6,7 +6,6 @@ pub struct SessionSearch<'a>{
     session:&'a Session<'a>
     ,collection_id:i32
     ,conditions:Vec<Condition>
-    ,result:Option<RowSet>
 }
 impl<'a> SessionSearch<'a>{
     pub fn new(session:&'a Session<'a>,collection_id:i32)->SessionSearch{
@@ -14,7 +13,6 @@ impl<'a> SessionSearch<'a>{
             session
             ,collection_id
             ,conditions:Vec::new()
-            ,result:None
         }
     }
     pub fn search_default(mut self)->Self{

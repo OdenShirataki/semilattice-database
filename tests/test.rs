@@ -137,6 +137,8 @@ fn it_works() {
                 ,pends:vec![]
             }
         ]);
+    }
+    if let Ok(mut sess)=database.session("test"){
         let search=sess.begin_search(collection_person).search_activity(Activity::Active);
         for r in search.result(){
             println!(
@@ -147,8 +149,8 @@ fn it_works() {
         }
         sess.public();
     }
-    let test1=database.collection_id("test1").unwrap();
 
+    let test1=database.collection_id("test1").unwrap();
     let range=1..=10;
     if let Ok(mut sess)=database.session("test"){
         for i in range.clone(){
@@ -185,6 +187,7 @@ fn it_works() {
         ]);
         sess.public();
     }
+    
     if let Some(t1)=database.collection(test1){
         let mut sum=0.0;
         for i in range.clone(){
