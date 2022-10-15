@@ -101,7 +101,7 @@ if let Ok(mut sess)=database.session("test"){
             ,pends:vec![]
         }
     ]);
-    sess.public();
+    sess.commit();
 }
 
 let relation=database.relation();
@@ -148,7 +148,7 @@ if let Ok(mut sess)=database.session("test"){
             ,sess.field_str(collection_person,r,"birthday")
         );
     }
-    sess.public();
+    sess.commit();
 }
 
 let test1=database.collection_id("test1").unwrap();
@@ -170,7 +170,7 @@ if let Ok(mut sess)=database.session("test"){
             }
         ]);
     }
-    sess.public();
+    sess.commit();
 }
 
 if let Ok(mut sess)=database.session("test"){
@@ -186,7 +186,7 @@ if let Ok(mut sess)=database.session("test"){
             ,pends:vec![]
         }
     ]);
-    sess.public();
+    sess.commit();
 }
 
 if let Some(t1)=database.collection(test1){

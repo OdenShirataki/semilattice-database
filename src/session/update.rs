@@ -20,7 +20,7 @@ use super::{
     ,SessionOperation
 };
 
-pub(super) fn public(
+pub(super) fn commit(
     session_data:&mut SessionData
     ,main_database:&mut Database
 ){

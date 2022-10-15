@@ -142,9 +142,9 @@ impl<'a> Session<'a>{
             std::fs::remove_dir_all(&self.session_dir).unwrap();
         }
     }
-    pub fn public(&mut self){
+    pub fn commit(&mut self){
         if let Some(ref mut data)=self.session_data{
-            public(data,self.main_database);
+            commit(data,self.main_database);
             self.clear();
         }
     }

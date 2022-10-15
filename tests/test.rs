@@ -100,7 +100,7 @@ fn it_works() {
                 ,pends:vec![]
             }
         ]);
-        sess.public();
+        sess.commit();
     }
     
     let relation=database.relation();
@@ -147,7 +147,7 @@ fn it_works() {
                 ,sess.field_str(collection_person,r,"birthday")
             );
         }
-        sess.public();
+        sess.commit();
     }
 
     let test1=database.collection_id("test1").unwrap();
@@ -169,7 +169,7 @@ fn it_works() {
                 }
             ]);
         }
-        sess.public();
+        sess.commit();
     }
     
     if let Ok(mut sess)=database.session("test"){
@@ -185,7 +185,7 @@ fn it_works() {
                 ,pends:vec![]
             }
         ]);
-        sess.public();
+        sess.commit();
     }
     
     if let Some(t1)=database.collection(test1){
