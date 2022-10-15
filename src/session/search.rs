@@ -58,7 +58,28 @@ impl<'a> SessionSearch<'a>{
                                         break;
                                     }
                                 }
-                                ,Condition::Term(_)=>{}
+                                ,Condition::Term(cond)=>{
+                                    match cond{
+                                        Term::In(c)=>{
+                                            if !(ent.term_begin<*c && (ent.term_end==0||ent.term_end>*c)){
+                                                is_match=false;
+                                                break;
+                                            }
+                                        }
+                                        ,Term::Past(c)=>{
+                                            if ent.term_end>*c{
+                                                is_match=false;
+                                                break;
+                                            }
+                                        }
+                                        ,Term::Future(c)=>{
+                                            if ent.term_begin<*c{
+                                                is_match=false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
                                 ,Condition::Field(key,cond)=>{
                                     if let Some(field_tmp)=ent.fields.get(key){
                                         match cond{
@@ -129,9 +150,6 @@ impl<'a> SessionSearch<'a>{
                                 ,Condition::Row(_)=>{}
                                 ,Condition::LastUpdated(_)=>{}
                                 ,Condition::Uuid(_)=>{}
-                                ,_=>{
-        
-                                }
                             }
                         }
                         if is_match{
@@ -147,36 +165,5 @@ impl<'a> SessionSearch<'a>{
             return r;
         }
         RowSet::default()
-    }
-    fn search_exec(&mut self){
-        /*
-        let (tx, rx) = std::sync::mpsc::channel();
-        for c in &self.conditions{
-            let tx=tx.clone();
-            match c{
-                Condition::Activity(condition)=>{
-                    self.search_exec_activity(condition,tx)
-                }
-                ,Condition::Term(condition)=>{
-                    self.search_exec_term(condition,tx)
-                }
-                ,Condition::Field(field_name,condition)=>{
-                    self.search_exec_field(field_name,condition,tx)
-                }
-                ,Condition::Row(condition)=>{
-                    self.search_exec_row(condition,tx)
-                }
-                ,Condition::LastUpdated(condition)=>{
-                    self.search_exec_last_updated(condition,tx)
-                }
-                ,Condition::Uuid(uuid)=>{
-                    self.search_exec_uuid(uuid,tx)
-                }
-            };
-        }
-        drop(tx);
-        for rs in rx{
-            self.reduce(rs);
-        } */
     }
 }
