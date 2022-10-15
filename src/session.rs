@@ -115,4 +115,20 @@ impl<'a> Session<'a>{
     pub fn begin_search(&self,collection_id:i32)->SessionSearch{
         SessionSearch::new(self,collection_id)
     }
+    pub fn field_str(&self,collection_id:i32,row:u32,key:&str)->&str{
+        if let Some(tmp_col)=self.temporary_data.get(&collection_id){
+            if let Some(tmp_row)=tmp_col.get(&row){
+                if let Some(val)=tmp_row.fields.get(key){
+                    if let Ok(str)=std::str::from_utf8(val){
+                        return str;
+                    }
+                }
+            }
+        }
+        if let Some(col)=self.main_database.collection(collection_id){
+            col.field_str(row,key)
+        }else{
+            ""
+        }
+    }
 }

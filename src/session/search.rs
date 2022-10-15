@@ -46,25 +46,108 @@ impl<'a> SessionSearch<'a>{
             for c in &self.conditions{
                 search=search.search(c.clone());
             }
-            let r=search.result();
-            if let Some(t)=self.session.temporary_data.get(&self.collection_id){
-                for c in &self.conditions{
-                    
-                    //search=search.search(c);
-                }
-                println!("{:?}",t)
-            }
-            println!("result:{:?}",r);
-        }
+            let mut r=search.result();
+            if let Some(tmp)=self.session.temporary_data.get(&self.collection_id){
+                let mut new_rows=RowSet::new();
+                for row in r{
+                    if let Some(ent)=tmp.get(&row){
+                        let mut is_match=true;
+                        for c in &self.conditions{
+                            match c{
+                                Condition::Activity(activity)=>{
+                                    if ent.activity!=*activity{
+                                        is_match=false;
+                                        break;
+                                    }
+                                }
+                                ,Condition::Term(_)=>{}
+                                ,Condition::Field(key,cond)=>{
+                                    if let Some(field_tmp)=ent.fields.get(key){
+                                        match cond{
+                                            Field::Match(v)=>{
+                                                if field_tmp!=v{
+                                                    is_match=false;
+                                                    break;
+                                                }
+                                            }
+                                            ,Field::Range(min,max)=>{
+                                                if min<field_tmp||max>field_tmp{
+                                                    is_match=false;
+                                                    break;
+                                                }
+                                            }
+                                            ,Field::Min(min)=>{
+                                                if min<field_tmp{
+                                                    is_match=false;
+                                                    break;
+                                                }
+                                            }
+                                            ,Field::Max(max)=>{
+                                                if max>field_tmp{
+                                                    is_match=false;
+                                                    break;
+                                                }
+                                            }
+                                            ,Field::Forward(v)=>{
+                                                if let Ok(str)=std::str::from_utf8(field_tmp){
+                                                    if !str.starts_with(v){
+                                                        is_match=false;
+                                                        break;
+                                                    }
+                                                }else{
+                                                    is_match=false;
+                                                    break;
+                                                }
+                                            }
+                                            ,Field::Partial(v)=>{
+                                                if let Ok(str)=std::str::from_utf8(field_tmp){
+                                                    if !str.contains(v){
+                                                        is_match=false;
+                                                        break;
+                                                    }
+                                                }else{
+                                                    is_match=false;
+                                                    break;
+                                                }
+                                            }
+                                            ,Field::Backward(v)=>{
+                                                if let Ok(str)=std::str::from_utf8(field_tmp){
+                                                    if !str.ends_with(v){
+                                                        is_match=false;
+                                                        break;
+                                                    }
+                                                }else{
+                                                    is_match=false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }else{
+                                        is_match=false;
+                                        break;
+                                    }
+                                    
+                                }
+                                ,Condition::Row(_)=>{}
+                                ,Condition::LastUpdated(_)=>{}
+                                ,Condition::Uuid(_)=>{}
+                                ,_=>{
         
-        /*
-        self.search_exec();
-        if let Some(r)=self.result{
-            r
-        }else{
-            //self.data.all()
-            RowSet::default()
-        } */
+                                }
+                            }
+                        }
+                        if is_match{
+                            new_rows.insert(row);
+                        }
+                    }else{
+                        new_rows.insert(row);
+                    }
+                    
+                }
+                r=new_rows;
+            }
+            return r;
+        }
         RowSet::default()
     }
     fn search_exec(&mut self){

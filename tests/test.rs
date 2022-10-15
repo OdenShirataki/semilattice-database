@@ -138,7 +138,13 @@ fn it_works() {
             }
         ]);
         let search=sess.begin_search(collection_person).search_activity(Activity::Active);
-        search.result();
+        for r in search.result(){
+            println!(
+                "{},{}"
+                ,sess.field_str(collection_person,r,"name")
+                ,sess.field_str(collection_person,r,"birthday")
+            );
+        }
         sess.public();
     }
     let test1=database.collection_id("test1").unwrap();
