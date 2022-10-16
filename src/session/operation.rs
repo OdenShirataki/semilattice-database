@@ -24,7 +24,7 @@ pub enum Record<'a>{
         ,activity:Activity
         ,term_begin:Term
         ,term_end:Term
-        ,fields:Vec<KeyValue<'a>>
+        ,fields:Vec<KeyValue>
         ,depends:Depends<'a>
         ,pends:Vec<(&'a str,Vec<Record<'a>>)>
     }
@@ -34,7 +34,7 @@ pub enum Record<'a>{
         ,activity:Activity
         ,term_begin:Term
         ,term_end:Term
-        ,fields:Vec<KeyValue<'a>>
+        ,fields:Vec<KeyValue>
         ,depends:Depends<'a>
         ,pends:Vec<(&'a str,Vec<Record<'a>>)>
     }

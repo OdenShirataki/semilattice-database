@@ -55,12 +55,11 @@ pub(super) fn commit(
                 match op{
                     SessionOperation::New | SessionOperation::Update=>{
                         let mut fields:Vec<KeyValue>=Vec::new();
-                        for (ref key,ref field_data) in &session_data.fields{
+                        for (key,ref field_data) in &session_data.fields{
                             if let Some(val)=field_data.get(session_row){
-                                fields.push((
-                                    &key
-                                    ,val.to_owned()
-                                ));
+                                fields.push(
+                                    KeyValue::new(key,val)
+                                );
                             }
                         }
                         let activity=if session_data.activity.value(session_row).unwrap()==1{
@@ -161,21 +160,22 @@ pub(super) fn update_row(
     data.activity.update(session_row,*activity as u8);
     data.term_begin.update(session_row,term_begin);
     data.term_end.update(session_row,term_end);
-    for (key,value) in fields{
-        let field=if data.fields.contains_key(*key){
-            data.fields.get_mut(*key).unwrap()
+    for kv in fields{
+        let key=kv.key();
+        let field=if data.fields.contains_key(key){
+            data.fields.get_mut(key).unwrap()
         }else{
             let dir_name=session_dir.to_string()+"/fields/"+key+"/";
             std::fs::create_dir_all(dir_name.to_owned()).unwrap();
             if std::path::Path::new(&dir_name).exists(){
                 let field=FieldData::new(&dir_name).unwrap();
-                data.fields.entry(String::from(*key)).or_insert(
+                data.fields.entry(String::from(key)).or_insert(
                     field
                 );
             }
-            data.fields.get_mut(*key).unwrap()
+            data.fields.get_mut(key).unwrap()
         };
-        field.update(session_row,value);
+        field.update(session_row,kv.value());
     }
 }
 
@@ -263,8 +263,8 @@ pub(super) fn update_recursive(
                         ,term_end
                         ,fields:HashMap::new()
                     });
-                    for (key,value) in fields{
-                        entity.fields.insert(key.to_string(),value.to_vec());
+                    for kv in fields{
+                        entity.fields.insert(kv.key().into(),kv.value().into());
                     }
 
                     data.collection_id.update(session_row,*collection_id);

@@ -184,4 +184,7 @@ impl<'a> Session<'a>{
             ""
         }
     }
+    pub fn collection_id(&mut self,collection_name:&str)->Result<i32,std::io::Error>{
+        self.main_database.collection_id(collection_name)
+    }
 }

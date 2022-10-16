@@ -3,13 +3,7 @@
 ## Example
 
 ```rust
-use versatile_data::prelude::*;
-use semilattice_database::{
-    Database
-    ,Record
-    ,CollectionRow
-    ,Depends
-};
+use semilattice_database::prelude::*;
 
 let dir="./sl-test/";
 
@@ -32,8 +26,8 @@ if let Ok(mut sess)=database.session("test"){
             ,term_begin:Term::Defalut
             ,term_end:Term::Defalut
             ,fields:vec![
-                ("name","Joe".to_string().into_bytes())
-                ,("birthday","1972-08-02".to_string().into_bytes())
+                KeyValue::new("name","Joe")
+                ,KeyValue::new("birthday","1972-08-02")
             ]
             ,depends:Depends::Overwrite(vec![])
             ,pends:vec![("history",vec![
@@ -43,8 +37,8 @@ if let Ok(mut sess)=database.session("test"){
                     ,term_begin:Term::Defalut
                     ,term_end:Term::Defalut
                     ,fields:vec![
-                        ("date","1972-08-02".to_string().into_bytes())
-                        ,("event","Birth".to_string().into_bytes())
+                        KeyValue::new("date","1972-08-02")
+                        ,KeyValue::new("event","Birth")
                     ]
                     ,depends:Depends::Overwrite(vec![])
                     ,pends:vec![]
@@ -55,8 +49,8 @@ if let Ok(mut sess)=database.session("test"){
                     ,term_begin:Term::Defalut
                     ,term_end:Term::Defalut
                     ,fields:vec![
-                        ("date","1999-12-31".as_bytes().to_vec())
-                        ,("event","Mariage".as_bytes().to_vec())
+                        KeyValue::new("date","1999-12-31")
+                        ,KeyValue::new("event","Mariage")
                     ]
                     ,depends:Depends::Overwrite(vec![])
                     ,pends:vec![]
@@ -69,8 +63,8 @@ if let Ok(mut sess)=database.session("test"){
             ,term_begin:Term::Defalut
             ,term_end:Term::Defalut
             ,fields:vec![
-                ("name","Tom".as_bytes().to_vec())
-                ,("birthday","2000-12-12".as_bytes().to_vec())
+                KeyValue::new("name","Tom")
+                ,KeyValue::new("birthday","2000-12-12")
             ]
             ,depends:Depends::Overwrite(vec![])
             ,pends:vec![("history",vec![
@@ -80,8 +74,8 @@ if let Ok(mut sess)=database.session("test"){
                     ,term_begin:Term::Defalut
                     ,term_end:Term::Defalut
                     ,fields:vec![
-                        ("date","2000-12-12".as_bytes().to_vec())
-                        ,("event","Birth".as_bytes().to_vec())
+                        KeyValue::new("date","2000-12-12")
+                        ,KeyValue::new("event","Birth")
                     ]
                     ,depends:Depends::Overwrite(vec![])
                     ,pends:vec![]
@@ -94,8 +88,8 @@ if let Ok(mut sess)=database.session("test"){
             ,term_begin:Term::Defalut
             ,term_end:Term::Defalut
             ,fields:vec![
-                ("name","Billy".as_bytes().to_vec())
-                ,("birthday","1982-03-03".as_bytes().to_vec())
+                KeyValue::new("name","Billy")
+                ,KeyValue::new("birthday","1982-03-03")
             ]
             ,depends:Depends::Overwrite(vec![])
             ,pends:vec![]
@@ -133,7 +127,7 @@ if let Ok(mut sess)=database.session("test"){
             ,activity:Activity::Active
             ,term_begin:Term::Defalut
             ,term_end:Term::Defalut
-            ,fields:vec![("name","Renamed Joe".to_string().into_bytes())]
+            ,fields:vec![KeyValue::new("name","Renamed Joe")]
             ,depends:Depends::Inherit
             ,pends:vec![]
         }
@@ -162,8 +156,8 @@ if let Ok(mut sess)=database.session("test"){
                 ,term_begin:Term::Defalut
                 ,term_end:Term::Defalut
                 ,fields:vec![
-                    ("num",i.to_string().into_bytes())
-                    ,("num_by3",(i*3).to_string().into_bytes())
+                    KeyValue::new("num",i.to_string())
+                    ,KeyValue::new("num_by3",(i*3).to_string())
                 ]
                 ,depends:Depends::Overwrite(vec![])
                 ,pends:vec![]

@@ -3,7 +3,11 @@ use std::collections::HashMap;
 
 pub use versatile_data::{
     Data as Collection
+    ,KeyValue
+    ,Field
     ,IdxSized
+    ,Activity
+    ,Term
 };
 pub use idx_binary::IdxBinary;
 
@@ -19,6 +23,8 @@ pub use session::{
     ,Record
     ,Depends
 };
+
+pub mod prelude;
 
 pub struct Database{
     root_dir:String
