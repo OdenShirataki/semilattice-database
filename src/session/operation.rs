@@ -13,20 +13,20 @@ pub enum SessionOperation{
     ,Delete
 }
 
-pub enum Depends<'a>{
+pub enum Depends{
     Inherit
-    ,Overwrite(Vec<(&'a str,CollectionRow)>)
+    ,Overwrite(Vec<(String,CollectionRow)>)
 }
 
-pub enum Record<'a>{
+pub enum Record{
     New{
         collection_id:i32
         ,activity:Activity
         ,term_begin:Term
         ,term_end:Term
         ,fields:Vec<KeyValue>
-        ,depends:Depends<'a>
-        ,pends:Vec<(&'a str,Vec<Record<'a>>)>
+        ,depends:Depends
+        ,pends:Vec<(String,Vec<Record>)>
     }
     ,Update{
         collection_id:i32
@@ -35,8 +35,8 @@ pub enum Record<'a>{
         ,term_begin:Term
         ,term_end:Term
         ,fields:Vec<KeyValue>
-        ,depends:Depends<'a>
-        ,pends:Vec<(&'a str,Vec<Record<'a>>)>
+        ,depends:Depends
+        ,pends:Vec<(String,Vec<Record>)>
     }
     ,Delete{
         collection_id:i32
