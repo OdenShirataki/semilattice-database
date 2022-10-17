@@ -18,6 +18,24 @@ pub enum Depends{
     ,Overwrite(Vec<(String,CollectionRow)>)
 }
 
+pub struct Pend{
+    key:String
+    ,records:Vec<Record>
+}
+impl Pend{
+    pub fn new(key:impl Into<String>,records:Vec<Record>)->Pend{
+        Pend{
+            key:key.into()
+            ,records
+        }
+    }
+    pub fn key(&self)->&str{
+        &self.key
+    }
+    pub fn records(&self)->&Vec<Record>{
+        &self.records
+    }
+}
 pub enum Record{
     New{
         collection_id:i32
@@ -26,7 +44,7 @@ pub enum Record{
         ,term_end:Term
         ,fields:Vec<KeyValue>
         ,depends:Depends
-        ,pends:Vec<(String,Vec<Record>)>
+        ,pends:Vec<Pend>
     }
     ,Update{
         collection_id:i32
@@ -36,7 +54,7 @@ pub enum Record{
         ,term_end:Term
         ,fields:Vec<KeyValue>
         ,depends:Depends
-        ,pends:Vec<(String,Vec<Record>)>
+        ,pends:Vec<Pend>
     }
     ,Delete{
         collection_id:i32

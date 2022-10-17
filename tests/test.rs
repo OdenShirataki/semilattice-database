@@ -29,7 +29,7 @@ fn it_works() {
                     ,KeyValue::new("birthday","1972-08-02")
                 ]
                 ,depends:Depends::Overwrite(vec![])
-                ,pends:vec![("history".to_string(),vec![
+                ,pends:vec![Pend::new("history",vec![
                     Record::New{
                         collection_id:collection_history
                         ,activity:Activity::Active
@@ -66,7 +66,7 @@ fn it_works() {
                     ,KeyValue::new("birthday","2000-12-12")
                 ]
                 ,depends:Depends::Overwrite(vec![])
-                ,pends:vec![("history".to_string(),vec![
+                ,pends:vec![Pend::new("history",vec![
                     Record::New{
                         collection_id:collection_history
                         ,activity:Activity::Active

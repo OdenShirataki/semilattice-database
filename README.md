@@ -30,7 +30,7 @@ if let Ok(mut sess)=database.session("test"){
                 ,KeyValue::new("birthday","1972-08-02")
             ]
             ,depends:Depends::Overwrite(vec![])
-            ,pends:vec![("history",vec![
+            ,pends:vec![Pend::new("history",vec![
                 Record::New{
                     collection_id:collection_history
                     ,activity:Activity::Active
@@ -67,7 +67,7 @@ if let Ok(mut sess)=database.session("test"){
                 ,KeyValue::new("birthday","2000-12-12")
             ]
             ,depends:Depends::Overwrite(vec![])
-            ,pends:vec![("history",vec![
+            ,pends:vec![Pend::new("history",vec![
                 Record::New{
                     collection_id:collection_history
                     ,activity:Activity::Active

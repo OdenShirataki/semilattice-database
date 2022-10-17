@@ -11,6 +11,7 @@ pub use operation::{
     Record
     ,SessionOperation
     ,Depends
+    ,Pend
 };
 
 mod sequence_number;

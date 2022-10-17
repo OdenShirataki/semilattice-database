@@ -239,8 +239,8 @@ pub(super) fn update_recursive(
                         ,session_row
                         ,incidentally_depend
                     );
-                    for (key,records) in pends{
-                        update_recursive(master_database,data,temporary_data,session_dir,sequence,records,Some((key,session_row)));
+                    for pend in pends{
+                        update_recursive(master_database,data,temporary_data,session_dir,sequence,pend.records(),Some((pend.key(),session_row)));
                     }
                 }
                 ,Record::Update{
@@ -311,8 +311,8 @@ pub(super) fn update_recursive(
                         ,session_row
                         ,incidentally_depend
                     );
-                    for (key,records) in pends{
-                        update_recursive(master_database,data,temporary_data,session_dir,sequence,records,Some((key,session_row)));
+                    for pend in pends{
+                        update_recursive(master_database,data,temporary_data,session_dir,sequence,pend.records(),Some((pend.key(),session_row)));
                     }
                 }
                 ,Record::Delete{collection_id,row}=>{

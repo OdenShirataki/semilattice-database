@@ -22,6 +22,7 @@ pub use session::{
     Session
     ,Record
     ,Depends
+    ,Pend
 };
 
 pub mod prelude;

@@ -8,4 +8,5 @@ pub use crate::{
     ,Activity
     ,Term
     ,Depends
+    ,Pend
 };
