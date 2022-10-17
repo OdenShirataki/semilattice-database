@@ -1,6 +1,13 @@
-use versatile_data::{Condition, RowSet, Activity, search::Term, Field, Number};
+use versatile_data::{
+    Condition
+    ,RowSet
+    ,Activity
+    ,Field
+    ,Number
+    ,search::Term
+};
 
-use super::Session;
+use super::{Session,TemporaryDataEntity};
 
 pub struct SessionSearch<'a>{
     session:&'a Session<'a>
@@ -38,6 +45,118 @@ impl<'a> SessionSearch<'a>{
         self
     }
 
+    fn temporary_data_match(ent:&TemporaryDataEntity,conditions:&Vec<Condition>)->bool{
+        let mut is_match=true;
+        for c in conditions{
+            match c{
+                Condition::Activity(activity)=>{
+                    if ent.activity!=*activity{
+                        is_match=false;
+                        break;
+                    }
+                }
+                ,Condition::Term(cond)=>{
+                    match cond{
+                        Term::In(c)=>{
+                            if !(ent.term_begin<*c && (ent.term_end==0||ent.term_end>*c)){
+                                is_match=false;
+                                break;
+                            }
+                        }
+                        ,Term::Past(c)=>{
+                            if ent.term_end>*c{
+                                is_match=false;
+                                break;
+                            }
+                        }
+                        ,Term::Future(c)=>{
+                            if ent.term_begin<*c{
+                                is_match=false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                ,Condition::Field(key,cond)=>{
+                    if let Some(field_tmp)=ent.fields.get(key){
+                        match cond{
+                            Field::Match(v)=>{
+                                if field_tmp!=v{
+                                    is_match=false;
+                                    break;
+                                }
+                            }
+                            ,Field::Range(min,max)=>{
+                                if min<field_tmp||max>field_tmp{
+                                    is_match=false;
+                                    break;
+                                }
+                            }
+                            ,Field::Min(min)=>{
+                                if min<field_tmp{
+                                    is_match=false;
+                                    break;
+                                }
+                            }
+                            ,Field::Max(max)=>{
+                                if max>field_tmp{
+                                    is_match=false;
+                                    break;
+                                }
+                            }
+                            ,Field::Forward(v)=>{
+                                if let Ok(str)=std::str::from_utf8(field_tmp){
+                                    if !str.starts_with(v){
+                                        is_match=false;
+                                        break;
+                                    }
+                                }else{
+                                    is_match=false;
+                                    break;
+                                }
+                            }
+                            ,Field::Partial(v)=>{
+                                if let Ok(str)=std::str::from_utf8(field_tmp){
+                                    if !str.contains(v){
+                                        is_match=false;
+                                        break;
+                                    }
+                                }else{
+                                    is_match=false;
+                                    break;
+                                }
+                            }
+                            ,Field::Backward(v)=>{
+                                if let Ok(str)=std::str::from_utf8(field_tmp){
+                                    if !str.ends_with(v){
+                                        is_match=false;
+                                        break;
+                                    }
+                                }else{
+                                    is_match=false;
+                                    break;
+                                }
+                            }
+                        }
+                    }else{
+                        is_match=false;
+                        break;
+                    }
+                    
+                }
+                ,Condition::Or(conditions)=>{
+                    is_match=Self::temporary_data_match(ent, conditions);
+                    if !is_match{
+                        break;
+                    }
+                }
+                ,Condition::Row(_)=>{}
+                ,Condition::LastUpdated(_)=>{}
+                ,Condition::Uuid(_)=>{}
+            }
+        }
+        is_match
+    }
     pub fn result(self)->RowSet{
         if let Some(collection)=self.session.main_database.collections.get(&self.collection_id){
             let mut search=collection.begin_search();
@@ -49,116 +168,12 @@ impl<'a> SessionSearch<'a>{
                 let mut new_rows=RowSet::new();
                 for row in r{
                     if let Some(ent)=tmp.get(&row){
-                        let mut is_match=true;
-                        for c in &self.conditions{
-                            match c{
-                                Condition::Activity(activity)=>{
-                                    if ent.activity!=*activity{
-                                        is_match=false;
-                                        break;
-                                    }
-                                }
-                                ,Condition::Term(cond)=>{
-                                    match cond{
-                                        Term::In(c)=>{
-                                            if !(ent.term_begin<*c && (ent.term_end==0||ent.term_end>*c)){
-                                                is_match=false;
-                                                break;
-                                            }
-                                        }
-                                        ,Term::Past(c)=>{
-                                            if ent.term_end>*c{
-                                                is_match=false;
-                                                break;
-                                            }
-                                        }
-                                        ,Term::Future(c)=>{
-                                            if ent.term_begin<*c{
-                                                is_match=false;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                                ,Condition::Field(key,cond)=>{
-                                    if let Some(field_tmp)=ent.fields.get(key){
-                                        match cond{
-                                            Field::Match(v)=>{
-                                                if field_tmp!=v{
-                                                    is_match=false;
-                                                    break;
-                                                }
-                                            }
-                                            ,Field::Range(min,max)=>{
-                                                if min<field_tmp||max>field_tmp{
-                                                    is_match=false;
-                                                    break;
-                                                }
-                                            }
-                                            ,Field::Min(min)=>{
-                                                if min<field_tmp{
-                                                    is_match=false;
-                                                    break;
-                                                }
-                                            }
-                                            ,Field::Max(max)=>{
-                                                if max>field_tmp{
-                                                    is_match=false;
-                                                    break;
-                                                }
-                                            }
-                                            ,Field::Forward(v)=>{
-                                                if let Ok(str)=std::str::from_utf8(field_tmp){
-                                                    if !str.starts_with(v){
-                                                        is_match=false;
-                                                        break;
-                                                    }
-                                                }else{
-                                                    is_match=false;
-                                                    break;
-                                                }
-                                            }
-                                            ,Field::Partial(v)=>{
-                                                if let Ok(str)=std::str::from_utf8(field_tmp){
-                                                    if !str.contains(v){
-                                                        is_match=false;
-                                                        break;
-                                                    }
-                                                }else{
-                                                    is_match=false;
-                                                    break;
-                                                }
-                                            }
-                                            ,Field::Backward(v)=>{
-                                                if let Ok(str)=std::str::from_utf8(field_tmp){
-                                                    if !str.ends_with(v){
-                                                        is_match=false;
-                                                        break;
-                                                    }
-                                                }else{
-                                                    is_match=false;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }else{
-                                        is_match=false;
-                                        break;
-                                    }
-                                    
-                                }
-                                ,Condition::Row(_)=>{}
-                                ,Condition::LastUpdated(_)=>{}
-                                ,Condition::Uuid(_)=>{}
-                            }
-                        }
-                        if is_match{
+                        if Self::temporary_data_match(&ent,&self.conditions){
                             new_rows.insert(row);
                         }
                     }else{
                         new_rows.insert(row);
                     }
-                    
                 }
                 r=new_rows;
             }
