@@ -16,6 +16,6 @@ license = "MIT/Apache-2.0"
 [dependencies]
 chrono="0.4"
 
-versatile-data={path="../versatile-data" , version="0.41"}
+versatile-data={path="../versatile-data" , version="0.42"}
 idx_binary={path="../idx_binary" , version="0.4"}
 file_mmap="0.4"
