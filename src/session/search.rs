@@ -127,7 +127,7 @@ impl<'a> SessionSearch<'a>{
                     is_match=false;
                 }
             }
-            ,Condition::And(conditions)=>{
+            ,Condition::Narrow(conditions)=>{
                 is_match=true;
                 for c in conditions{
                     is_match&=Self::temporary_data_match(ent,c);
@@ -135,7 +135,7 @@ impl<'a> SessionSearch<'a>{
                         break;
                     }
                 }
-            },Condition::Or(conditions)=>{
+            },Condition::Broad(conditions)=>{
                 is_match=false;
                 for c in conditions{
                     is_match|=Self::temporary_data_match(ent,c);
