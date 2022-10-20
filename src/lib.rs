@@ -8,6 +8,8 @@ pub use versatile_data::{
     ,IdxSized
     ,Activity
     ,Term
+    ,Condition
+    ,Number
 };
 pub use idx_binary::IdxBinary;
 
@@ -23,6 +25,7 @@ pub use session::{
     ,Record
     ,Depends
     ,Pend
+    ,search
 };
 
 pub mod prelude;

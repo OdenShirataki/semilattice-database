@@ -4,10 +4,13 @@ use versatile_data::{
     ,Activity
     ,Field
     ,Number
-    ,search::Term
 };
+pub use versatile_data::search::Term;
 
-use super::{Session,TemporaryDataEntity};
+use super::{
+    Session
+    ,TemporaryDataEntity
+};
 
 pub struct SessionSearch<'a>{
     session:&'a Session<'a>

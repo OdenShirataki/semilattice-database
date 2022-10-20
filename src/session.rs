@@ -23,7 +23,7 @@ use relation::SessionRelation;
 mod update;
 use update::*;
 
-mod search;
+pub mod search;
 use search::SessionSearch;
 
 #[derive(Debug)]
@@ -58,46 +58,55 @@ impl<'a> Session<'a>{
         main_database:&'a mut Database
         ,session_name:&'a str
     )->Result<Session,std::io::Error>{
-        let session_dir=main_database.root_dir().to_string()+"/sessions/"+session_name;
-        if !std::path::Path::new(&session_dir).exists(){
-            std::fs::create_dir_all(&session_dir).unwrap();
-        }
-        let session_data=Self::new_data(&session_dir)?;
-        let mut temporary_data=HashMap::new();
-
-        for i in session_data.sequence.triee().iter(){
-            let row=i.row();
-
-            let collection_id=session_data.collection_id.value(row).unwrap();
-            if collection_id>0{
-                let col=temporary_data.entry(collection_id).or_insert(HashMap::new());
-                let collection_row=session_data.collection_row.value(row).unwrap();
-                let mut fields=HashMap::new();
-
-                for (key,val) in &session_data.fields{
-                    if let Some(v)=val.get(collection_row){
-                        fields.insert(key.to_string(), v.to_vec());
-                    }
-                }
-                col.insert(collection_row,TemporaryDataEntity{
-                    activity:if session_data.activity.value(row).unwrap()==1{
-                        Activity::Active
-                    }else{
-                        Activity::Inactive
-                    }
-                    ,term_begin:session_data.term_begin.value(row).unwrap()
-                    ,term_end:session_data.term_end.value(row).unwrap()
-                    ,fields
-                });
+        if session_name==""{
+            Ok(Session{
+                main_database
+                ,session_dir:"".to_string()
+                ,session_data:None
+                ,temporary_data:HashMap::new()
+            })
+        }else{
+            let session_dir=main_database.root_dir().to_string()+"/sessions/"+session_name;
+            if !std::path::Path::new(&session_dir).exists(){
+                std::fs::create_dir_all(&session_dir).unwrap();
             }
+            let session_data=Self::new_data(&session_dir)?;
+            let mut temporary_data=HashMap::new();
+
+            for i in session_data.sequence.triee().iter(){
+                let row=i.row();
+
+                let collection_id=session_data.collection_id.value(row).unwrap();
+                if collection_id>0{
+                    let col=temporary_data.entry(collection_id).or_insert(HashMap::new());
+                    let collection_row=session_data.collection_row.value(row).unwrap();
+                    let mut fields=HashMap::new();
+
+                    for (key,val) in &session_data.fields{
+                        if let Some(v)=val.get(collection_row){
+                            fields.insert(key.to_string(), v.to_vec());
+                        }
+                    }
+                    col.insert(collection_row,TemporaryDataEntity{
+                        activity:if session_data.activity.value(row).unwrap()==1{
+                            Activity::Active
+                        }else{
+                            Activity::Inactive
+                        }
+                        ,term_begin:session_data.term_begin.value(row).unwrap()
+                        ,term_end:session_data.term_end.value(row).unwrap()
+                        ,fields
+                    });
+                }
+            }
+            
+            Ok(Session{
+                main_database
+                ,session_dir:session_dir.to_string()
+                ,session_data:Some(session_data)
+                ,temporary_data
+            })
         }
-        
-        Ok(Session{
-            main_database
-            ,session_dir:session_dir.to_string()
-            ,session_data:Some(session_data)
-            ,temporary_data
-        })
     }
     
     fn new_data(session_dir:&str)->Result<SessionData,std::io::Error>{
@@ -136,6 +145,14 @@ impl<'a> Session<'a>{
             ,fields
             ,relation:SessionRelation::new(&session_dir)
         })
+    }
+
+    pub fn is_none(&self)->bool{
+        if let None=self.session_data{
+            true
+        }else{
+            false
+        }
     }
     pub fn clear(&mut self){
         self.session_data=None;
