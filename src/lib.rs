@@ -58,6 +58,9 @@ impl Database{
     pub fn session<'a>(&'a mut self,name:&'a str)->Result<Session<'a>,std::io::Error>{
         Session::new(self,name)
     }
+    pub fn blank_session<'a>(&'a mut self)->Session<'a>{
+        Session::new_blank(self)
+    }
     fn collection_by_name_or_create(&mut self,name:&str)->Result<i32,std::io::Error>{
         let mut max_id=0;
         let collections_dir=self.root_dir.to_string()+"/collection/";
