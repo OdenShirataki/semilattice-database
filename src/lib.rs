@@ -5,11 +5,9 @@ pub use idx_binary::IdxBinary;
 
 pub use versatile_data::{
     KeyValue
-    ,Field
     ,IdxSized
     ,Activity
     ,Term
-    ,Number
     ,RowSet
 };
 use versatile_data::Data;
@@ -35,10 +33,11 @@ pub use session::{
     ,search as session_search
 };
 
-mod search;
-pub use search::Condition;
-
-use search::Search;
+pub mod search;
+pub use search::{
+    Condition
+    ,Search
+};
 
 pub mod prelude;
 

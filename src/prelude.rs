@@ -4,10 +4,10 @@ pub use crate::{
     ,KeyValue
     ,CollectionRow
     ,Record
-    ,Field
     ,Activity
     ,Term
     ,Depends
     ,Pend
     ,Depend
+    ,search
 };

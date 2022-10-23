@@ -1,5 +1,3 @@
-pub use versatile_data::search::Term;
-
 use super::{
     Session
     ,TemporaryDataEntity
@@ -8,8 +6,7 @@ use crate::{
     Condition
     ,RowSet
     ,Activity
-    ,Field
-    ,Number
+    ,search
 };
 
 pub struct SessionSearch<'a>{
@@ -26,20 +23,20 @@ impl<'a> SessionSearch<'a>{
         }
     }
     pub fn search_default(mut self)->Self{
-        self.conditions.push(Condition::Term(Term::In(chrono::Local::now().timestamp())));
+        self.conditions.push(Condition::Term(search::Term::In(chrono::Local::now().timestamp())));
         self.conditions.push(Condition::Activity(Activity::Active));
         self
     }
-    pub fn search_field(self,field_name:impl Into<String>,condition:Field)->Self{
+    pub fn search_field(self,field_name:impl Into<String>,condition:search::Field)->Self{
         self.search(Condition::Field(field_name.into(),condition))
     }
-    pub fn search_term(self,condition:Term)->Self{
+    pub fn search_term(self,condition:search::Term)->Self{
         self.search(Condition::Term(condition))
     }
     pub fn search_activity(self,condition:Activity)->Self{
         self.search(Condition::Activity(condition))
     }
-    pub fn search_row(self,condition:Number)->Self{
+    pub fn search_row(self,condition:search::Number)->Self{
         self.search(Condition::Row(condition))
     }
 
@@ -58,17 +55,17 @@ impl<'a> SessionSearch<'a>{
             }
             ,Condition::Term(cond)=>{
                 match cond{
-                    Term::In(c)=>{
+                    search::Term::In(c)=>{
                         if !(ent.term_begin<*c && (ent.term_end==0||ent.term_end>*c)){
                             is_match=false;
                         }
                     }
-                    ,Term::Past(c)=>{
+                    ,search::Term::Past(c)=>{
                         if ent.term_end>*c{
                             is_match=false;
                         }
                     }
-                    ,Term::Future(c)=>{
+                    ,search::Term::Future(c)=>{
                         if ent.term_begin<*c{
                             is_match=false;
                         }
@@ -78,27 +75,27 @@ impl<'a> SessionSearch<'a>{
             ,Condition::Field(key,cond)=>{
                 if let Some(field_tmp)=ent.fields.get(key){
                     match cond{
-                        Field::Match(v)=>{
+                        search::Field::Match(v)=>{
                             if field_tmp!=v{
                                 is_match=false;
                             }
                         }
-                        ,Field::Range(min,max)=>{
+                        ,search::Field::Range(min,max)=>{
                             if min<field_tmp||max>field_tmp{
                                 is_match=false;
                             }
                         }
-                        ,Field::Min(min)=>{
+                        ,search::Field::Min(min)=>{
                             if min<field_tmp{
                                 is_match=false;
                             }
                         }
-                        ,Field::Max(max)=>{
+                        ,search::Field::Max(max)=>{
                             if max>field_tmp{
                                 is_match=false;
                             }
                         }
-                        ,Field::Forward(v)=>{
+                        ,search::Field::Forward(v)=>{
                             if let Ok(str)=std::str::from_utf8(field_tmp){
                                 if !str.starts_with(v){
                                     is_match=false;
@@ -107,7 +104,7 @@ impl<'a> SessionSearch<'a>{
                                 is_match=false;
                             }
                         }
-                        ,Field::Partial(v)=>{
+                        ,search::Field::Partial(v)=>{
                             if let Ok(str)=std::str::from_utf8(field_tmp){
                                 if !str.contains(v){
                                     is_match=false;
@@ -116,7 +113,7 @@ impl<'a> SessionSearch<'a>{
                                 is_match=false;
                             }
                         }
-                        ,Field::Backward(v)=>{
+                        ,search::Field::Backward(v)=>{
                             if let Ok(str)=std::str::from_utf8(field_tmp){
                                 if !str.ends_with(v){
                                     is_match=false;

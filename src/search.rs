@@ -2,12 +2,14 @@ use std::sync::mpsc::Sender;
 
 use versatile_data::{
     Condition as VersatileDataCondition
-    ,search::Term
     ,Activity
-    ,Field
-    ,Number
     ,RowSet
     ,Search as VersatileDataSearch
+};
+pub use versatile_data::search::{
+    Term
+    ,Field
+    ,Number
 };
 
 use crate::{Collection, RelationIndex, Depend};
