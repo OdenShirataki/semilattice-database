@@ -1,23 +1,30 @@
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
+pub use idx_binary::IdxBinary;
+
 pub use versatile_data::{
-    Data as Collection
-    ,KeyValue
+    KeyValue
     ,Field
     ,IdxSized
     ,Activity
     ,Term
-    ,Condition
     ,Number
+    ,RowSet
 };
-pub use idx_binary::IdxBinary;
+use versatile_data::Data;
 
 mod collection;
-pub use collection::CollectionRow;
+pub use collection::{
+    Collection
+    ,CollectionRow
+};
 
 mod relation;
-pub use relation::RelationIndex;
+pub use relation::{
+    RelationIndex
+    ,Depend
+};
 
 mod session;
 pub use session::{
@@ -25,8 +32,13 @@ pub use session::{
     ,Record
     ,Depends
     ,Pend
-    ,search
+    ,search as session_search
 };
+
+mod search;
+pub use search::Condition;
+
+use search::Search;
 
 pub mod prelude;
 
@@ -78,7 +90,7 @@ impl Database{
                                 }
                                 if s[1]==name{
                                     if let Some(path)=d.path().to_str(){
-                                        let data=Collection::new(path)?;
+                                        let data=Collection::new(Data::new(path)?,max_id);
                                         self.collections_map.insert(name.to_string(),max_id);
                                         self.collections.insert(
                                             max_id
@@ -94,7 +106,7 @@ impl Database{
             }
         }
         let collection_id=max_id+1;
-        let data=Collection::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name))?;
+        let data=Collection::new(Data::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name))?,collection_id);
         self.collections_map.insert(name.to_string(),collection_id);
         self.collections.insert(
             collection_id
@@ -117,5 +129,8 @@ impl Database{
     }
     pub fn relation(&self)->&RelationIndex{
         &self.relation
+    }
+    pub fn begin_search<'a>(&'a self,colletion:&'a Collection)->Search<'a>{
+        Search::new(colletion,&self.relation)
     }
 }

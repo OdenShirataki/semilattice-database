@@ -14,7 +14,7 @@ pub enum SessionOperation{
 }
 
 pub enum Depends{
-    Inherit
+    Default
     ,Overwrite(Vec<(String,CollectionRow)>)
 }
 

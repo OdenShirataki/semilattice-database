@@ -39,7 +39,7 @@ fn it_works() {
                             KeyValue::new("date","1972-08-02")
                             ,KeyValue::new("event","Birth")
                         ]
-                        ,depends:Depends::Overwrite(vec![])
+                        ,depends:Depends::Default
                         ,pends:vec![]
                     }
                     ,Record::New{
@@ -51,7 +51,7 @@ fn it_works() {
                             KeyValue::new("date","1999-12-31")
                             ,KeyValue::new("event","Mariage")
                         ]
-                        ,depends:Depends::Overwrite(vec![])
+                        ,depends:Depends::Default
                         ,pends:vec![]
                     }
                 ])]
@@ -65,7 +65,7 @@ fn it_works() {
                     KeyValue::new("name","Tom")
                     ,KeyValue::new("birthday","2000-12-12")
                 ]
-                ,depends:Depends::Overwrite(vec![])
+                ,depends:Depends::Default
                 ,pends:vec![Pend::new("history",vec![
                     Record::New{
                         collection_id:collection_history
@@ -76,7 +76,7 @@ fn it_works() {
                             KeyValue::new("date","2000-12-12")
                             ,KeyValue::new("event","Birth")
                         ]
-                        ,depends:Depends::Overwrite(vec![])
+                        ,depends:Depends::Default
                         ,pends:vec![]
                     }
                 ])]
@@ -90,31 +90,34 @@ fn it_works() {
                     KeyValue::new("name","Billy")
                     ,KeyValue::new("birthday","1982-03-03")
                 ]
-                ,depends:Depends::Overwrite(vec![])
+                ,depends:Depends::Default
                 ,pends:vec![]
             }
         ]);
         sess.commit();
     }
     
-    let relation=database.relation();
-    if let Some(p)=database.collection(collection_person){
-        for i in 1..=3{
+    if let (
+        Some(person)
+        ,Some(history)
+    )=(
+        database.collection(collection_person)
+        ,database.collection(collection_history)
+    ){
+        for i in database.begin_search(person).result(){
             println!(
                 "{},{}"
-                ,p.field_str(i,"name")
-                ,p.field_str(i,"birthday")
+                ,person.field_str(i,"name")
+                ,person.field_str(i,"birthday")
             );
-            for h in relation.pends("history",&CollectionRow::new(collection_person,i)){
-                if let Some(col)=database.collection(h.collection_id()){
-                    let row=h.row();
-                    println!(
-                        " {} : {}"
-                        ,col.field_str(row,"date")
-                        ,col.field_str(row,"event")
-                    );
-                    
-                }
+            for h in database.begin_search(history).depend(vec![
+                Depend::new("history",CollectionRow::new(collection_person,i))
+            ]).result(){
+                println!(
+                    " {} : {}"
+                    ,history.field_str(h,"date")
+                    ,history.field_str(h,"event")
+                );
             }
         }
     }
@@ -127,7 +130,7 @@ fn it_works() {
                 ,term_begin:Term::Defalut
                 ,term_end:Term::Defalut
                 ,fields:vec![KeyValue::new("name","Renamed Joe")]
-                ,depends:Depends::Inherit
+                ,depends:Depends::Default
                 ,pends:vec![]
             }
         ]);
@@ -203,14 +206,5 @@ fn it_works() {
             );
         }
         assert_eq!(sum,55.0);
-
-        let r=t1
-            .search_field("num",Field::Range(b"3".to_vec(),b"8".to_vec()))
-            .search_default()   //Automatic execution of the following two lines
-            //.search_term(Term::In(chrono::Local::now().timestamp()))
-            //.search_activity(Activity::Active)
-            .result()
-        ;
-        println!("{:?}",r);
     }
 }

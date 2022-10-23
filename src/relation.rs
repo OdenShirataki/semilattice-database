@@ -4,6 +4,26 @@ use versatile_data::IdxSized;
 
 use crate::collection::CollectionRow;
 
+#[derive(Clone)]
+pub struct Depend{
+    key:String
+    ,collection_row:CollectionRow
+}
+impl Depend{
+    pub fn new(key:impl Into<String>,collection_row:CollectionRow)->Depend{
+        Depend{
+            key:key.into()
+            ,collection_row
+        }
+    }
+    pub fn key(&self)->&str{
+        &self.key
+    }
+    pub fn collection_row(&self)->&CollectionRow{
+        &self.collection_row
+    }
+}
+
 struct RelationIndexRows{
     key:IdxSized<u32>
     ,depend:IdxSized<CollectionRow>

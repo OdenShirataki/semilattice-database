@@ -48,7 +48,8 @@ struct SessionData{
     ,relation:SessionRelation
 }
 pub struct Session<'a>{
-    main_database:&'a mut Database
+    name:String
+    ,main_database:&'a mut Database
     ,session_dir:String
     ,session_data:Option<SessionData>
     ,temporary_data:TemporaryData
@@ -56,21 +57,23 @@ pub struct Session<'a>{
 impl<'a> Session<'a>{
     pub fn new(
         main_database:&'a mut Database
-        ,session_name:&'a str
+        ,name:impl Into<String>
     )->Result<Session,std::io::Error>{
-        if session_name==""{
+        let name:String=name.into();
+        if name==""{
             Ok(Self::new_blank(
                 main_database
             ))
         }else{
-            let session_dir=main_database.root_dir().to_string()+"/sessions/"+session_name;
+            let session_dir=main_database.root_dir().to_string()+"/sessions/"+&name;
             if !std::path::Path::new(&session_dir).exists(){
                 std::fs::create_dir_all(&session_dir).unwrap();
             }
             let session_data=Self::new_data(&session_dir)?;
             let temporary_data=Self::make_session_data(&session_data);
             Ok(Session{
-                main_database
+                name
+                ,main_database
                 ,session_dir:session_dir.to_string()
                 ,session_data:Some(session_data)
                 ,temporary_data
@@ -81,11 +84,18 @@ impl<'a> Session<'a>{
         main_database:&'a mut Database
     )->Session{
         Session{
-            main_database
+            name:"".to_string()
+            ,main_database
             ,session_dir:"".to_string()
             ,session_data:None
             ,temporary_data:HashMap::new()
         }
+    }
+    pub fn name(&mut self)->&str{
+        &self.name
+    }
+    pub fn database(&mut self)->&mut Database{
+        self.main_database
     }
     pub fn start(&mut self,session_name:&str){
         let session_dir=self.main_database.root_dir().to_string()+"/sessions/"+session_name;

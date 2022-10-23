@@ -1,5 +1,70 @@
 use std::cmp::Ordering;
 
+use versatile_data::{
+    Data
+    ,Activity
+    ,Term
+    ,KeyValue
+    ,Operation
+};
+
+pub struct Collection{
+    pub(crate) data:Data
+    ,pub(crate) id:i32
+}
+impl Collection{
+    pub fn new(data:Data,id:i32)->Collection{
+        Collection{
+            data
+            ,id
+        }
+    }
+    pub fn activity(&self,row:u32)->Activity{
+        self.data.activity(row)
+    }
+    pub fn serial(&self,row:u32)->u32{
+        self.data.serial(row)
+    }
+    pub fn uuid_str(&self,row:u32)->String{
+        self.data.uuid_str(row)
+    }
+    pub fn last_updated(&self,row:u32)->i64{
+        self.data.last_updated(row)
+    }
+    pub fn term_begin(&self,row:u32)->i64{
+        self.data.term_begin(row)
+    }
+    pub fn term_end(&self,row:u32)->i64{
+        self.data.term_end(row)
+    }
+    pub fn field_str(&self,row:u32,field_name:&str)->&str{
+        self.data.field_str(row,field_name)
+    }
+    pub fn field_num(&self,row:u32,field_name:&str)->f64{
+        self.data.field_num(row,field_name)
+    }
+    pub fn create_row(&mut self,activity:&Activity,term_begin:&Term,term_end:&Term,fields:&Vec<KeyValue>)->u32{
+        self.data.create_row(
+            activity
+            ,term_begin
+            ,term_end
+            ,fields
+        )
+    }
+    pub fn update_row(&mut self,collection_row:u32,activity:&Activity,term_begin:&Term,term_end:&Term,fields:&Vec<KeyValue>){
+        self.data.update_row(
+            collection_row
+            ,&activity
+            ,&term_begin
+            ,&term_end
+            ,&fields
+        );
+    }
+    pub fn update(&mut self,operation:&Operation)->u32{
+        self.data.update(operation)
+    }
+}
+
 #[derive(Clone,Copy,Default,Debug)]
 pub struct CollectionRow{
     collection_id:i32

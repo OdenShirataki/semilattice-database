@@ -280,7 +280,7 @@ pub(super) fn update_recursive(
                         ,fields
                     );
                     match depends{
-                        Depends::Inherit=>{
+                        Depends::Default=>{
                             let depends=master_database.relation().index_pend().select_by_value(&CollectionRow::new(*collection_id,*row));
                             for i in depends{
                                 let depend=master_database.relation().depend(i).unwrap();

@@ -1,15 +1,15 @@
-use versatile_data::{
-    Condition
-    ,RowSet
-    ,Activity
-    ,Field
-    ,Number
-};
 pub use versatile_data::search::Term;
 
 use super::{
     Session
     ,TemporaryDataEntity
+};
+use crate::{
+    Condition
+    ,RowSet
+    ,Activity
+    ,Field
+    ,Number
 };
 
 pub struct SessionSearch<'a>{
@@ -147,6 +147,7 @@ impl<'a> SessionSearch<'a>{
                     }
                 }
             }
+            ,Condition::Depend(_)=>{}
             ,Condition::Row(_)=>{}
             ,Condition::LastUpdated(_)=>{}
             ,Condition::Uuid(_)=>{}
@@ -154,8 +155,10 @@ impl<'a> SessionSearch<'a>{
         is_match
     }
     pub fn result(self)->RowSet{
-        if let Some(collection)=self.session.main_database.collections.get(&self.collection_id){
-            let mut search=collection.begin_search();
+        if let Some(collection)=self.session.main_database.collection(self.collection_id){
+            let mut search=self.session.main_database.begin_search(
+                collection
+            );
             for c in &self.conditions{
                 search=search.search(c.clone());
             }
@@ -180,8 +183,9 @@ impl<'a> SessionSearch<'a>{
                 }
                 r=new_rows;
             }
-            return r;
+            r
+        }else{
+            RowSet::default()
         }
-        RowSet::default()
     }
 }
