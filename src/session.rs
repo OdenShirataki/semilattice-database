@@ -94,7 +94,10 @@ impl<'a> Session<'a>{
     pub fn name(&mut self)->&str{
         &self.name
     }
-    pub fn database(&mut self)->&mut Database{
+    pub fn database(&self)->&Database{
+        self.main_database
+    }
+    pub fn database_mut(&mut self)->&mut Database{
         self.main_database
     }
     pub fn start(&mut self,session_name:&str){
@@ -231,6 +234,6 @@ impl<'a> Session<'a>{
         }
     }
     pub fn collection_id(&mut self,collection_name:&str)->Result<i32,std::io::Error>{
-        self.main_database.collection_id(collection_name)
+        self.main_database.collection_id_or_create(collection_name)
     }
 }

@@ -15,8 +15,8 @@ if std::path::Path::new(dir).exists(){
 }
 let mut database=Database::new(dir).unwrap();
 
-let collection_person=database.collection_id("person").unwrap();
-let collection_history=database.collection_id("history").unwrap();
+let collection_person=database.collection_id_or_create("person").unwrap();
+let collection_history=database.collection_id_or_create("history").unwrap();
 
 if let Ok(mut sess)=database.session("test"){
     sess.update(vec![
@@ -148,7 +148,7 @@ if let Ok(mut sess)=database.session("test"){
     sess.commit();
 }
 
-let test1=database.collection_id("test1").unwrap();
+let test1=database.collection_id_or_create("test1").unwrap();
 let range=1..=10;
 if let Ok(mut sess)=database.session("test"){
     for i in range.clone(){

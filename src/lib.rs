@@ -119,7 +119,14 @@ impl Database{
     pub fn collection_mut(&mut self,id:i32)->Option<&mut Collection>{
         self.collections.get_mut(&id)
     }
-    pub fn collection_id(&mut self,name:&str)->Result<i32,std::io::Error>{
+    pub fn collection_id(&self,name:&str)->Option<i32>{
+        if self.collections_map.contains_key(name){
+            Some(*self.collections_map.get(name).unwrap())
+        }else{
+            None
+        }
+    }
+    pub fn collection_id_or_create(&mut self,name:&str)->Result<i32,std::io::Error>{
         if self.collections_map.contains_key(name){
             Ok(*self.collections_map.get(name).unwrap())
         }else{
