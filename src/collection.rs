@@ -10,14 +10,22 @@ use versatile_data::{
 
 pub struct Collection{
     pub(crate) data:Data
-    ,pub(crate) id:i32
+    ,id:i32
+    ,name:String
 }
 impl Collection{
-    pub fn new(data:Data,id:i32)->Collection{
+    pub fn new(data:Data,id:i32,name:impl Into<String>)->Collection{
         Collection{
             data
             ,id
+            ,name:name.into()
         }
+    }
+    pub fn id(&self)->i32{
+        self.id
+    }
+    pub fn name(&self)->&str{
+        &self.name
     }
     pub fn activity(&self,row:u32)->Activity{
         self.data.activity(row)

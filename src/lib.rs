@@ -56,10 +56,41 @@ impl Database{
         }else{
             dir.to_string()
         };
+        let mut collections_map=HashMap::new();
+        let mut collections=BTreeMap::new();
+        let collections_dir=root_dir.to_string()+"/collection/";
+        if let Ok(dir)=std::fs::read_dir(&collections_dir){
+            for d in dir.into_iter(){
+                let d=d.unwrap();
+                let dt=d.file_type().unwrap();
+                if dt.is_dir(){
+                    if let Some(fname)=d.path().file_name(){
+                        if let Some(fname)=fname.to_str(){
+                            let s: Vec<&str>=fname.split("_").collect();
+                            if s.len()>1{
+                                if let Some(path)=d.path().to_str(){
+                                    if let Ok(collection_id)=s[0].parse::<i32>(){
+                                        let name=s[1];
+                                        let data=Collection::new(Data::new(path)?,collection_id,name);
+                                        collections_map.insert(name.to_string(),collection_id);
+                                        collections.insert(
+                                            collection_id
+                                            ,data
+                                        );
+                                    }
+                                    
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(Database{
             root_dir:root_dir.to_string()
-            ,collections:BTreeMap::new()
-            ,collections_map:HashMap::new()
+            ,collections
+            ,collections_map
             ,relation:RelationIndex::new(&root_dir)?
         })
     }
@@ -89,7 +120,7 @@ impl Database{
                                 }
                                 if s[1]==name{
                                     if let Some(path)=d.path().to_str(){
-                                        let data=Collection::new(Data::new(path)?,max_id);
+                                        let data=Collection::new(Data::new(path)?,max_id,name);
                                         self.collections_map.insert(name.to_string(),max_id);
                                         self.collections.insert(
                                             max_id
@@ -105,7 +136,7 @@ impl Database{
             }
         }
         let collection_id=max_id+1;
-        let data=Collection::new(Data::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name))?,collection_id);
+        let data=Collection::new(Data::new(&(collections_dir+"/"+&collection_id.to_string()+"_"+name))?,collection_id,name);
         self.collections_map.insert(name.to_string(),collection_id);
         self.collections.insert(
             collection_id

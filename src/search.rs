@@ -119,7 +119,7 @@ impl<'a> Search<'a>{
             }
             ,Condition::Depend(depends)=>{
                 let mut tmp=RowSet::default();
-                let collection_id=collection.id;
+                let collection_id=collection.id();
                 for d in depends{
                     for r in relation.pends(d.key(),d.collection_row()){
                         if r.collection_id()==collection_id{
