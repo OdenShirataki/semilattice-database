@@ -116,28 +116,28 @@ impl Database{
     }
     pub fn commit(&mut self,session:&mut Session){
         if let Some(ref mut data)=session.session_data{
-            commit::commit(data,self);
+            commit::commit(self,data);
             self.session_clear(session);
         }
     }
-    pub fn session_clear(&mut self,session:&mut Session){
+    pub fn session_clear(&self,session:&mut Session){
         let session_dir=self.session_dir(session.name());
         session.session_data=None;
         if std::path::Path::new(&session_dir).exists(){
             std::fs::remove_dir_all(&session_dir).unwrap();
         }
     }
-    pub fn session_start(&mut self,session:&mut Session){
+    pub fn session_start(&self,session:&mut Session){
         let session_dir=self.session_dir(session.name());
         if let Ok(session_data)=Session::new_data(&session_dir){
             session.session_data=Some(session_data);
         }
     }
-    pub fn session_restart(&mut self,session:&mut Session){
+    pub fn session_restart(&self,session:&mut Session){
         self.session_clear(session);
         self.session_start(session);
     }
-    pub fn update(&mut self,session:&mut Session,records:Vec::<Record>){
+    pub fn update(&self,session:&mut Session,records:Vec::<Record>){
         let session_dir=self.session_dir(session.name());
         match session.session_data{
             Some(ref mut data)=>{

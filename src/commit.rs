@@ -17,8 +17,8 @@ use crate::{
 };
 
 pub fn commit(
-    session_data:&mut SessionData
-    ,main_database:&mut Database
+    main_database:&mut Database
+    ,session_data:&SessionData
 ){
     let mut session_collection_row_map:HashMap<u32,CollectionRow>=HashMap::new();
 
