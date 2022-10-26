@@ -219,7 +219,10 @@ impl Database{
     pub fn relation(&self)->&RelationIndex{
         &self.relation
     }
-    pub fn begin_search<'a>(&'a self,colletion:&'a Collection)->Search<'a>{
-        Search::new(colletion,&self.relation)
+    pub fn search(&self,colletion:&Collection)->Search{
+        Search::new(colletion)
+    }
+    pub fn result(&self,search:&Search)->RowSet{
+        search.exec(self)
     }
 }

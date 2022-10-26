@@ -155,13 +155,13 @@ impl<'a> SessionSearch<'a>{
     
     pub fn result(self,database:&Database)->RowSet{
         if let Some(collection)=database.collection(self.collection_id){
-            let mut search=database.begin_search(
+            let mut search=database.search(
                 collection
             );
             for c in &self.conditions{
                 search=search.search(c.clone());
             }
-            let mut r=search.result();
+            let mut r=database.result(&search);
             if let Some(tmp)=self.session.temporary_data.get(&self.collection_id){
                 let mut new_rows=RowSet::new();
                 for row in r{

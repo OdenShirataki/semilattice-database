@@ -105,15 +105,17 @@ if let (
     database.collection(collection_person)
     ,database.collection(collection_history)
 ){
-    for i in database.begin_search(person).result(){
+    let search=database.search(person);
+    for i in database.result(&search){
         println!(
             "{},{}"
             ,person.field_str(i,"name")
             ,person.field_str(i,"birthday")
         );
-        for h in database.begin_search(history).depend(vec![
+        let search=database.search(history).depend(vec![
             Depend::new("history",CollectionRow::new(collection_person,i))
-        ]).result(){
+        ]);
+        for h in database.result(&search){
             println!(
                 " {} : {}"
                 ,history.field_str(h,"date")

@@ -12,7 +12,12 @@ pub use versatile_data::search::{
     ,Number
 };
 
-use crate::{Collection, RelationIndex, Depend};
+use crate::{
+    Database
+    ,Collection
+    ,RelationIndex
+    ,Depend
+};
 
 #[derive(Clone)]
 pub enum Condition{
@@ -27,16 +32,14 @@ pub enum Condition{
     ,Depend(Vec<Depend>)
 }
 
-pub struct Search<'a>{
-    collection:&'a Collection
-    ,relation:&'a RelationIndex
+pub struct Search{
+    collection_id:i32
     ,conditions:Vec<Condition>
 }
-impl<'a> Search<'a>{
-    pub fn new(collection:&'a Collection,relation:&'a RelationIndex)->Self{
+impl Search{
+    pub fn new(collection:&Collection)->Self{
         Search{
-            collection
-            ,relation
+            collection_id:collection.id()
             ,conditions:Vec::new()
         }
     }
@@ -55,10 +58,6 @@ impl<'a> Search<'a>{
     }
     pub fn field(self,field_name:impl Into<String>,condition:Field)->Self{
         self.search(Condition::Field(field_name.into(),condition))
-    }
-    
-    pub fn result(mut self)->RowSet{
-        self.exec()
     }
     
     fn exec_cond(collection:&Collection,relation:&RelationIndex,condtion:&Condition,tx:Sender<RowSet>){
@@ -132,30 +131,32 @@ impl<'a> Search<'a>{
             }
         }
     }
-    fn exec(&mut self)->RowSet{
+    pub(super) fn exec(&self,database:&Database)->RowSet{
         let mut rows=RowSet::default();
-        if self.conditions.len()>0{
-            let (tx, rx) = std::sync::mpsc::channel();
-            for c in &self.conditions{
-                let tx=tx.clone();
-                Self::exec_cond(&self.collection,&self.relation, c, tx);
-                
-            }
-            drop(tx);
-            let mut fst=true;
-            for rs in rx{
-                if fst{
-                    rows=rs;
-                    fst=false;
-                }else{
-                    rows=rows.intersection(&rs).map(|&x|x).collect()
+        if let Some(collection)=database.collection(self.collection_id){
+            if self.conditions.len()>0{
+                let (tx, rx) = std::sync::mpsc::channel();
+                for c in &self.conditions{
+                    let tx=tx.clone();
+                    Self::exec_cond(collection,&database.relation, c, tx);
+                }
+                drop(tx);
+                let mut fst=true;
+                for rs in rx{
+                    if fst{
+                        rows=rs;
+                        fst=false;
+                    }else{
+                        rows=rows.intersection(&rs).map(|&x|x).collect()
+                    }
+                }
+            }else{
+                for row in collection.data.all(){
+                    rows.insert(row);
                 }
             }
-        }else{
-            for row in self.collection.data.all(){
-                rows.insert(row);
-            }
         }
+        
         rows
     }
 }
