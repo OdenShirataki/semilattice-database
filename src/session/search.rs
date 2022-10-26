@@ -3,19 +3,20 @@ use super::{
     ,TemporaryDataEntity
 };
 use crate::{
-    Condition
+    Database
+    ,Condition
     ,RowSet
     ,Activity
     ,search
 };
 
 pub struct SessionSearch<'a>{
-    session:&'a Session<'a>
+    session:&'a Session
     ,collection_id:i32
     ,conditions:Vec<Condition>
 }
 impl<'a> SessionSearch<'a>{
-    pub fn new(session:&'a Session<'a>,collection_id:i32)->SessionSearch{
+    pub fn new(session:&'a Session,collection_id:i32)->SessionSearch{
         SessionSearch{
             session
             ,collection_id
@@ -135,7 +136,7 @@ impl<'a> SessionSearch<'a>{
                         break;
                     }
                 }
-            },Condition::Broad(conditions)=>{
+            },Condition::Wide(conditions)=>{
                 is_match=false;
                 for c in conditions{
                     is_match|=Self::temporary_data_match(ent,c);
@@ -151,9 +152,10 @@ impl<'a> SessionSearch<'a>{
         }
         is_match
     }
-    pub fn result(self)->RowSet{
-        if let Some(collection)=self.session.main_database.collection(self.collection_id){
-            let mut search=self.session.main_database.begin_search(
+    
+    pub fn result(self,database:&Database)->RowSet{
+        if let Some(collection)=database.collection(self.collection_id){
+            let mut search=database.begin_search(
                 collection
             );
             for c in &self.conditions{

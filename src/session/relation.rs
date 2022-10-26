@@ -3,15 +3,15 @@ use versatile_data::IdxSized;
 use crate::CollectionRow;
 
 pub struct SessionRelationRows{
-    pub(super) sequence:IdxSized<usize>
-    ,pub(super) key:IdxSized<u32>
-    ,pub(super) session_row:IdxSized<u32>
-    ,pub(super) depend_session_row:IdxSized<u32>
-    ,pub(super) depend:IdxSized<CollectionRow>
+    pub(crate) sequence:IdxSized<usize>
+    ,pub(crate) key:IdxSized<u32>
+    ,pub(crate) session_row:IdxSized<u32>
+    ,pub(crate) depend_session_row:IdxSized<u32>
+    ,pub(crate) depend:IdxSized<CollectionRow>
 }
 pub struct SessionRelation{
-    pub(super) key_names:IdxBinary
-    ,pub(super) rows:SessionRelationRows
+    pub(crate) key_names:IdxBinary
+    ,pub(crate) rows:SessionRelationRows
 }
 impl SessionRelation{
     pub fn new(session_dir:&str)->SessionRelation{

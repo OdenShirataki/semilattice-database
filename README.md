@@ -19,7 +19,7 @@ let collection_person=database.collection_id_or_create("person").unwrap();
 let collection_history=database.collection_id_or_create("history").unwrap();
 
 if let Ok(mut sess)=database.session("test"){
-    sess.update(vec![
+    database.update(&mut sess,vec![
         Record::New{
             collection_id:collection_person
             ,activity:Activity::Active
@@ -95,7 +95,7 @@ if let Ok(mut sess)=database.session("test"){
             ,pends:vec![]
         }
     ]);
-    sess.commit();
+    database.commit(&mut sess);
 }
 
 if let (
@@ -123,7 +123,7 @@ if let (
     }
 }
 if let Ok(mut sess)=database.session("test"){
-    sess.update(vec![
+    database.update(&mut sess,vec![
         Record::Update{
             collection_id:collection_person
             ,row:1
@@ -138,21 +138,21 @@ if let Ok(mut sess)=database.session("test"){
 }
 if let Ok(mut sess)=database.session("test"){
     let search=sess.begin_search(collection_person).search_activity(Activity::Active);
-    for r in search.result(){
+    for r in search.result(&database){
         println!(
             "{},{}"
-            ,sess.field_str(collection_person,r,"name")
-            ,sess.field_str(collection_person,r,"birthday")
+            ,sess.field_str(&database,collection_person,r,"name")
+            ,sess.field_str(&database,collection_person,r,"birthday")
         );
     }
-    sess.commit();
+    database.commit(&mut sess);
 }
 
 let test1=database.collection_id_or_create("test1").unwrap();
 let range=1..=10;
 if let Ok(mut sess)=database.session("test"){
     for i in range.clone(){
-        sess.update(vec![
+        database.update(&mut sess,vec![
             Record::New{
                 collection_id:test1
                 ,activity:Activity::Active
@@ -167,11 +167,11 @@ if let Ok(mut sess)=database.session("test"){
             }
         ]);
     }
-    sess.commit();
+    database.commit(&mut sess);
 }
 
 if let Ok(mut sess)=database.session("test"){
-    sess.update(vec![
+    database.update(&mut sess,vec![
         Record::Update{
             collection_id:test1
             ,row:3
@@ -183,7 +183,7 @@ if let Ok(mut sess)=database.session("test"){
             ,pends:vec![]
         }
     ]);
-    sess.commit();
+    database.commit(&mut sess);
 }
 
 if let Some(t1)=database.collection(test1){

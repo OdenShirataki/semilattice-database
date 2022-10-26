@@ -39,6 +39,10 @@ pub use search::{
     ,Search
 };
 
+mod commit;
+
+mod update;
+
 pub mod prelude;
 
 pub struct Database{
@@ -97,11 +101,59 @@ impl Database{
     pub fn root_dir(&self)->&str{
         &self.root_dir
     }
-    pub fn session<'a>(&'a mut self,name:&'a str)->Result<Session<'a>,std::io::Error>{
-        Session::new(self,name)
+    fn session_dir(&self,session_name:&str)->String{
+        self.root_dir.to_string()+"/sessions/"+session_name
     }
-    pub fn blank_session<'a>(&'a mut self)->Session<'a>{
-        Session::new_blank(self)
+    pub fn session(&self,session_name:&str)->Result<Session,std::io::Error>{
+        let session_dir=self.session_dir(session_name);
+        if !std::path::Path::new(&session_dir).exists(){
+            std::fs::create_dir_all(&session_dir)?;
+        }
+        Session::new(self,session_name)
+    }
+    pub fn blank_session(&self)->Result<Session,std::io::Error>{
+       self.session("")
+    }
+    pub fn commit(&mut self,session:&mut Session){
+        if let Some(ref mut data)=session.session_data{
+            commit::commit(data,self);
+            self.session_clear(session);
+        }
+    }
+    pub fn session_clear(&mut self,session:&mut Session){
+        let session_dir=self.session_dir(session.name());
+        session.session_data=None;
+        if std::path::Path::new(&session_dir).exists(){
+            std::fs::remove_dir_all(&session_dir).unwrap();
+        }
+    }
+    pub fn session_start(&mut self,session:&mut Session){
+        let session_dir=self.session_dir(session.name());
+        if let Ok(session_data)=Session::new_data(&session_dir){
+            session.session_data=Some(session_data);
+        }
+    }
+    pub fn session_restart(&mut self,session:&mut Session){
+        self.session_clear(session);
+        self.session_start(session);
+    }
+    pub fn update(&mut self,session:&mut Session,records:Vec::<Record>){
+        let session_dir=self.session_dir(session.name());
+        match session.session_data{
+            Some(ref mut data)=>{
+                let sequence=data.sequence_number.next();
+                update::update_recursive(self,data,&mut session.temporary_data,&session_dir,sequence,&records,None);
+            }
+            ,None=>{
+                if let Ok(data)=Session::new_data(&session_dir){
+                    session.session_data=Some(data);
+                    if let Some(ref mut data)=session.session_data{
+                        let sequence=data.sequence_number.next();
+                        update::update_recursive(self,data,&mut session.temporary_data,&session_dir,sequence,&records,None);
+                    }
+                }
+            }
+        }
     }
     fn collection_by_name_or_create(&mut self,name:&str)->Result<i32,std::io::Error>{
         let mut max_id=0;

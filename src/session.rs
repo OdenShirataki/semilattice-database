@@ -4,6 +4,7 @@ use versatile_data::{
     ,FieldData
     ,Activity
 };
+
 use super::Database;
 
 mod operation;
@@ -20,50 +21,43 @@ use sequence_number::SequenceNumber;
 mod relation;
 use relation::SessionRelation;
 
-mod update;
-use update::*;
-
 pub mod search;
 use search::SessionSearch;
 
 #[derive(Debug)]
-struct TemporaryDataEntity{
-    activity:Activity
-    ,term_begin:i64
-    ,term_end:i64
-    ,fields:HashMap<String,Vec<u8>>
+pub struct TemporaryDataEntity{
+    pub(super) activity:Activity
+    ,pub(super) term_begin:i64
+    ,pub(super) term_end:i64
+    ,pub(super) fields:HashMap<String,Vec<u8>>
 }
-type TemporaryData=HashMap<i32,HashMap<u32,TemporaryDataEntity>>;
+pub type TemporaryData=HashMap<i32,HashMap<u32,TemporaryDataEntity>>;
 
-struct SessionData{
-    sequence_number:SequenceNumber
-    ,sequence:IdxSized<usize>
-    ,collection_id:IdxSized<i32>
-    ,collection_row:IdxSized<u32>
-    ,operation:IdxSized<SessionOperation>
-    ,activity: IdxSized<u8>
-    ,term_begin: IdxSized<i64>
-    ,term_end: IdxSized<i64>
-    ,fields:HashMap<String,FieldData>
-    ,relation:SessionRelation
+pub struct SessionData{
+    pub(super) sequence_number:SequenceNumber
+    ,pub(super) sequence:IdxSized<usize>
+    ,pub(super) collection_id:IdxSized<i32>
+    ,pub(super) collection_row:IdxSized<u32>
+    ,pub(super) operation:IdxSized<SessionOperation>
+    ,pub(super) activity: IdxSized<u8>
+    ,pub(super) term_begin: IdxSized<i64>
+    ,pub(super) term_end: IdxSized<i64>
+    ,pub(super) fields:HashMap<String,FieldData>
+    ,pub(super) relation:SessionRelation
 }
-pub struct Session<'a>{
+pub struct Session{
     name:String
-    ,main_database:&'a mut Database
-    ,session_dir:String
-    ,session_data:Option<SessionData>
-    ,temporary_data:TemporaryData
+    ,pub(super) session_data:Option<SessionData>
+    ,pub(super) temporary_data:TemporaryData
 }
-impl<'a> Session<'a>{
+impl Session{
     pub fn new(
-        main_database:&'a mut Database
+        main_database:&Database
         ,name:impl Into<String>
     )->Result<Session,std::io::Error>{
         let name:String=name.into();
         if name==""{
-            Ok(Self::new_blank(
-                main_database
-            ))
+            Ok(Self::new_blank())
         }else{
             let session_dir=main_database.root_dir().to_string()+"/sessions/"+&name;
             if !std::path::Path::new(&session_dir).exists(){
@@ -73,42 +67,20 @@ impl<'a> Session<'a>{
             let temporary_data=Self::make_session_data(&session_data);
             Ok(Session{
                 name
-                ,main_database
-                ,session_dir:session_dir.to_string()
                 ,session_data:Some(session_data)
                 ,temporary_data
             })
         }
     }
-    pub fn new_blank(
-        main_database:&'a mut Database
-    )->Session{
+    pub fn new_blank()->Session{
         Session{
             name:"".to_string()
-            ,main_database
-            ,session_dir:"".to_string()
             ,session_data:None
             ,temporary_data:HashMap::new()
         }
     }
     pub fn name(&mut self)->&str{
         &self.name
-    }
-    pub fn database(&self)->&Database{
-        self.main_database
-    }
-    pub fn database_mut(&mut self)->&mut Database{
-        self.main_database
-    }
-    pub fn start(&mut self,session_name:&str){
-        let session_dir=self.main_database.root_dir().to_string()+"/sessions/"+session_name;
-        if !std::path::Path::new(&session_dir).exists(){
-            std::fs::create_dir_all(&session_dir).unwrap();
-        }
-        let session_data=Self::new_data(&session_dir).unwrap();
-        self.session_dir=session_dir.to_string();
-        self.temporary_data=Self::make_session_data(&session_data);
-        self.session_data=Some(session_data);
     }
     fn make_session_data(session_data:&SessionData) -> HashMap<i32, HashMap<u32, TemporaryDataEntity>> {
         let mut temporary_data=HashMap::new();
@@ -140,7 +112,7 @@ impl<'a> Session<'a>{
         }
         temporary_data
     }
-    fn new_data(session_dir:&str)->Result<SessionData,std::io::Error>{
+    pub fn new_data(session_dir:&str)->Result<SessionData,std::io::Error>{
         let mut fields=HashMap::new();
 
         let fields_dir=session_dir.to_string()+"/fields/";
@@ -185,39 +157,11 @@ impl<'a> Session<'a>{
             false
         }
     }
-    pub fn clear(&mut self){
-        self.session_data=None;
-        if std::path::Path::new(&self.session_dir).exists(){
-            std::fs::remove_dir_all(&self.session_dir).unwrap();
-        }
-    }
-    pub fn commit(&mut self){
-        if let Some(ref mut data)=self.session_data{
-            commit(data,self.main_database);
-            self.clear();
-        }
-    }
-    pub fn update(&mut self,records:Vec::<Record>){
-        match self.session_data{
-            Some(ref mut data)=>{
-                let sequence=data.sequence_number.next();
-                update_recursive(&self.main_database,data,&mut self.temporary_data,&self.session_dir,sequence,&records,None);
-            }
-            ,None=>{
-                if let Ok(data)=Self::new_data(&self.session_dir){
-                    self.session_data=Some(data);
-                    if let Some(ref mut data)=self.session_data{
-                        let sequence=data.sequence_number.next();
-                        update_recursive(&self.main_database,data,&mut self.temporary_data,&self.session_dir,sequence,&records,None);
-                    }
-                }
-            }
-        }
-    }
+
     pub fn begin_search(&self,collection_id:i32)->SessionSearch{
         SessionSearch::new(self,collection_id)
     }
-    pub fn field_str(&self,collection_id:i32,row:u32,key:&str)->&str{
+    pub fn field_str<'a>(&'a self,database:&'a Database,collection_id:i32,row:u32,key:&str)->&str{
         if let Some(tmp_col)=self.temporary_data.get(&collection_id){
             if let Some(tmp_row)=tmp_col.get(&row){
                 if let Some(val)=tmp_row.fields.get(key){
@@ -227,13 +171,10 @@ impl<'a> Session<'a>{
                 }
             }
         }
-        if let Some(col)=self.main_database.collection(collection_id){
+        if let Some(col)=database.collection(collection_id){
             col.field_str(row,key)
         }else{
             ""
         }
-    }
-    pub fn collection_id(&mut self,collection_name:&str)->Result<i32,std::io::Error>{
-        self.main_database.collection_id_or_create(collection_name)
     }
 }

@@ -23,7 +23,7 @@ pub enum Condition{
     ,LastUpdated(Number)
     ,Field(String,Field)
     ,Narrow(Vec<Condition>)
-    ,Broad(Vec<Condition>)
+    ,Wide(Vec<Condition>)
     ,Depend(Vec<Depend>)
 }
 
@@ -102,7 +102,7 @@ impl<'a> Search<'a>{
                     tx.send(tmp).unwrap();
                 });
             }
-            ,Condition::Broad(conditions)=>{
+            ,Condition::Wide(conditions)=>{
                 let (tx_inner, rx) = std::sync::mpsc::channel();
                 for c in conditions{
                     let tx_inner=tx_inner.clone();
