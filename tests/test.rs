@@ -111,9 +111,9 @@ fn it_works() {
                 ,person.field_str(i,"name")
                 ,person.field_str(i,"birthday")
             );
-            let search=database.search(history).depend(vec![
+            let search=database.search(history).depend(
                 Depend::new("history",CollectionRow::new(collection_person,i))
-            ]);
+            );
             for h in database.result(&search){
                 println!(
                     " {} : {}"

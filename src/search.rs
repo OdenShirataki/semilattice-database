@@ -29,7 +29,7 @@ pub enum Condition{
     ,Field(String,Field)
     ,Narrow(Vec<Condition>)
     ,Wide(Vec<Condition>)
-    ,Depend(Vec<Depend>)
+    ,Depend(Depend)
 }
 
 pub struct Search{
@@ -52,7 +52,7 @@ impl Search{
         self.conditions.push(Condition::Activity(Activity::Active));
         self
     }
-    pub fn depend(mut self,condition:Vec<Depend>)->Self{
+    pub fn depend(mut self,condition:Depend)->Self{
         self.conditions.push(Condition::Depend(condition));
         self
     }
@@ -79,6 +79,20 @@ impl Search{
             }
             ,Condition::Field(key,condition)=>{
                 VersatileDataSearch::search_exec_cond(&collection.data,&VersatileDataCondition::Field(key.to_owned(),condition.clone()),tx);
+            }
+            ,Condition::Depend(depend)=>{
+                let rel=relation.pends(depend.key(),depend.collection_row());
+                let collection_id=collection.id();
+                std::thread::spawn(move||{
+                    let mut tmp=RowSet::default();
+                    for r in rel{
+                        if r.collection_id()==collection_id{
+                            tmp.insert(r.row());
+                        }
+                    }
+                    let tx=tx.clone();
+                    tx.send(tmp).unwrap();
+                });
             }
             ,Condition::Narrow(conditions)=>{
                 let (tx_inner, rx) = std::sync::mpsc::channel();
@@ -116,19 +130,7 @@ impl Search{
                     tx.send(tmp).unwrap();
                 });
             }
-            ,Condition::Depend(depends)=>{
-                let mut tmp=RowSet::default();
-                let collection_id=collection.id();
-                for d in depends{
-                    for r in relation.pends(d.key(),d.collection_row()){
-                        if r.collection_id()==collection_id{
-                            tmp.insert(r.row());
-                        }
-                    }
-                }
-                let tx=tx.clone();
-                tx.send(tmp).unwrap();
-            }
+            
         }
     }
     pub(super) fn exec(&self,database:&Database)->RowSet{
@@ -137,8 +139,7 @@ impl Search{
             if self.conditions.len()>0{
                 let (tx, rx) = std::sync::mpsc::channel();
                 for c in &self.conditions{
-                    let tx=tx.clone();
-                    Self::exec_cond(collection,&database.relation, c, tx);
+                    Self::exec_cond(collection,&database.relation,c,tx.clone());
                 }
                 drop(tx);
                 let mut fst=true;
