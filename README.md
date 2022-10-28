@@ -113,7 +113,7 @@ if let (
             ,person.field_str(i,"birthday")
         );
         let search=database.search(history).depend(
-            Depend::new("history",CollectionRow::new(collection_person,i))
+            search::Depend::new("history",CollectionRow::new(collection_person,i))
         );
         for h in database.result(&search){
             println!(

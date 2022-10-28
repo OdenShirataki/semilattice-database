@@ -112,7 +112,7 @@ fn it_works() {
                 ,person.field_str(i,"birthday")
             );
             let search=database.search(history).depend(
-                Depend::new("history",CollectionRow::new(collection_person,i))
+                search::Depend::new("history",CollectionRow::new(collection_person,i))
             );
             for h in database.result(&search){
                 println!(
@@ -186,7 +186,7 @@ fn it_works() {
         ]);
         database.commit(&mut sess);
     }
-    
+
     if let Some(t1)=database.collection(test1){
         let mut sum=0.0;
         for i in range.clone(){

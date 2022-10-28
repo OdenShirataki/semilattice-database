@@ -19,10 +19,7 @@ pub use collection::{
 };
 
 mod relation;
-pub use relation::{
-    RelationIndex
-    ,Depend
-};
+pub use relation::RelationIndex;
 
 mod session;
 pub use session::{

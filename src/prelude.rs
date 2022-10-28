@@ -8,6 +8,5 @@ pub use crate::{
     ,Term
     ,Depends
     ,Pend
-    ,Depend
     ,search
 };
