@@ -178,14 +178,15 @@ pub(super) fn update_recursive(
                         Depends::Default=>{
                             let depends=master_database.relation().index_pend().select_by_value(&CollectionRow::new(*collection_id,*row));
                             for i in depends{
-                                let depend=master_database.relation().depend(i).unwrap();
-                                data.relation.insert(
-                                    sequence
-                                    ,master_database.relation().key(i)
-                                    ,session_row
-                                    ,0
-                                    ,depend
-                                );
+                                if let Some(depend)=master_database.relation().depend(i){
+                                    data.relation.insert(
+                                        sequence
+                                        ,master_database.relation().key(i)
+                                        ,session_row
+                                        ,0
+                                        ,depend
+                                    );
+                                }
                             }
                         }
                         ,Depends::Overwrite(depends)=>{   
