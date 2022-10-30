@@ -16,8 +16,8 @@ pub struct SessionSearch<'a>{
     ,conditions:Vec<Condition>
 }
 impl<'a> SessionSearch<'a>{
-    pub fn new(session:&'a Session,collection_id:i32)->SessionSearch{
-        SessionSearch{
+    pub fn new(session:&'a Session,collection_id:i32)->Self{
+        Self{
             session
             ,collection_id
             ,conditions:Vec::new()

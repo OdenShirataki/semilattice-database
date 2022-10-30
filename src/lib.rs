@@ -49,7 +49,7 @@ pub struct Database{
     ,relation:RelationIndex
 }
 impl Database{
-    pub fn new(dir:&str)->Result<Database,std::io::Error>{
+    pub fn new(dir:&str)->Result<Self,std::io::Error>{
         let root_dir=if dir.ends_with("/") || dir.ends_with("\\"){
             let mut d=dir.to_string();
             d.pop();
@@ -88,7 +88,7 @@ impl Database{
             }
         }
 
-        Ok(Database{
+        Ok(Self{
             root_dir:root_dir.to_string()
             ,collections
             ,collections_map

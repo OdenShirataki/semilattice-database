@@ -70,7 +70,7 @@ pub fn update_row(
             }
             data.fields.get_mut(key).unwrap()
         };
-        field.update(session_row,kv.value());
+        field.update(session_row,kv.value()).unwrap();
     }
 }
 
@@ -84,7 +84,7 @@ pub(super) fn update_recursive(
     ,incidentally_depend:Option<(&str,u32)>
 ){
     for record in records{
-        if let Some(session_row)=data.sequence.insert(sequence){
+        if let Ok(session_row)=data.sequence.insert(sequence){
             data.collection_row.resize_to(session_row).unwrap();
             data.operation.resize_to(session_row).unwrap();
             data.activity.resize_to(session_row).unwrap();

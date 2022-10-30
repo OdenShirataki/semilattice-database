@@ -25,8 +25,8 @@ pub struct Depend{
     ,collection_row:CollectionRow
 }
 impl Depend{
-    pub fn new(key:impl Into<String>,collection_row:CollectionRow)->Depend{
-        Depend{
+    pub fn new(key:impl Into<String>,collection_row:CollectionRow)->Self{
+        Self{
             key:key.into()
             ,collection_row
         }
@@ -58,7 +58,7 @@ pub struct Search{
 }
 impl Search{
     pub fn new(collection:&Collection)->Self{
-        Search{
+        Self{
             collection_id:collection.id()
             ,conditions:Vec::new()
         }

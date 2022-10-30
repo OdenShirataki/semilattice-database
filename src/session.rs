@@ -54,7 +54,7 @@ impl Session{
     pub fn new(
         main_database:&Database
         ,name:impl Into<String>
-    )->Result<Session,std::io::Error>{
+    )->Result<Self,std::io::Error>{
         let name:String=name.into();
         if name==""{
             Ok(Self::new_blank())
@@ -65,15 +65,15 @@ impl Session{
             }
             let session_data=Self::new_data(&session_dir)?;
             let temporary_data=Self::make_session_data(&session_data);
-            Ok(Session{
+            Ok(Self{
                 name
                 ,session_data:Some(session_data)
                 ,temporary_data
             })
         }
     }
-    pub fn new_blank()->Session{
-        Session{
+    pub fn new_blank()->Self{
+        Self{
             name:"".to_string()
             ,session_data:None
             ,temporary_data:HashMap::new()

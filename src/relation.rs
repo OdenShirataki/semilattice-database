@@ -17,12 +17,12 @@ pub struct RelationIndex{
 impl RelationIndex{
     pub fn new(
         root_dir:&str
-    )->Result<RelationIndex,std::io::Error>{
+    )->Result<Self,std::io::Error>{
         let dir=root_dir.to_string()+"/relation/";
         if !std::path::Path::new(&dir).exists(){
             std::fs::create_dir_all(&dir).unwrap();
         }
-        Ok(RelationIndex{
+        Ok(Self{
             key_names:IdxBinary::new(&(dir.to_string()+"/key_name"))?
             ,fragment:Fragment::new(&(dir.to_string()+"/fragment.f"))?
             ,rows:RelationIndexRows{
@@ -33,15 +33,15 @@ impl RelationIndex{
         })
     }
     pub fn insert(&mut self,relation_key:&str,depend:CollectionRow,pend:CollectionRow){
-        if let Some(key_id)=self.key_names.entry(relation_key.as_bytes()){
+        if let Ok(key_id)=self.key_names.entry(relation_key.as_bytes()){
             if let Some(row)=self.fragment.pop(){
                 self.rows.key.update(row,key_id);
                 self.rows.depend.update(row,depend);
                 self.rows.pend.update(row,pend);
             }else{
-                self.rows.key.insert(key_id);
-                self.rows.depend.insert(depend);
-                self.rows.pend.insert(pend);
+                self.rows.key.insert(key_id).unwrap();
+                self.rows.depend.insert(depend).unwrap();
+                self.rows.pend.insert(pend).unwrap();
             }
         }
     }
@@ -97,11 +97,11 @@ struct Fragment{
     ,blank_count: u32
 }
 impl Fragment{
-    pub fn new(path:&str) -> Result<Fragment,std::io::Error>{
+    pub fn new(path:&str) -> Result<Self,std::io::Error>{
         let filemmap=FileMmap::new(path,U32SIZE as u64)?;
         let blank_list=filemmap.as_ptr() as *mut u32;
         let blank_count:u32=(filemmap.len() / U32SIZE as u64 - 1) as u32;       
-        Ok(Fragment{
+        Ok(Self{
             filemmap
             ,blank_list:unsafe {Vec::from_raw_parts(blank_list,1,0)}
             ,blank_count
@@ -110,7 +110,7 @@ impl Fragment{
     pub fn insert_blank(&mut self,id:u32){
         self.filemmap.append(
             &[0,0,0,0]
-        );
+        ).unwrap();
         unsafe{
             *(self.blank_list.as_ptr() as *mut u32).offset(self.blank_count as isize)=id;
         }

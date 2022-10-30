@@ -14,8 +14,8 @@ pub struct Collection{
     ,name:String
 }
 impl Collection{
-    pub fn new(data:Data,id:i32,name:impl Into<String>)->Collection{
-        Collection{
+    pub fn new(data:Data,id:i32,name:impl Into<String>)->Self{
+        Self{
             data
             ,id
             ,name:name.into()
@@ -111,8 +111,8 @@ impl CollectionRow{
     pub fn new(
         collection_id:i32
         ,row:u32
-    )->CollectionRow{
-        CollectionRow{
+    )->Self{
+        Self{
             collection_id
             ,row
         }

@@ -6,10 +6,10 @@ pub struct SequenceNumber{
     ,sequence_number: Vec<usize>
 }
 impl SequenceNumber{
-    pub fn new(path:&str)->Result<SequenceNumber,std::io::Error>{
+    pub fn new(path:&str)->Result<Self,std::io::Error>{
         let filemmap=FileMmap::new(path,std::mem::size_of::<usize>() as u64)?;
         let ptr=filemmap.as_ptr() as *mut usize;
-        Ok(SequenceNumber{
+        Ok(Self{
             filemmap
             ,sequence_number:unsafe {Vec::from_raw_parts(ptr,1,0)}
         })

@@ -14,12 +14,12 @@ pub struct SessionRelation{
     ,pub(crate) rows:SessionRelationRows
 }
 impl SessionRelation{
-    pub fn new(session_dir:&str)->SessionRelation{
+    pub fn new(session_dir:&str)->Self{
         let relation_dir=session_dir.to_string()+"/relation/";
         if !std::path::Path::new(&relation_dir).exists(){
             std::fs::create_dir_all(&relation_dir).unwrap();
         }
-        SessionRelation{
+        Self{
             key_names:IdxBinary::new(&(relation_dir.to_string()+"/key_name")).unwrap()
             ,rows:SessionRelationRows{
                 sequence:IdxSized::new(&(relation_dir.to_string()+"/sequence.i")).unwrap()
@@ -38,12 +38,12 @@ impl SessionRelation{
         ,depend_session_row:u32
         ,depend:CollectionRow
     ){
-        if let Some(key_id)=self.key_names.entry(relation_key.as_bytes()){
-            self.rows.sequence.insert(sequence);
-            self.rows.key.insert(key_id);
-            self.rows.session_row.insert(session_row);
-            self.rows.depend_session_row.insert(depend_session_row);
-            self.rows.depend.insert(depend);
+        if let Ok(key_id)=self.key_names.entry(relation_key.as_bytes()){
+            self.rows.sequence.insert(sequence).unwrap();
+            self.rows.key.insert(key_id).unwrap();
+            self.rows.session_row.insert(session_row).unwrap();
+            self.rows.depend_session_row.insert(depend_session_row).unwrap();
+            self.rows.depend.insert(depend).unwrap();
         }
     }
 }
