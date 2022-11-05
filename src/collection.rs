@@ -45,8 +45,8 @@ impl Collection{
     pub fn term_end(&self,row:u32)->i64{
         self.data.term_end(row)
     }
-    pub fn field_str(&self,row:u32,field_name:&str)->&str{
-        self.data.field_str(row,field_name)
+    pub fn field_bytes(&self,row:u32,field_name:&str)->&[u8]{
+        self.data.field_bytes(row,field_name)
     }
     pub fn field_num(&self,row:u32,field_name:&str)->f64{
         self.data.field_num(row,field_name)

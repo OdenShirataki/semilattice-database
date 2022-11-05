@@ -109,8 +109,8 @@ if let (
     for i in database.result(&search){
         println!(
             "{},{}"
-            ,person.field_str(i,"name")
-            ,person.field_str(i,"birthday")
+            ,std::str::from_utf8(person.field_bytes(i,"name")).unwrap()
+            ,std::str::from_utf8(person.field_bytes(i,"birthday")).unwrap()
         );
         let search=database.search(history).depend(
             search::Depend::new("history",CollectionRow::new(collection_person,i))
@@ -118,8 +118,8 @@ if let (
         for h in database.result(&search){
             println!(
                 " {} : {}"
-                ,history.field_str(h,"date")
-                ,history.field_str(h,"event")
+                ,std::str::from_utf8(history.field_bytes(h,"date")).unwrap()
+                ,std::str::from_utf8(history.field_bytes(h,"event")).unwrap()
             );
         }
     }
@@ -143,8 +143,8 @@ if let Ok(mut sess)=database.session("test"){
     for r in search.result(&database){
         println!(
             "{},{}"
-            ,sess.field_str(&database,collection_person,r,"name")
-            ,sess.field_str(&database,collection_person,r,"birthday")
+            ,std::str::from_utf8(sess.field_bytes(&database,collection_person,r,"name")).unwrap()
+            ,std::str::from_utf8(sess.field_bytes(&database,collection_person,r,"birthday")).unwrap()
         );
     }
     database.commit(&mut sess);
@@ -204,8 +204,8 @@ if let Some(t1)=database.collection(test1){
             ,t1.last_updated(i)
             ,t1.term_begin(i)
             ,t1.term_end(i)
-            ,t1.field_str(i,"num")
-            ,t1.field_str(i,"num_by3")
+            ,std::str::from_utf8(t1.field_bytes(i,"num")).unwrap()
+            ,std::str::from_utf8(t1.field_bytes(i,"num_by3")).unwrap()
         );
     }
     assert_eq!(sum,55.0);
