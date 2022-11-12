@@ -79,7 +79,6 @@ impl Database{
                                             ,data
                                         );
                                     }
-                                    
                                 }
                             }
                         }

@@ -83,7 +83,9 @@ impl RelationIndex{
     }
     pub fn key(&self,row:u32)->&str{
         if let Some(key_row)=self.rows.key.value(row){
-            self.key_names.str(key_row)
+            unsafe{
+                self.key_names.str(key_row)
+            }
         }else{
             ""
         }

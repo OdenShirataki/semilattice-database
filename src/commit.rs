@@ -94,7 +94,9 @@ pub fn commit(
                         if let Some(depend_rows)=relation.get(&session_row){
                             for (session_relation_row,depend_session_row,depend) in depend_rows{
                                 let key=session_data.relation.rows.key.value(*session_relation_row).unwrap();
-                                let key=session_data.relation.key_names.str(key);
+                                let key=unsafe{
+                                    session_data.relation.key_names.str(key)
+                                };
                                 let depend_session_row=*depend_session_row;
                                 if depend_session_row==0{
                                     main_database.relation.insert(
