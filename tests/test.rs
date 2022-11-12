@@ -93,8 +93,8 @@ fn it_works() {
                 ,depends:Depends::Default
                 ,pends:vec![]
             }
-        ]);
-        database.commit(&mut sess);
+        ]).unwrap();
+        database.commit(&mut sess).unwrap();
     }
     
     if let (
@@ -135,7 +135,7 @@ fn it_works() {
                 ,depends:Depends::Default
                 ,pends:vec![]
             }
-        ]);
+        ]).unwrap();
     }
     if let Ok(mut sess)=database.session("test"){
         let search=sess.begin_search(collection_person).search_activity(Activity::Active);
@@ -146,7 +146,7 @@ fn it_works() {
                 ,std::str::from_utf8(sess.field_bytes(&database,collection_person,r,"birthday")).unwrap()
             );
         }
-        database.commit(&mut sess);
+        database.commit(&mut sess).unwrap();
     }
 
     let test1=database.collection_id_or_create("test1").unwrap();
@@ -166,9 +166,9 @@ fn it_works() {
                     ,depends:Depends::Overwrite(vec![])
                     ,pends:vec![]
                 }
-            ]);
+            ]).unwrap();
         }
-        database.commit(&mut sess);
+        database.commit(&mut sess).unwrap();
     }
     
     if let Ok(mut sess)=database.session("test"){
@@ -183,8 +183,8 @@ fn it_works() {
                 ,depends:Depends::Overwrite(vec![])
                 ,pends:vec![]
             }
-        ]);
-        database.commit(&mut sess);
+        ]).unwrap();
+        database.commit(&mut sess).unwrap();
     }
 
     if let Some(t1)=database.collection(test1){

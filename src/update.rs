@@ -51,10 +51,10 @@ pub fn update_row(
     ,term_end:i64
     ,fields:&Vec<KeyValue>
 ){
-    data.collection_row.update(session_row,collection_row);
-    data.activity.update(session_row,*activity as u8);
-    data.term_begin.update(session_row,term_begin);
-    data.term_end.update(session_row,term_end);
+    data.collection_row.update(session_row,collection_row).unwrap();
+    data.activity.update(session_row,*activity as u8).unwrap();
+    data.term_begin.update(session_row,term_begin).unwrap();
+    data.term_end.update(session_row,term_end).unwrap();
     for kv in fields{
         let key=kv.key();
         let field=if data.fields.contains_key(key){
@@ -82,14 +82,14 @@ pub(super) fn update_recursive(
     ,sequence:usize
     ,records:&Vec::<Record>
     ,incidentally_depend:Option<(&str,u32)>
-){
+)->Result<(),std::io::Error>{
     for record in records{
         if let Ok(session_row)=data.sequence.insert(sequence){
-            data.collection_row.resize_to(session_row).unwrap();
-            data.operation.resize_to(session_row).unwrap();
-            data.activity.resize_to(session_row).unwrap();
-            data.term_begin.resize_to(session_row).unwrap();
-            data.term_end.resize_to(session_row).unwrap();
+            data.collection_row.resize_to(session_row)?;
+            data.operation.resize_to(session_row)?;
+            data.activity.resize_to(session_row)?;
+            data.term_begin.resize_to(session_row)?;
+            data.term_end.resize_to(session_row)?;
 
             match record{
                 Record::New{
@@ -105,8 +105,8 @@ pub(super) fn update_recursive(
                     }else{
                         0
                     };
-                    data.collection_id.update(session_row,*collection_id);
-                    data.operation.update(session_row,SessionOperation::New);
+                    data.collection_id.update(session_row,*collection_id)?;
+                    data.operation.update(session_row,SessionOperation::New)?;
                     update_row(
                         session_dir
                         ,data
@@ -135,7 +135,7 @@ pub(super) fn update_recursive(
                         ,incidentally_depend
                     );
                     for pend in pends{
-                        update_recursive(master_database,data,temporary_data,session_dir,sequence,pend.records(),Some((pend.key(),session_row)));
+                        update_recursive(master_database,data,temporary_data,session_dir,sequence,pend.records(),Some((pend.key(),session_row)))?;
                     }
                 }
                 ,Record::Update{
@@ -161,9 +161,8 @@ pub(super) fn update_recursive(
                     for kv in fields{
                         entity.fields.insert(kv.key().into(),kv.value().into());
                     }
-
-                    data.collection_id.update(session_row,*collection_id);
-                    data.operation.update(session_row,SessionOperation::Update);
+                    data.collection_id.update(session_row,*collection_id)?;
+                    data.operation.update(session_row,SessionOperation::Update)?;
                     update_row(
                         session_dir
                         ,data
@@ -181,7 +180,7 @@ pub(super) fn update_recursive(
                                 if let Some(depend)=master_database.relation().depend(i){
                                     data.relation.insert(
                                         sequence
-                                        ,master_database.relation().key(i)
+                                        ,unsafe{master_database.relation().key(i)}
                                         ,session_row
                                         ,0
                                         ,depend
@@ -208,15 +207,16 @@ pub(super) fn update_recursive(
                         ,incidentally_depend
                     );
                     for pend in pends{
-                        update_recursive(master_database,data,temporary_data,session_dir,sequence,pend.records(),Some((pend.key(),session_row)));
+                        update_recursive(master_database,data,temporary_data,session_dir,sequence,pend.records(),Some((pend.key(),session_row)))?;
                     }
                 }
                 ,Record::Delete{collection_id,row}=>{
-                    data.collection_id.update(session_row,*collection_id);
-                    data.collection_row.update(session_row,*row);
-                    data.operation.update(session_row,SessionOperation::Delete);
+                    data.collection_id.update(session_row,*collection_id)?;
+                    data.collection_row.update(session_row,*row)?;
+                    data.operation.update(session_row,SessionOperation::Delete)?;
                 }
             }
         }
     }
+    Ok(())
 }

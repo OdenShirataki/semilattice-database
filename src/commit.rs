@@ -19,7 +19,7 @@ use crate::{
 pub fn commit(
     main_database:&mut Database
     ,session_data:&SessionData
-){
+)->Result<(),std::io::Error>{
     let mut session_collection_row_map:HashMap<u32,CollectionRow>=HashMap::new();
 
     let mut relation:HashMap<u32,Vec<(u32,u32,CollectionRow)>>=HashMap::new();
@@ -103,13 +103,13 @@ pub fn commit(
                                         key
                                         ,*depend
                                         ,cr
-                                    );
+                                    )?;
                                 }else{
                                     main_database.relation.insert(
                                         key
                                         ,*session_collection_row_map.get(&depend_session_row).unwrap()
                                         ,cr
-                                    );
+                                    )?;
                                 };
                             }
                         }
@@ -120,7 +120,8 @@ pub fn commit(
                 }
             }
         }  
-    } 
+    }
+    Ok(())
 }
 
 pub(super) fn delete_recursive(database:&mut Database,target:&CollectionRow){

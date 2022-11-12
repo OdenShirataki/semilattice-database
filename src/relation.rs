@@ -32,18 +32,19 @@ impl RelationIndex{
             }
         })
     }
-    pub fn insert(&mut self,relation_key:&str,depend:CollectionRow,pend:CollectionRow){
+    pub fn insert(&mut self,relation_key:&str,depend:CollectionRow,pend:CollectionRow)->Result<(),std::io::Error>{
         if let Ok(key_id)=self.key_names.entry(relation_key.as_bytes()){
             if let Some(row)=self.fragment.pop(){
-                self.rows.key.update(row,key_id);
-                self.rows.depend.update(row,depend);
-                self.rows.pend.update(row,pend);
+                self.rows.key.update(row,key_id)?;
+                self.rows.depend.update(row,depend)?;
+                self.rows.pend.update(row,pend)?;
             }else{
-                self.rows.key.insert(key_id).unwrap();
-                self.rows.depend.insert(depend).unwrap();
-                self.rows.pend.insert(pend).unwrap();
+                self.rows.key.insert(key_id)?;
+                self.rows.depend.insert(depend)?;
+                self.rows.pend.insert(pend)?;
             }
         }
+        Ok(())
     }
     pub fn delete(&mut self,row:u32){
         self.rows.key.delete(row);
@@ -81,11 +82,9 @@ impl RelationIndex{
     pub fn depend(&self,row:u32)->Option<CollectionRow>{
         self.rows.depend.value(row)
     }
-    pub fn key(&self,row:u32)->&str{
+    pub unsafe fn key(&self,row:u32)->&str{
         if let Some(key_row)=self.rows.key.value(row){
-            unsafe{
-                self.key_names.str(key_row)
-            }
+            self.key_names.str(key_row)
         }else{
             ""
         }
