@@ -38,7 +38,7 @@ pub fn commit(
         }
     }
     for session_row in 1..session_data.sequence.max_rows(){
-        if let (
+        if let(
             Some(op)
             ,Some(collection_id)
             ,Some(collection_row)
