@@ -6,6 +6,8 @@ use versatile_data::{
     ,Term
     ,KeyValue
     ,Operation
+    ,RowSet
+    ,Order
 };
 
 pub struct Collection{
@@ -70,6 +72,9 @@ impl Collection{
     }
     pub fn update(&mut self,operation:&Operation)->u32{
         self.data.update(operation)
+    }
+    pub fn sort(&self,rows:RowSet,orders:Vec<Order>)->Vec<u32>{
+        self.data.sort(rows,orders)
     }
 }
 

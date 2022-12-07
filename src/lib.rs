@@ -9,6 +9,8 @@ pub use versatile_data::{
     ,Activity
     ,Term
     ,RowSet
+    ,Order
+    ,OrderKey
 };
 use versatile_data::Data;
 

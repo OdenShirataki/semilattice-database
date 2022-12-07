@@ -177,7 +177,6 @@ impl Search{
                 }
             }
         }
-        
         rows
     }
 }

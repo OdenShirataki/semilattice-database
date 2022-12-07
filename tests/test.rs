@@ -105,7 +105,11 @@ fn it_works() {
         ,database.collection(collection_history)
     ){
         let search=database.search(person);
-        for i in database.result(&search){
+        let person_rows=database.result(&search);
+        let person_rows=person.sort(person_rows,vec![
+            Order::Asc(OrderKey::Field("birthday".to_owned()))
+        ]);
+        for i in person_rows{
             println!(
                 "{},{}"
                 ,std::str::from_utf8(person.field_bytes(i,"name")).unwrap()

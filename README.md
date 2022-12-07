@@ -94,8 +94,8 @@ if let Ok(mut sess)=database.session("test"){
             ,depends:Depends::Default
             ,pends:vec![]
         }
-    ]);
-    database.commit(&mut sess);
+    ]).unwrap();
+    database.commit(&mut sess).unwrap();
 }
 
 if let (
@@ -106,7 +106,11 @@ if let (
     ,database.collection(collection_history)
 ){
     let search=database.search(person);
-    for i in database.result(&search){
+    let person_rows=database.result(&search);
+    let person_rows=person.sort(person_rows,vec![
+        Order::Asc(OrderKey::Field("birthday".to_owned()))
+    ]);
+    for i in person_rows{
         println!(
             "{},{}"
             ,std::str::from_utf8(person.field_bytes(i,"name")).unwrap()
@@ -136,7 +140,7 @@ if let Ok(mut sess)=database.session("test"){
             ,depends:Depends::Default
             ,pends:vec![]
         }
-    ]);
+    ]).unwrap();
 }
 if let Ok(mut sess)=database.session("test"){
     let search=sess.begin_search(collection_person).search_activity(Activity::Active);
@@ -147,7 +151,7 @@ if let Ok(mut sess)=database.session("test"){
             ,std::str::from_utf8(sess.field_bytes(&database,collection_person,r,"birthday")).unwrap()
         );
     }
-    database.commit(&mut sess);
+    database.commit(&mut sess).unwrap();
 }
 
 let test1=database.collection_id_or_create("test1").unwrap();
@@ -167,9 +171,9 @@ if let Ok(mut sess)=database.session("test"){
                 ,depends:Depends::Overwrite(vec![])
                 ,pends:vec![]
             }
-        ]);
+        ]).unwrap();
     }
-    database.commit(&mut sess);
+    database.commit(&mut sess).unwrap();
 }
 
 if let Ok(mut sess)=database.session("test"){
@@ -184,8 +188,8 @@ if let Ok(mut sess)=database.session("test"){
             ,depends:Depends::Overwrite(vec![])
             ,pends:vec![]
         }
-    ]);
-    database.commit(&mut sess);
+    ]).unwrap();
+    database.commit(&mut sess).unwrap();
 }
 
 if let Some(t1)=database.collection(test1){

@@ -9,4 +9,6 @@ pub use crate::{
     ,Depends
     ,Pend
     ,search
+    ,Order
+    ,OrderKey
 };
