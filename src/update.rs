@@ -105,6 +105,17 @@ pub(super) fn update_recursive(
                     }else{
                         0
                     };
+                    let col=temporary_data.entry(*collection_id).or_insert(HashMap::new());
+                    let mut tmp_fields=HashMap::new();
+                    for kv in fields{
+                        tmp_fields.insert(kv.key().to_string(), kv.value().to_vec());
+                    }
+                    col.insert(-(session_row as i64),TemporaryDataEntity{
+                        activity:*activity
+                        ,term_begin
+                        ,term_end
+                        ,fields:tmp_fields
+                    });
                     data.collection_id.update(session_row,*collection_id)?;
                     data.operation.update(session_row,SessionOperation::New)?;
                     update_row(
@@ -117,6 +128,8 @@ pub(super) fn update_recursive(
                         ,term_end
                         ,fields
                     );
+
+                    
                     if let Depends::Overwrite(depends)=depends{
                         for (key,depend) in depends{
                             data.relation.insert(
@@ -151,8 +164,9 @@ pub(super) fn update_recursive(
                     }else{
                         0
                     };
+
                     let col=temporary_data.entry(*collection_id).or_insert(HashMap::new());
-                    let entity=col.entry(*row).or_insert(TemporaryDataEntity{
+                    let entity=col.entry(*row as i64).or_insert(TemporaryDataEntity{
                         activity:*activity
                         ,term_begin
                         ,term_end
@@ -161,6 +175,7 @@ pub(super) fn update_recursive(
                     for kv in fields{
                         entity.fields.insert(kv.key().into(),kv.value().into());
                     }
+
                     data.collection_id.update(session_row,*collection_id)?;
                     data.operation.update(session_row,SessionOperation::Update)?;
                     update_row(
@@ -177,10 +192,10 @@ pub(super) fn update_recursive(
                         Depends::Default=>{
                             let depends=master_database.relation().index_pend().select_by_value(&CollectionRow::new(*collection_id,*row));
                             for i in depends{
-                                if let Some(depend)=master_database.relation().depend(i){
+                                if let Some(depend)=master_database.relation().depend(i as u32){
                                     data.relation.insert(
                                         sequence
-                                        ,unsafe{master_database.relation().key(i)}
+                                        ,unsafe{master_database.relation().key(i as u32)}
                                         ,session_row
                                         ,0
                                         ,depend

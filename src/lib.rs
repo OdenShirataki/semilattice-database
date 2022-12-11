@@ -109,9 +109,6 @@ impl Database{
         }
         Session::new(self,session_name)
     }
-    pub fn blank_session(&self)->Result<Session,std::io::Error>{
-       self.session("")
-    }
     pub fn commit(&mut self,session:&mut Session)->Result<(),std::io::Error>{
         if let Some(ref mut data)=session.session_data{
             commit::commit(self,data)?;

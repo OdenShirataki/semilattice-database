@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use super::{
     Session
     ,TemporaryDataEntity
@@ -5,7 +7,6 @@ use super::{
 use crate::{
     Database
     ,Condition
-    ,RowSet
     ,Activity
     ,search
 };
@@ -41,7 +42,7 @@ impl<'a> SessionSearch<'a>{
         self.search(Condition::Row(condition))
     }
 
-    fn search(mut self,condition:Condition)->Self{
+    pub fn search(mut self,condition:Condition)->Self{
         self.conditions.push(condition);
         self
     }
@@ -153,7 +154,8 @@ impl<'a> SessionSearch<'a>{
         is_match
     }
     
-    pub fn result(self,database:&Database)->RowSet{
+    pub fn result(self,database:&Database)->BTreeSet<i64>{
+        let mut new_rows:BTreeSet<i64>=BTreeSet::new();
         if let Some(collection)=database.collection(self.collection_id){
             let mut search=database.search(
                 collection
@@ -161,11 +163,10 @@ impl<'a> SessionSearch<'a>{
             for c in &self.conditions{
                 search=search.search(c.clone());
             }
-            let mut r=database.result(&search);
+            let r=database.result(&search);
             if let Some(tmp)=self.session.temporary_data.get(&self.collection_id){
-                let mut new_rows=RowSet::new();
                 for row in r{
-                    if let Some(ent)=tmp.get(&row){
+                    if let Some(ent)=tmp.get(&(row as i64)){
                         let mut is_match=true;
                         for c in &self.conditions{
                             is_match=Self::temporary_data_match(ent,c);
@@ -174,17 +175,20 @@ impl<'a> SessionSearch<'a>{
                             }
                         }
                         if is_match{
-                            new_rows.insert(row);
+                            new_rows.insert(row as i64);
                         }
                     }else{
+                        new_rows.insert(row as i64);
+                    }
+                }
+                for (row,_) in tmp{ //セッション中に新規作成されたデータ
+                    let row=*row;
+                    if row<0{
                         new_rows.insert(row);
                     }
                 }
-                r=new_rows;
             }
-            r
-        }else{
-            RowSet::default()
         }
+        new_rows
     }
 }

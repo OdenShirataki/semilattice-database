@@ -14,6 +14,52 @@ fn it_works() {
     }
     let mut database=Database::new(dir).unwrap();
 
+    let collection_login=database.collection_id_or_create("login").unwrap();
+    if let Ok(mut sess)=database.session("logintest"){
+        database.update(&mut sess,vec![
+            Record::New{
+                collection_id:collection_login
+                ,activity:Activity::Active
+                ,term_begin:Term::Defalut
+                ,term_end:Term::Defalut
+                ,fields:vec![
+                    KeyValue::new("id",1.to_string())
+                ]
+                ,depends:Depends::Overwrite(vec![])
+                ,pends:vec![]
+            }
+        ]).unwrap();
+        let search=sess.begin_search(collection_login).search_default();
+        let r=search.result(&database);
+        println!(
+            "A session_login : {}"
+            ,r.len()
+        );
+        for r in r{
+            println!(
+                "session_login : {} , {}"
+                ,r
+                ,std::str::from_utf8(sess.field_bytes(&database,collection_login,r,"id")).unwrap()
+            );
+        }
+    }
+
+    if let Ok(sess)=database.session("logintest"){
+        let search=sess.begin_search(collection_login).search_default();
+        let r=search.result(&database);
+        println!(
+            "B session_login : {}"
+            ,r.len()
+        );
+        for r in r{
+            println!(
+                "session_login : {} , {}"
+                ,r
+                ,std::str::from_utf8(sess.field_bytes(&database,collection_login,r,"id")).unwrap()
+            );
+        }
+    }
+
     let collection_person=database.collection_id_or_create("person").unwrap();
     let collection_history=database.collection_id_or_create("history").unwrap();
 
@@ -116,7 +162,7 @@ fn it_works() {
                 ,std::str::from_utf8(person.field_bytes(i,"birthday")).unwrap()
             );
             let search=database.search(history).depend(
-                search::Depend::new("history",CollectionRow::new(collection_person,i))
+                search::Depend::new("history",CollectionRow::new(collection_person,i as u32))
             );
             for h in database.result(&search){
                 println!(
@@ -145,7 +191,7 @@ fn it_works() {
         let search=sess.begin_search(collection_person).search_activity(Activity::Active);
         for r in search.result(&database){
             println!(
-                "{},{}"
+                "session_search : {},{}"
                 ,std::str::from_utf8(sess.field_bytes(&database,collection_person,r,"name")).unwrap()
                 ,std::str::from_utf8(sess.field_bytes(&database,collection_person,r,"birthday")).unwrap()
             );
@@ -154,7 +200,7 @@ fn it_works() {
     }
 
     let test1=database.collection_id_or_create("test1").unwrap();
-    let range=1..=10;
+    let range=1u32..=10;
     if let Ok(mut sess)=database.session("test"){
         for i in range.clone(){
             database.update(&mut sess,vec![
@@ -213,4 +259,6 @@ fn it_works() {
         }
         assert_eq!(sum,55.0);
     }
+
+    
 }

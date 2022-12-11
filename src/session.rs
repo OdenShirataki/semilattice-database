@@ -1,9 +1,13 @@
+//TODO:relationの処理を検証する事
+
 use std::collections::HashMap;
 use versatile_data::{
     IdxSized
     ,FieldData
     ,Activity
 };
+
+use crate::{Condition, Collection};
 
 use super::Database;
 
@@ -24,14 +28,13 @@ use relation::SessionRelation;
 pub mod search;
 use search::SessionSearch;
 
-#[derive(Debug)]
 pub struct TemporaryDataEntity{
     pub(super) activity:Activity
     ,pub(super) term_begin:i64
     ,pub(super) term_end:i64
     ,pub(super) fields:HashMap<String,Vec<u8>>
 }
-pub type TemporaryData=HashMap<i32,HashMap<u32,TemporaryDataEntity>>;
+pub type TemporaryData=HashMap<i32,HashMap<i64,TemporaryDataEntity>>;
 
 pub struct SessionData{
     pub(super) sequence_number:SequenceNumber
@@ -55,57 +58,53 @@ impl Session{
         main_database:&Database
         ,name:impl Into<String>
     )->Result<Self,std::io::Error>{
-        let name:String=name.into();
+        let mut name:String=name.into();
+        assert!(name!="");
         if name==""{
-            Ok(Self::new_blank())
-        }else{
-            let session_dir=main_database.root_dir().to_string()+"/sessions/"+&name;
-            if !std::path::Path::new(&session_dir).exists(){
-                std::fs::create_dir_all(&session_dir).unwrap();
-            }
-            let session_data=Self::new_data(&session_dir)?;
-            let temporary_data=Self::make_session_data(&session_data);
-            Ok(Self{
-                name
-                ,session_data:Some(session_data)
-                ,temporary_data
-            })
+            name="untitiled".to_owned();
         }
-    }
-    pub fn new_blank()->Self{
-        Self{
-            name:"".to_string()
-            ,session_data:None
-            ,temporary_data:HashMap::new()
+        let session_dir=main_database.root_dir().to_string()+"/sessions/"+&name;
+        if !std::path::Path::new(&session_dir).exists(){
+            std::fs::create_dir_all(&session_dir).unwrap();
         }
+        let session_data=Self::new_data(&session_dir)?;
+        let temporary_data=Self::init_temporary_data(&session_data);
+        Ok(Self{
+            name
+            ,session_data:Some(session_data)
+            ,temporary_data
+        })
     }
     pub fn name(&mut self)->&str{
         &self.name
     }
-    fn make_session_data(session_data:&SessionData) -> HashMap<i32, HashMap<u32, TemporaryDataEntity>> {
+    fn init_temporary_data(session_data:&SessionData) -> TemporaryData {
         let mut temporary_data=HashMap::new();
-        for i in session_data.sequence.triee().iter(){
-            let row=i.row();
-
-            let collection_id=session_data.collection_id.value(row).unwrap();
+        for session_row in 1..session_data.sequence.max_rows(){
+            let collection_id=session_data.collection_id.value(session_row).unwrap();
             if collection_id>0{
                 let col=temporary_data.entry(collection_id).or_insert(HashMap::new());
-                let collection_row=session_data.collection_row.value(row).unwrap();
-                let mut fields=HashMap::new();
+                let collection_row=session_data.collection_row.value(session_row).unwrap();
 
+                let temporary_row:i64=if collection_row==0{
+                    -(session_row as i64)
+                }else{
+                    collection_row as i64
+                };
+                let mut fields=HashMap::new();
                 for (key,val) in &session_data.fields{
-                    if let Some(v)=val.get(collection_row){
+                    if let Some(v)=val.get(session_row){
                         fields.insert(key.to_string(), v.to_vec());
                     }
                 }
-                col.insert(collection_row,TemporaryDataEntity{
-                    activity:if session_data.activity.value(row).unwrap()==1{
+                col.insert(temporary_row,TemporaryDataEntity{
+                    activity:if session_data.activity.value(session_row).unwrap()==1{
                         Activity::Active
                     }else{
                         Activity::Inactive
                     }
-                    ,term_begin:session_data.term_begin.value(row).unwrap()
-                    ,term_end:session_data.term_end.value(row).unwrap()
+                    ,term_begin:session_data.term_begin.value(session_row).unwrap()
+                    ,term_end:session_data.term_end.value(session_row).unwrap()
                     ,fields
                 });
             }
@@ -150,18 +149,18 @@ impl Session{
         })
     }
 
-    pub fn is_blank(&self)->bool{
-        if let None=self.session_data{
-            true
-        }else{
-            false
-        }
-    }
-
     pub fn begin_search(&self,collection_id:i32)->SessionSearch{
         SessionSearch::new(self,collection_id)
     }
-    pub fn field_bytes<'a>(&'a self,database:&'a Database,collection_id:i32,row:u32,key:&str)->&[u8]{
+    pub fn search(&self,collection_id:i32,condtions:&Vec<Condition>)->SessionSearch{
+        let mut search=SessionSearch::new(self,collection_id);
+        for c in condtions{
+            search=search.search(c.clone());
+        }
+        search
+    }
+    
+    pub fn field_bytes<'a>(&'a self,database:&'a Database,collection_id:i32,row:i64,key:&str)->&[u8]{
         if let Some(tmp_col)=self.temporary_data.get(&collection_id){
             if let Some(tmp_row)=tmp_col.get(&row){
                 if let Some(val)=tmp_row.fields.get(key){
@@ -169,10 +168,28 @@ impl Session{
                 }
             }
         }
-        if let Some(col)=database.collection(collection_id){
-            col.field_bytes(row,key)
-        }else{
-            b""
+        if row>0{
+            if let Some(col)=database.collection(collection_id){
+                return col.field_bytes(row as u32,key)
+            } 
         }
+        b""
+    }
+
+    pub fn collection_field_bytes<'a>(&'a self,collection:&'a Collection,row:i64,key:&str)->&[u8]{
+        if let Some(tmp_col)=self.temporary_data.get(&collection.id()){
+            if let Some(tmp_row)=tmp_col.get(&row){
+                if let Some(val)=tmp_row.fields.get(key){
+                    return val;
+                }
+            }
+        }
+        if row>0{
+            return collection.field_bytes(row as u32,key);
+        }
+        b""
+    }
+    pub fn temporary_collection(&self,collection_id:i32)->Option<&HashMap<i64,TemporaryDataEntity>>{
+        self.temporary_data.get(&collection_id)
     }
 }
