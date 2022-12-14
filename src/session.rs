@@ -19,6 +19,17 @@ use relation::SessionRelation;
 pub mod search;
 use search::SessionSearch;
 
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SessionCollectionRow {
+    pub(crate) collection_id: i32,
+    pub(crate) row: i64,    //-の場合はセッションの行が入る
+}
+impl SessionCollectionRow {
+    pub fn new(collection_id: i32, row: i64) -> Self {
+        Self { collection_id, row }
+    }
+}
+
 pub struct TemporaryDataEntity {
     pub(super) activity: Activity,
     pub(super) term_begin: i64,
@@ -45,7 +56,7 @@ pub struct SessionData {
     pub(super) sequence_number: SequenceNumber,
     pub(super) sequence: IdxSized<usize>,
     pub(super) collection_id: IdxSized<i32>,
-    pub(super) collection_row: IdxSized<u32>,
+    pub(super) row: IdxSized<i64>,
     pub(super) operation: IdxSized<SessionOperation>,
     pub(super) activity: IdxSized<u8>,
     pub(super) term_begin: IdxSized<i64>,
@@ -88,12 +99,12 @@ impl Session {
                 let col = temporary_data
                     .entry(collection_id)
                     .or_insert(HashMap::new());
-                let collection_row = session_data.collection_row.value(session_row).unwrap();
+                let row = session_data.row.value(session_row).unwrap();
 
-                let temporary_row: i64 = if collection_row == 0 {
+                let temporary_row: i64 = if row == 0 {
                     -(session_row as i64)
                 } else {
-                    collection_row as i64
+                    row as i64
                 };
                 let mut fields = HashMap::new();
                 for (key, val) in &session_data.fields {
@@ -146,7 +157,7 @@ impl Session {
             sequence_number: SequenceNumber::new(&(session_dir.to_string() + "/sequece_number.i"))?,
             sequence: IdxSized::new(&(session_dir.to_string() + "/sequence.i"))?,
             collection_id: IdxSized::new(&(session_dir.to_string() + "/collection_id.i"))?,
-            collection_row: IdxSized::new(&(session_dir.to_string() + "/collection_row.i"))?,
+            row: IdxSized::new(&(session_dir.to_string() + "/row.i"))?,
             operation: IdxSized::new(&(session_dir.to_string() + "/operation.i"))?,
             activity: IdxSized::new(&(session_dir.to_string() + "/activity.i"))?,
             term_begin: IdxSized::new(&(session_dir.to_string() + "/term_begin.i"))?,

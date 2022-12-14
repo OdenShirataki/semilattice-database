@@ -3,6 +3,7 @@ pub use crate::{
     ,Collection
     ,KeyValue
     ,CollectionRow
+    ,SessionCollectionRow
     ,Record
     ,Activity
     ,Term

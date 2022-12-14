@@ -15,7 +15,7 @@ mod relation;
 pub use relation::RelationIndex;
 
 mod session;
-pub use session::{search as session_search, Depends, Pend, Record, Session};
+pub use session::{search as session_search, Depends, Pend, Record, Session, SessionCollectionRow};
 
 pub mod search;
 pub use search::{Condition, Search};
@@ -121,36 +121,22 @@ impl Database {
         records: Vec<Record>,
     ) -> Result<(), std::io::Error> {
         let session_dir = self.session_dir(session.name());
-        match session.session_data {
-            Some(ref mut data) => {
-                let sequence = data.sequence_number.next();
-                update::update_recursive(
-                    self,
-                    data,
-                    &mut session.temporary_data,
-                    &session_dir,
-                    sequence,
-                    &records,
-                    None,
-                )?;
+        if let None=session.session_data{
+            if let Ok(session_data) = Session::new_data(&session_dir) {
+                session.session_data = Some(session_data);
             }
-            None => {
-                if let Ok(data) = Session::new_data(&session_dir) {
-                    session.session_data = Some(data);
-                    if let Some(ref mut data) = session.session_data {
-                        let sequence = data.sequence_number.next();
-                        update::update_recursive(
-                            self,
-                            data,
-                            &mut session.temporary_data,
-                            &session_dir,
-                            sequence,
-                            &records,
-                            None,
-                        )?;
-                    }
-                }
-            }
+        }
+        if let Some(ref mut session_data)=session.session_data {
+            let sequence = session_data.sequence_number.next();
+            update::update_recursive(
+                self,
+                session_data,
+                &mut session.temporary_data,
+                &session_dir,
+                sequence,
+                &records,
+                None,
+            )?;
         }
         Ok(())
     }
@@ -225,4 +211,27 @@ impl Database {
     pub fn result_session(&self, search: SessionSearch) -> BTreeSet<i64> {
         search.result(self)
     }
+
+    /*
+    pub fn depends(
+        &self,
+        key: &str,
+        pend_collection_id: i32,
+        pend_row: i64,
+        session: Option<&Session>,
+    ) -> Vec<CollectionRow> {
+        let mut r = vec![];
+        if pend_row > 0 {
+            r = self.relation.depends(
+                key,
+                &CollectionRow::new(pend_collection_id, pend_row as u32),
+            )
+        }
+        if let Some(session) = session {
+            if let Some(ref session_data) = session.session_data {
+                session_data.relation.depends(pend_collection_id,pend_row);
+            }
+        }
+        r
+    } */
 }

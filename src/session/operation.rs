@@ -1,63 +1,60 @@
-use versatile_data::{
-    KeyValue
-    ,Term
-    ,Activity
-};
-use crate::CollectionRow;
+use versatile_data::{Activity, KeyValue, Term};
 
-#[derive(Clone,Copy,Default,PartialEq,Eq,PartialOrd,Ord)]
-pub enum SessionOperation{
+use super::SessionCollectionRow;
+
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SessionOperation {
     #[default]
-    New
-    ,Update
-    ,Delete
+    New,
+    Update,
+    Delete,
 }
 
-pub enum Depends{
-    Default
-    ,Overwrite(Vec<(String,CollectionRow)>)
+pub enum Depends {
+    Default,
+    Overwrite(Vec<(String, SessionCollectionRow)>),
 }
 
-pub struct Pend{
-    key:String
-    ,records:Vec<Record>
+pub struct Pend {
+    key: String,
+    records: Vec<Record>,
 }
-impl Pend{
-    pub fn new(key:impl Into<String>,records:Vec<Record>)->Pend{
-        Pend{
-            key:key.into()
-            ,records
+impl Pend {
+    pub fn new(key: impl Into<String>, records: Vec<Record>) -> Pend {
+        Pend {
+            key: key.into(),
+            records,
         }
     }
-    pub fn key(&self)->&str{
+    pub fn key(&self) -> &str {
         &self.key
     }
-    pub fn records(&self)->&Vec<Record>{
+    pub fn records(&self) -> &Vec<Record> {
         &self.records
     }
 }
-pub enum Record{
-    New{
-        collection_id:i32
-        ,activity:Activity
-        ,term_begin:Term
-        ,term_end:Term
-        ,fields:Vec<KeyValue>
-        ,depends:Depends
-        ,pends:Vec<Pend>
-    }
-    ,Update{
-        collection_id:i32
-        ,row:u32
-        ,activity:Activity
-        ,term_begin:Term
-        ,term_end:Term
-        ,fields:Vec<KeyValue>
-        ,depends:Depends
-        ,pends:Vec<Pend>
-    }
-    ,Delete{
-        collection_id:i32
-        ,row:u32
-    }
+pub enum Record {
+    New {
+        collection_id: i32,
+        activity: Activity,
+        term_begin: Term,
+        term_end: Term,
+        fields: Vec<KeyValue>,
+        depends: Depends,
+        pends: Vec<Pend>,
+    },
+    Update {
+        collection_id: i32,
+        row: i64,
+        activity: Activity,
+        term_begin: Term,
+        term_end: Term,
+        fields: Vec<KeyValue>,
+        depends: Depends,
+        pends: Vec<Pend>,
+    },
+    Delete {
+        collection_id: i32,
+        row: i64,
+    },
 }

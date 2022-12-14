@@ -13,6 +13,28 @@ fn it_works() {
     }
     let mut database = Database::new(dir).unwrap();
 
+    let collection_account = database.collection_id_or_create("account").unwrap();
+    if let Ok(mut sess) = database.session("logintest") {
+        database
+            .update(
+                &mut sess,
+                vec![Record::New {
+                    collection_id: collection_account,
+                    activity: Activity::Active,
+                    term_begin: Term::Defalut,
+                    term_end: Term::Defalut,
+                    fields: vec![
+                        KeyValue::new("id", "admin".to_owned()),
+                        KeyValue::new("password", "pass".to_owned()),
+                    ],
+                    depends: Depends::Overwrite(vec![]),
+                    pends: vec![],
+                }],
+            )
+            .unwrap();
+        database.commit(&mut sess).unwrap();
+    }
+
     let collection_login = database.collection_id_or_create("login").unwrap();
     if let Ok(mut sess) = database.session("logintest") {
         database
@@ -23,38 +45,58 @@ fn it_works() {
                     activity: Activity::Active,
                     term_begin: Term::Defalut,
                     term_end: Term::Defalut,
-                    fields: vec![KeyValue::new("id", 1.to_string())],
-                    depends: Depends::Overwrite(vec![]),
+                    fields: vec![],
+                    depends: Depends::Overwrite(vec![(
+                        "account".to_owned(),
+                        SessionCollectionRow::new(collection_account, 1),
+                    )]),
                     pends: vec![],
                 }],
             )
             .unwrap();
+        /*
+        database
+            .update(
+                &mut sess,
+                vec![Record::Update {
+                    collection_id: collection_login,
+                    row:-1,
+                    activity: Activity::Active,
+                    term_begin: Term::Defalut,
+                    term_end: Term::Defalut,
+                    fields: vec![],
+                    depends: Depends::Default,
+                    pends: vec![],
+                }],
+            )
+            .unwrap();
+        */
         let search = sess.begin_search(collection_login).search_default();
         let r = database.result_session(search);
         println!("A session_login : {}", r.len());
+        /*
         for r in r {
             println!(
-                "session_login : {} , {}",
+                "session_login : {} , {:?}",
                 r,
-                std::str::from_utf8(sess.field_bytes(&database, collection_login, r, "id"))
-                    .unwrap()
+                database.depends("account", collection_login, r, Some(&sess))
             );
-        }
+        } */
     }
 
+    /*
     if let Ok(sess) = database.session("logintest") {
         let search = sess.begin_search(collection_login).search_default();
         let r = database.result_session(search);
         println!("B session_login : {}", r.len());
         for r in r {
             println!(
-                "session_login : {} , {}",
+                "session_login : {} , {:?}",
                 r,
-                std::str::from_utf8(sess.field_bytes(&database, collection_login, r, "id"))
-                    .unwrap()
+                database.depends("account", collection_login, r, Some(&sess))
             );
         }
-    }
+    }*/
 
     let collection_person = database.collection_id_or_create("person").unwrap();
     let collection_history = database.collection_id_or_create("history").unwrap();
