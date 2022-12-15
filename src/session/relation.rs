@@ -35,8 +35,16 @@ impl SessionRelation {
             self.rows.depend.insert(depend).unwrap();
         }
     }
-    /*
-    pub fn depends(&self,pend_collection_id:i32,pend_row:i64){
-        //self.rows.
-    } */
+    pub fn from_session_row(&mut self, session_row: u32, new_session_row: u32) {
+        for session_relation_row in self.rows.session_row.select_by_value(&session_row).iter() {
+            if let (Some(key), Some(depend)) = (
+                self.rows.key.value(*session_relation_row),
+                self.rows.depend.value(*session_relation_row),
+            ) {
+                self.rows.key.insert(key).unwrap();
+                self.rows.session_row.insert(new_session_row).unwrap();
+                self.rows.depend.insert(depend).unwrap();
+            }
+        }
+    }
 }

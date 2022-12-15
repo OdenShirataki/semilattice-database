@@ -20,7 +20,7 @@ pub fn incidentally_depend(
             .collection_id
             .value(depend_session_row)
             .unwrap(),
-        -(depend_session_row as i64)
+        -(depend_session_row as i64),
     );
     session_data
         .relation
@@ -232,14 +232,15 @@ pub(super) fn update_recursive(
                                             session_row,
                                             SessionCollectionRow::new(
                                                 depend.collection_id(),
-                                                depend.row() as i64
+                                                depend.row() as i64,
                                             ),
                                         );
                                     }
                                 }
                             } else {
-                                //session_data.relation.
-                                todo!("セッションニューなデータの処理")
+                                session_data
+                                    .relation
+                                    .from_session_row((-row) as u32, session_row);
                             }
                         }
                         Depends::Overwrite(depends) => {

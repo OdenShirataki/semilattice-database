@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use versatile_data::{Activity, FieldData, IdxSized};
 
-use crate::{Collection, Condition};
+use crate::{Collection, CollectionRow, Condition};
 
 use super::Database;
 
@@ -22,14 +22,27 @@ use search::SessionSearch;
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SessionCollectionRow {
     pub(crate) collection_id: i32,
-    pub(crate) row: i64,    //-の場合はセッションの行が入る
+    pub(crate) row: i64, //-の場合はセッションの行が入る
 }
 impl SessionCollectionRow {
     pub fn new(collection_id: i32, row: i64) -> Self {
         Self { collection_id, row }
     }
+    pub fn collection_id(&self) -> i32 {
+        self.collection_id
+    }
+    pub fn row(&self) -> i64 {
+        self.row
+    }
 }
-
+impl From<CollectionRow> for SessionCollectionRow {
+    fn from(item: CollectionRow) -> Self {
+        SessionCollectionRow {
+            collection_id: item.collection_id(),
+            row: item.row() as i64,
+        }
+    }
+}
 pub struct TemporaryDataEntity {
     pub(super) activity: Activity,
     pub(super) term_begin: i64,
@@ -223,5 +236,31 @@ impl Session {
         collection_id: i32,
     ) -> Option<&HashMap<i64, TemporaryDataEntity>> {
         self.temporary_data.get(&collection_id)
+    }
+
+    pub fn depends(&self, key: &str, pend_row: u32) -> Option<Vec<SessionCollectionRow>> {
+        let mut r = vec![];
+        if let Some(ref session_data) = self.session_data {
+            if let Some(key_id) = session_data.relation.key_names.find_row(key.as_bytes()) {
+                for relation_row in session_data
+                    .relation
+                    .rows
+                    .session_row
+                    .select_by_value(&pend_row)
+                    .iter()
+                {
+                    if let (Some(key), Some(depend)) = (
+                        session_data.relation.rows.key.value(*relation_row),
+                        session_data.relation.rows.depend.value(*relation_row),
+                    ) {
+                        if key == key_id {
+                            r.push(depend);
+                        }
+                    }
+                }
+                return Some(r);
+            }
+        }
+        None
     }
 }

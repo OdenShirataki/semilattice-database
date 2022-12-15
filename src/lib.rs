@@ -121,12 +121,12 @@ impl Database {
         records: Vec<Record>,
     ) -> Result<(), std::io::Error> {
         let session_dir = self.session_dir(session.name());
-        if let None=session.session_data{
+        if let None = session.session_data {
             if let Ok(session_data) = Session::new_data(&session_dir) {
                 session.session_data = Some(session_data);
             }
         }
-        if let Some(ref mut session_data)=session.session_data {
+        if let Some(ref mut session_data) = session.session_data {
             let sequence = session_data.sequence_number.next();
             update::update_recursive(
                 self,
@@ -212,26 +212,29 @@ impl Database {
         search.result(self)
     }
 
-    /*
     pub fn depends(
         &self,
         key: &str,
         pend_collection_id: i32,
         pend_row: i64,
         session: Option<&Session>,
-    ) -> Vec<CollectionRow> {
-        let mut r = vec![];
+    ) -> Vec<SessionCollectionRow> {
+        let mut r: Vec<SessionCollectionRow> = vec![];
         if pend_row > 0 {
-            r = self.relation.depends(
+            let depends = self.relation.depends(
                 key,
                 &CollectionRow::new(pend_collection_id, pend_row as u32),
-            )
-        }
-        if let Some(session) = session {
-            if let Some(ref session_data) = session.session_data {
-                session_data.relation.depends(pend_collection_id,pend_row);
+            );
+            for i in depends {
+                r.push(i.into());
+            }
+        } else {
+            if let Some(session) = session {
+                if let Some(session_depends) = session.depends(key, (-pend_row) as u32) {
+                    r = session_depends;
+                }
             }
         }
         r
-    } */
+    }
 }

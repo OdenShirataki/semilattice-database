@@ -179,6 +179,8 @@ impl<'a> SessionSearch<'a> {
                         new_rows.insert(row);
                     }
                 }
+            } else {
+                new_rows = r.into_iter().map(|x| x as i64).collect();
             }
         }
         new_rows
