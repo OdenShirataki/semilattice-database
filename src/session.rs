@@ -14,6 +14,7 @@ mod sequence_number;
 use sequence_number::SequenceNumber;
 
 mod relation;
+pub use relation::SessionDepend;
 use relation::SessionRelation;
 
 pub mod search;
@@ -238,10 +239,34 @@ impl Session {
         self.temporary_data.get(&collection_id)
     }
 
-    pub fn depends(&self, key: &str, pend_row: u32) -> Option<Vec<SessionCollectionRow>> {
+    pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<SessionDepend>> {
         let mut r = vec![];
         if let Some(ref session_data) = self.session_data {
-            if let Some(key_id) = session_data.relation.key_names.find_row(key.as_bytes()) {
+            if let Some(key_name) = key {
+                if let Some(key_id) = session_data
+                    .relation
+                    .key_names
+                    .find_row(key_name.as_bytes())
+                {
+                    for relation_row in session_data
+                        .relation
+                        .rows
+                        .session_row
+                        .select_by_value(&pend_row)
+                        .iter()
+                    {
+                        if let (Some(key), Some(depend)) = (
+                            session_data.relation.rows.key.value(*relation_row),
+                            session_data.relation.rows.depend.value(*relation_row),
+                        ) {
+                            if key == key_id {
+                                r.push(SessionDepend::new(key_name, depend));
+                            }
+                        }
+                    }
+                    return Some(r);
+                }
+            } else {
                 for relation_row in session_data
                     .relation
                     .rows
@@ -253,9 +278,10 @@ impl Session {
                         session_data.relation.rows.key.value(*relation_row),
                         session_data.relation.rows.depend.value(*relation_row),
                     ) {
-                        if key == key_id {
-                            r.push(depend);
-                        }
+                        r.push(SessionDepend::new(
+                            unsafe { session_data.relation.key_names.str(key) },
+                            depend,
+                        ));
                     }
                 }
                 return Some(r);

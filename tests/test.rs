@@ -73,7 +73,7 @@ fn it_works() {
         let r = database.result_session(search);
         println!("A session_login : {}", r.len());
         for r in r {
-            let accounts = database.depends("account", collection_login, r, Some(&sess));
+            let accounts = database.depends(Some("account"), collection_login, r, Some(&sess));
             for account in accounts {
                 let account_collection_id = account.collection_id();
                 let account_row = account.row();
@@ -94,7 +94,7 @@ fn it_works() {
         let r = database.result_session(search);
         println!("B session_login : {}", r.len());
         for r in r {
-            let accounts = database.depends("account", collection_login, r, Some(&sess));
+            let accounts = database.depends(Some("account"), collection_login, r, Some(&sess));
             for account in accounts {
                 let account_collection_id = account.collection_id();
                 let account_row = account.row();
@@ -218,7 +218,7 @@ fn it_works() {
                 std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
                 std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
             );
-            let search = database.search(history).depend(search::Depend::new(
+            let search = database.search(history).depend(Depend::new(
                 "history",
                 CollectionRow::new(collection_person, i as u32),
             ));

@@ -3,6 +3,26 @@ use versatile_data::IdxSized;
 
 use super::SessionCollectionRow;
 
+#[derive(Clone)]
+pub struct SessionDepend {
+    key: String,
+    collection_row: SessionCollectionRow,
+}
+impl SessionDepend{
+    pub fn new(key:&str,collection_row:SessionCollectionRow)->Self{
+        Self { key:key.to_owned(), collection_row }
+    }
+    pub fn collection_id(&self)->i32{
+        self.collection_row.collection_id()
+    }
+    pub fn row(&self)->i64{
+        self.collection_row.row()
+    }
+    pub fn key(&self)->&str{
+        &self.key
+    }
+}
+
 pub struct SessionRelationRows {
     pub(crate) key: IdxSized<u32>,
     pub(crate) session_row: IdxSized<u32>,

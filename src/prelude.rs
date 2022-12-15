@@ -8,6 +8,7 @@ pub use crate::{
     ,Activity
     ,Term
     ,Depends
+    ,Depend
     ,Pend
     ,search
     ,Order

@@ -5,27 +5,7 @@ use versatile_data::{
     Activity, Condition as VersatileDataCondition, RowSet, Search as VersatileDataSearch,
 };
 
-use crate::{Collection, CollectionRow, Database, RelationIndex};
-
-#[derive(Clone)]
-pub struct Depend {
-    key: String,
-    collection_row: CollectionRow,
-}
-impl Depend {
-    pub fn new(key: impl Into<String>, collection_row: CollectionRow) -> Self {
-        Self {
-            key: key.into(),
-            collection_row,
-        }
-    }
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-    pub fn collection_row(&self) -> &CollectionRow {
-        &self.collection_row
-    }
-}
+use crate::{Collection, Database, Depend, RelationIndex};
 
 #[derive(Clone)]
 pub enum Condition {

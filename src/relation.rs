@@ -2,7 +2,27 @@ use file_mmap::FileMmap;
 use idx_binary::IdxBinary;
 use versatile_data::IdxSized;
 
-use crate::collection::CollectionRow;
+use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
+
+#[derive(Clone)]
+pub struct Depend {
+    key: String,
+    collection_row: CollectionRow,
+}
+impl Depend {
+    pub fn new(key: impl Into<String>, collection_row: CollectionRow) -> Self {
+        Self {
+            key: key.into(),
+            collection_row,
+        }
+    }
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+    pub fn collection_row(&self) -> &CollectionRow {
+        &self.collection_row
+    }
+}
 
 struct RelationIndexRows {
     key: IdxSized<u32>,
@@ -71,17 +91,40 @@ impl RelationIndex {
         }
         ret
     }
-    pub fn depends(&self, key: &str, pend: &CollectionRow) -> Vec<CollectionRow> {
-        let mut ret: Vec<CollectionRow> = Vec::new();
-        if let Some(key) = self.key_names.find_row(key.as_bytes()) {
+    pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<SessionDepend> {
+        let mut ret: Vec<SessionDepend> = Vec::new();
+        if let Some(key_name) = key {
+            if let Some(key) = self.key_names.find_row(key_name.as_bytes()) {
+                let c = self.rows.pend.select_by_value(pend);
+                for i in c {
+                    if let (Some(key_row), Some(collection_row)) =
+                        (self.rows.key.value(i), self.rows.pend.value(i))
+                    {
+                        if key_row == key {
+                            ret.push(SessionDepend::new(
+                                key_name,
+                                SessionCollectionRow::new(
+                                    collection_row.collection_id(),
+                                    collection_row.row() as i64,
+                                ),
+                            ));
+                        }
+                    }
+                }
+            }
+        } else {
             let c = self.rows.pend.select_by_value(pend);
             for i in c {
-                if let (Some(key_row), Some(collection_row)) =
+                if let (Some(key), Some(collection_row)) =
                     (self.rows.key.value(i), self.rows.pend.value(i))
                 {
-                    if key_row == key {
-                        ret.push(collection_row);
-                    }
+                    ret.push(SessionDepend::new(
+                        unsafe { self.key_names.str(key) },
+                        SessionCollectionRow::new(
+                            collection_row.collection_id(),
+                            collection_row.row() as i64,
+                        ),
+                    ));
                 }
             }
         }

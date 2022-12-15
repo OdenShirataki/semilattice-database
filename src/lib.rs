@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 pub use idx_binary::IdxBinary;
 
+use session::SessionDepend;
 use session::search::SessionSearch;
 use versatile_data::Data;
 pub use versatile_data::{Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term};
@@ -12,7 +13,7 @@ mod collection;
 pub use collection::{Collection, CollectionRow};
 
 mod relation;
-pub use relation::RelationIndex;
+pub use relation::{RelationIndex,Depend};
 
 mod session;
 pub use session::{search as session_search, Depends, Pend, Record, Session, SessionCollectionRow};
@@ -214,12 +215,12 @@ impl Database {
 
     pub fn depends(
         &self,
-        key: &str,
+        key: Option<&str>,
         pend_collection_id: i32,
         pend_row: i64,
         session: Option<&Session>,
-    ) -> Vec<SessionCollectionRow> {
-        let mut r: Vec<SessionCollectionRow> = vec![];
+    ) -> Vec<SessionDepend> {
+        let mut r: Vec<SessionDepend> = vec![];
         if pend_row > 0 {
             let depends = self.relation.depends(
                 key,
