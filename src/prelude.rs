@@ -9,6 +9,7 @@ pub use crate::{
     ,Term
     ,Depends
     ,Depend
+    ,SessionDepend
     ,Pend
     ,search
     ,Order

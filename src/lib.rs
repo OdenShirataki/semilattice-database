@@ -4,7 +4,6 @@ use std::collections::HashMap;
 
 pub use idx_binary::IdxBinary;
 
-use session::SessionDepend;
 use session::search::SessionSearch;
 use versatile_data::Data;
 pub use versatile_data::{Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term};
@@ -16,7 +15,7 @@ mod relation;
 pub use relation::{RelationIndex,Depend};
 
 mod session;
-pub use session::{search as session_search, Depends, Pend, Record, Session, SessionCollectionRow};
+pub use session::{search as session_search, Depends, Pend, Record, Session, SessionCollectionRow,SessionDepend};
 
 pub mod search;
 pub use search::{Condition, Search};
