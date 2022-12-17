@@ -12,10 +12,12 @@ mod collection;
 pub use collection::{Collection, CollectionRow};
 
 mod relation;
-pub use relation::{RelationIndex,Depend};
+pub use relation::{Depend, RelationIndex};
 
 mod session;
-pub use session::{search as session_search, Depends, Pend, Record, Session, SessionCollectionRow,SessionDepend};
+pub use session::{
+    search as session_search, Depends, Pend, Record, Session, SessionCollectionRow, SessionDepend,
+};
 
 pub mod search;
 pub use search::{Condition, Search};

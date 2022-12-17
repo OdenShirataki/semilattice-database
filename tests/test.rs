@@ -59,7 +59,7 @@ fn it_works() {
                 &mut sess,
                 vec![Record::Update {
                     collection_id: collection_login,
-                    row:-1,
+                    row: -1,
                     activity: Activity::Active,
                     term_begin: Term::Defalut,
                     term_end: Term::Defalut,
@@ -82,7 +82,12 @@ fn it_works() {
                         .search_row(search::Number::In(vec![account_row as isize])),
                 ) {
                     if let Some(collection) = database.collection(account_collection_id) {
-                        println!("session_login : {} , {}", r, std::str::from_utf8(collection.field_bytes(account_row as u32,"id")).unwrap());
+                        println!(
+                            "session_login : {} , {}",
+                            r,
+                            std::str::from_utf8(collection.field_bytes(account_row as u32, "id"))
+                                .unwrap()
+                        );
                     }
                 }
             }
@@ -103,7 +108,12 @@ fn it_works() {
                         .search_row(search::Number::In(vec![account_row as isize])),
                 ) {
                     if let Some(collection) = database.collection(account_collection_id) {
-                        println!("session_login : {} , {}", r, std::str::from_utf8(collection.field_bytes(account_row as u32,"id")).unwrap());
+                        println!(
+                            "session_login : {} , {}",
+                            r,
+                            std::str::from_utf8(collection.field_bytes(account_row as u32, "id"))
+                                .unwrap()
+                        );
                     }
                 }
             }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use versatile_data::{Activity, KeyValue, Term, Operation};
+use versatile_data::{Activity, KeyValue, Operation, Term};
 
 use crate::{
     session::{SessionCollectionRow, SessionData, SessionOperation},
