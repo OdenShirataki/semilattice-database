@@ -98,7 +98,7 @@ impl RelationIndex {
                 let c = self.rows.pend.select_by_value(pend);
                 for i in c {
                     if let (Some(key_row), Some(collection_row)) =
-                        (self.rows.key.value(i), self.rows.pend.value(i))
+                        (self.rows.key.value(i), self.rows.depend.value(i))
                     {
                         if key_row == key {
                             ret.push(SessionDepend::new(

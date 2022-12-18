@@ -13,13 +13,13 @@ pub fn commit(
 ) -> Result<(), std::io::Error> {
     let mut session_collection_row_map: HashMap<u32, CollectionRow> = HashMap::new();
 
-    let mut relation: HashMap<u32, Vec<(u32, SessionCollectionRow)>> = HashMap::new();
+    let mut session_relation: HashMap<u32, Vec<(u32, SessionCollectionRow)>> = HashMap::new();
     for row in 1..session_data.relation.rows.session_row.max_rows() {
         if let (Some(session_row), Some(depend)) = (
             session_data.relation.rows.session_row.value(row),
             session_data.relation.rows.depend.value(row),
         ) {
-            let m = relation.entry(session_row).or_insert(Vec::new());
+            let m = session_relation.entry(session_row).or_insert(Vec::new());
             m.push((row, depend));
         }
     }
@@ -69,7 +69,7 @@ pub fn commit(
                             }
                         };
                         session_collection_row_map.insert(session_row, collection_row);
-                        if let Some(depend_rows) = relation.get(&session_row) {
+                        if let Some(depend_rows) = session_relation.get(&session_row) {
                             for (session_row, depend) in depend_rows {
                                 let key =
                                     session_data.relation.rows.key.value(*session_row).unwrap();
