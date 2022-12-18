@@ -47,16 +47,27 @@ pub fn commit(
                             Term::Overwrite(session_data.term_begin.value(session_row).unwrap());
                         let term_end =
                             Term::Overwrite(session_data.term_end.value(session_row).unwrap());
-                        let row = if row == 0 {
+                        let collection_row = if row == 0 {
                             //new
-                            collection.create_row(&activity, &term_begin, &term_end, &fields)
+                            let row=collection.create_row(&activity, &term_begin, &term_end, &fields);
+                            CollectionRow::new(collection_id, row)
                         } else {
-                            assert!(row > 0);
-                            let row = row as u32;
-                            collection.update_row(row, &activity, &term_begin, &term_end, &fields);
-                            row
+                            if row<0{
+                                //update new data in session.
+                                if let Some(master_collection_row)=session_collection_row_map.get(&(-row as u32)){
+                                    let row=master_collection_row.row();
+                                    collection.update_row(row, &activity, &term_begin, &term_end, &fields);
+                                    CollectionRow::new(master_collection_row.collection_id(), row)
+                                }else{
+                                    panic!("crash");
+                                }
+                            }else{
+                                //update
+                                let row = row as u32;
+                                collection.update_row(row, &activity, &term_begin, &term_end, &fields);
+                                CollectionRow::new(collection_id, row)
+                            }
                         };
-                        let collection_row = CollectionRow::new(collection_id, row);
                         session_collection_row_map.insert(session_row, collection_row);
                         if let Some(depend_rows) = relation.get(&session_row) {
                             for (session_row, depend) in depend_rows {
