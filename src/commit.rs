@@ -68,6 +68,7 @@ pub fn commit(
                                 CollectionRow::new(collection_id, row)
                             }
                         };
+                        main_database.relation.delete_by_collection_row(collection_row);
                         session_collection_row_map.insert(session_row, collection_row);
                         if let Some(depend_rows) = session_relation.get(&session_row) {
                             for (session_row, depend) in depend_rows {
