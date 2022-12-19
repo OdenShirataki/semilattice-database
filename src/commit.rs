@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use versatile_data::{Activity, KeyValue, Operation, Term};
 
 use crate::{
@@ -49,26 +48,43 @@ pub fn commit(
                             Term::Overwrite(session_data.term_end.value(session_row).unwrap());
                         let collection_row = if row == 0 {
                             //new
-                            let row=collection.create_row(&activity, &term_begin, &term_end, &fields);
+                            let row =
+                                collection.create_row(&activity, &term_begin, &term_end, &fields);
                             CollectionRow::new(collection_id, row)
                         } else {
-                            if row<0{
+                            if row < 0 {
                                 //update new data in session.
-                                if let Some(master_collection_row)=session_collection_row_map.get(&(-row as u32)){
-                                    let row=master_collection_row.row();
-                                    collection.update_row(row, &activity, &term_begin, &term_end, &fields);
+                                if let Some(master_collection_row) =
+                                    session_collection_row_map.get(&(-row as u32))
+                                {
+                                    let row = master_collection_row.row();
+                                    collection.update_row(
+                                        row,
+                                        &activity,
+                                        &term_begin,
+                                        &term_end,
+                                        &fields,
+                                    );
                                     CollectionRow::new(master_collection_row.collection_id(), row)
-                                }else{
+                                } else {
                                     panic!("crash");
                                 }
-                            }else{
+                            } else {
                                 //update
                                 let row = row as u32;
-                                collection.update_row(row, &activity, &term_begin, &term_end, &fields);
+                                collection.update_row(
+                                    row,
+                                    &activity,
+                                    &term_begin,
+                                    &term_end,
+                                    &fields,
+                                );
                                 CollectionRow::new(collection_id, row)
                             }
                         };
-                        main_database.relation.delete_by_collection_row(collection_row);
+                        main_database
+                            .relation
+                            .delete_by_collection_row(collection_row);
                         session_collection_row_map.insert(session_row, collection_row);
                         if let Some(depend_rows) = session_relation.get(&session_row) {
                             for (session_row, depend) in depend_rows {

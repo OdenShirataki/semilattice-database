@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use versatile_data::{Activity, FieldData, KeyValue, Term};
 
 use crate::{

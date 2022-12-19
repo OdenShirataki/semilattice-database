@@ -76,7 +76,7 @@ impl RelationIndex {
         self.fragment.insert_blank(row);
     }
     pub fn delete_by_collection_row(&mut self, collection_row: CollectionRow) {
-        for i in self.rows.pend.select_by_value(&collection_row){
+        for i in self.rows.pend.select_by_value(&collection_row) {
             self.delete(i);
         }
     }

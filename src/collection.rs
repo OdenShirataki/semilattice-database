@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-
 use versatile_data::{Activity, Data, KeyValue, Operation, Order, RowSet, Term};
 
 pub struct Collection {

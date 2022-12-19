@@ -1,5 +1,3 @@
-//TODO:relationの処理を検証する事
-
 use std::collections::HashMap;
 use versatile_data::{Activity, FieldData, IdxSized};
 
