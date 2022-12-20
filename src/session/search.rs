@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use super::{Session, TemporaryDataEntity};
-
 use crate::{search, Activity, Condition, Database};
 
 pub struct SessionSearch<'a> {

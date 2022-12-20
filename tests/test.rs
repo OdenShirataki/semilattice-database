@@ -80,58 +80,6 @@ fn it_works() {
             }
         }
     }
-    if let Ok(mut sess) = database.session("login") {
-        let search = sess
-            .begin_search(collection_login);
-        for row in database.result_session(search) {
-            database
-                .update(
-                    &mut sess,
-                    vec![Record::Update {
-                        collection_id: collection_login,
-                        row:row, //-1
-                        activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
-                        fields: vec![],
-                        depends: Depends::Overwrite(vec![(
-                            "admin".to_owned(),
-                            SessionCollectionRow::new(collection_admin, 1),
-                        )]),
-                        pends: vec![],
-                    }],
-                )
-                .unwrap();
-        }
-        database.commit(&mut sess).unwrap();
-    }
-    return ;
-    /*
-    if let Ok(sess) = database.session("logintest") {
-        let search = sess.begin_search(collection_login).search_default();
-        let r = database.result_session(search);
-        println!("B session_login : {}", r.len());
-        for r in r {
-            let accounts = database.depends(Some("account"), collection_login, r, Some(&sess));
-            for account in accounts {
-                let account_collection_id = account.collection_id();
-                let account_row = account.row();
-                for account_row in database.result_session(
-                    sess.begin_search(account_collection_id)
-                        .search_row(search::Number::In(vec![account_row as isize])),
-                ) {
-                    if let Some(collection) = database.collection(account_collection_id) {
-                        println!(
-                            "session_login : {} , {}",
-                            r,
-                            std::str::from_utf8(collection.field_bytes(account_row as u32, "id"))
-                                .unwrap()
-                        );
-                    }
-                }
-            }
-        }
-    } */
 
     let collection_person = database.collection_id_or_create("person").unwrap();
     let collection_history = database.collection_id_or_create("history").unwrap();

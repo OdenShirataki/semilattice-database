@@ -18,7 +18,7 @@ use relation::SessionRelation;
 pub mod search;
 use search::SessionSearch;
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SessionCollectionRow {
     pub(crate) collection_id: i32,
     pub(crate) row: i64, //-の場合はセッションの行が入る
