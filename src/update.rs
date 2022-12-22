@@ -175,10 +175,21 @@ pub(super) fn update_recursive(
                     let collection_id = *collection_id;
                     let row = *row;
 
-                    let term_begin = if let Term::Overwrite(term_begin) = term_begin {
-                        *term_begin
-                    } else {
-                        chrono::Local::now().timestamp()
+                    let term_begin = match term_begin{
+                        Term::Overwrite(term_begin)=>{
+                            *term_begin
+                        }
+                        Term::Defalut => {
+                            if row>0{
+                                if let Some(collection)=master_database.collection(collection_id){
+                                    collection.term_begin(row as u32)
+                                }else{
+                                    chrono::Local::now().timestamp()
+                                }
+                            }else{
+                                chrono::Local::now().timestamp()
+                            }
+                        }
                     };
                     let term_end = if let Term::Overwrite(term_end) = term_end {
                         *term_end
