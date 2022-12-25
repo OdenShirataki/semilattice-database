@@ -118,11 +118,9 @@ pub fn commit(
                             main_database,
                             &SessionCollectionRow::new(collection_id, row),
                         );
-                        if row>0{
-                            if let Some(collection)=main_database.collection_mut(collection_id){
-                                collection.update(&Operation::Delete {
-                                    row:row as u32
-                                });
+                        if row > 0 {
+                            if let Some(collection) = main_database.collection_mut(collection_id) {
+                                collection.update(&Operation::Delete { row: row as u32 });
                             }
                         }
                     }
