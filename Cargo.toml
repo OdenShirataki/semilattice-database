@@ -18,4 +18,4 @@ chrono="0.4"
 
 versatile-data={version="0.55",path="../versatile-data"}
 idx_binary={version="0.10",path="../idx_binary"}
-file_mmap={version="0.10",path="../file_mmap"}
+file_mmap={version="0.11",path="../file_mmap"}
