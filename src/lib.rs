@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::{
+    collections::{BTreeMap, BTreeSet, HashMap},
+    io,
+};
 
 pub use idx_binary::IdxBinary;
 
@@ -33,7 +36,7 @@ pub struct Database {
     relation: RelationIndex,
 }
 impl Database {
-    pub fn new(dir: &str) -> Result<Self, std::io::Error> {
+    pub fn new(dir: &str) -> io::Result<Self> {
         let root_dir = if dir.ends_with("/") || dir.ends_with("\\") {
             let mut d = dir.to_string();
             d.pop();
@@ -82,21 +85,21 @@ impl Database {
     fn session_dir(&self, session_name: &str) -> String {
         self.root_dir.to_string() + "/sessions/" + session_name
     }
-    pub fn session(&self, session_name: &str) -> Result<Session, std::io::Error> {
+    pub fn session(&self, session_name: &str) -> io::Result<Session> {
         let session_dir = self.session_dir(session_name);
         if !std::path::Path::new(&session_dir).exists() {
             std::fs::create_dir_all(&session_dir)?;
         }
         Session::new(self, session_name)
     }
-    pub fn commit(&mut self, session: &mut Session) -> Result<(), std::io::Error> {
+    pub fn commit(&mut self, session: &mut Session) -> io::Result<()> {
         if let Some(ref mut data) = session.session_data {
             commit::commit(self, data)?;
             self.session_clear(session)?;
         }
         Ok(())
     }
-    pub fn session_clear(&self, session: &mut Session) -> Result<(), std::io::Error> {
+    pub fn session_clear(&self, session: &mut Session) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());
         session.session_data = None;
         if std::path::Path::new(&session_dir).exists() {
@@ -110,16 +113,12 @@ impl Database {
             session.session_data = Some(session_data);
         }
     }
-    pub fn session_restart(&self, session: &mut Session) -> Result<(), std::io::Error> {
+    pub fn session_restart(&self, session: &mut Session) -> io::Result<()> {
         self.session_clear(session)?;
         self.session_start(session);
         Ok(())
     }
-    pub fn update(
-        &self,
-        session: &mut Session,
-        records: Vec<Record>,
-    ) -> Result<(), std::io::Error> {
+    pub fn update(&self, session: &mut Session, records: Vec<Record>) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());
         if let None = session.session_data {
             if let Ok(session_data) = Session::new_data(&session_dir) {
@@ -140,7 +139,7 @@ impl Database {
         }
         Ok(())
     }
-    fn collection_by_name_or_create(&mut self, name: &str) -> Result<i32, std::io::Error> {
+    fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
         let mut max_id = 0;
         let collections_dir = self.root_dir.to_string() + "/collection/";
         if let Ok(dir) = std::fs::read_dir(&collections_dir) {
@@ -192,7 +191,7 @@ impl Database {
             None
         }
     }
-    pub fn collection_id_or_create(&mut self, name: &str) -> Result<i32, std::io::Error> {
+    pub fn collection_id_or_create(&mut self, name: &str) -> io::Result<i32> {
         if self.collections_map.contains_key(name) {
             Ok(*self.collections_map.get(name).unwrap())
         } else {

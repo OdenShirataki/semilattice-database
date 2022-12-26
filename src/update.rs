@@ -74,7 +74,7 @@ pub(super) fn update_recursive(
     sequence_number: usize,
     records: &Vec<Record>,
     depend_by_pend: Option<(&str, u32)>,
-) -> Result<(), std::io::Error> {
+) -> std::io::Result<()> {
     for record in records {
         if let Ok(session_row) = session_data.sequence.insert(sequence_number) {
             session_data.row.resize_to(session_row)?;
@@ -175,18 +175,17 @@ pub(super) fn update_recursive(
                     let collection_id = *collection_id;
                     let row = *row;
 
-                    let term_begin = match term_begin{
-                        Term::Overwrite(term_begin)=>{
-                            *term_begin
-                        }
+                    let term_begin = match term_begin {
+                        Term::Overwrite(term_begin) => *term_begin,
                         Term::Defalut => {
-                            if row>0{
-                                if let Some(collection)=master_database.collection(collection_id){
+                            if row > 0 {
+                                if let Some(collection) = master_database.collection(collection_id)
+                                {
                                     collection.term_begin(row as u32)
-                                }else{
+                                } else {
                                     chrono::Local::now().timestamp()
                                 }
-                            }else{
+                            } else {
                                 chrono::Local::now().timestamp()
                             }
                         }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io};
 use versatile_data::{Activity, FieldData, IdxSized};
 
 use crate::{Collection, CollectionRow, Condition};
@@ -82,7 +82,7 @@ pub struct Session {
     pub(super) temporary_data: TemporaryData,
 }
 impl Session {
-    pub fn new(main_database: &Database, name: impl Into<String>) -> Result<Self, std::io::Error> {
+    pub fn new(main_database: &Database, name: impl Into<String>) -> io::Result<Self> {
         let mut name: String = name.into();
         assert!(name != "");
         if name == "" {
@@ -93,7 +93,7 @@ impl Session {
             std::fs::create_dir_all(&session_dir).unwrap();
         }
         let session_data = Self::new_data(&session_dir)?;
-        let temporary_data = Self::init_temporary_data(&session_data);
+        let temporary_data = Self::init_temporary_data(&session_data)?;
         Ok(Self {
             name,
             session_data: Some(session_data),
@@ -103,9 +103,9 @@ impl Session {
     pub fn name(&mut self) -> &str {
         &self.name
     }
-    fn init_temporary_data(session_data: &SessionData) -> TemporaryData {
+    fn init_temporary_data(session_data: &SessionData) -> io::Result<TemporaryData> {
         let mut temporary_data = HashMap::new();
-        for session_row in 1..session_data.sequence.max_rows() {
+        for session_row in 1..session_data.sequence.max_rows()? {
             let collection_id = session_data.collection_id.value(session_row).unwrap();
             if collection_id > 0 {
                 let col = temporary_data
@@ -139,9 +139,9 @@ impl Session {
                 );
             }
         }
-        temporary_data
+        Ok(temporary_data)
     }
-    pub fn new_data(session_dir: &str) -> Result<SessionData, std::io::Error> {
+    pub fn new_data(session_dir: &str) -> io::Result<SessionData> {
         let mut fields = HashMap::new();
 
         let fields_dir = session_dir.to_string() + "/fields/";

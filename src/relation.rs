@@ -1,5 +1,6 @@
 use file_mmap::FileMmap;
 use idx_binary::IdxBinary;
+use std::io;
 use versatile_data::IdxSized;
 
 use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
@@ -35,7 +36,7 @@ pub struct RelationIndex {
     rows: RelationIndexRows,
 }
 impl RelationIndex {
-    pub fn new(root_dir: &str) -> Result<Self, std::io::Error> {
+    pub fn new(root_dir: &str) -> io::Result<Self> {
         let dir = root_dir.to_string() + "/relation/";
         if !std::path::Path::new(&dir).exists() {
             std::fs::create_dir_all(&dir).unwrap();
@@ -55,7 +56,7 @@ impl RelationIndex {
         relation_key: &str,
         depend: CollectionRow,
         pend: CollectionRow,
-    ) -> Result<(), std::io::Error> {
+    ) -> io::Result<()> {
         if let Ok(key_id) = self.key_names.entry(relation_key.as_bytes()) {
             if let Some(row) = self.fragment.pop() {
                 self.rows.key.update(row, key_id)?;
@@ -160,10 +161,13 @@ struct Fragment {
     blank_count: u32,
 }
 impl Fragment {
-    pub fn new(path: &str) -> Result<Self, std::io::Error> {
-        let filemmap = FileMmap::new(path, U32SIZE as u64)?;
+    pub fn new(path: &str) -> io::Result<Self> {
+        let mut filemmap = FileMmap::new(path)?;
+        if filemmap.len()? == 0 {
+            filemmap.set_len(U32SIZE as u64)?;
+        }
         let blank_list = filemmap.as_ptr() as *mut u32;
-        let blank_count: u32 = (filemmap.len() / U32SIZE as u64 - 1) as u32;
+        let blank_count = (filemmap.len()? / U32SIZE as u64 - 1) as u32;
         Ok(Self {
             filemmap,
             blank_list: unsafe { Vec::from_raw_parts(blank_list, 1, 0) },
@@ -186,11 +190,13 @@ impl Fragment {
             unsafe {
                 *p = 0;
             }
-            let _ = self.filemmap.set_len(self.filemmap.len() - U32SIZE as u64);
-            self.blank_count -= 1;
-            Some(last)
-        } else {
-            None
+            if let Ok(len) = self.filemmap.len() {
+                if let Ok(()) = self.filemmap.set_len(len - U32SIZE as u64) {
+                    self.blank_count -= 1;
+                    return Some(last);
+                }
+            }
         }
+        None
     }
 }

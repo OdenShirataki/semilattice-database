@@ -6,8 +6,11 @@ pub struct SequenceNumber {
     sequence_number: Vec<usize>,
 }
 impl SequenceNumber {
-    pub fn new(path: &str) -> Result<Self, std::io::Error> {
-        let filemmap = FileMmap::new(path, std::mem::size_of::<usize>() as u64)?;
+    pub fn new(path: &str) -> std::io::Result<Self> {
+        let mut filemmap = FileMmap::new(path)?;
+        if filemmap.len()? == 0 {
+            filemmap.set_len(std::mem::size_of::<usize>() as u64)?;
+        }
         let ptr = filemmap.as_ptr() as *mut usize;
         Ok(Self {
             filemmap,
