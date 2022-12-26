@@ -7,17 +7,20 @@ pub struct SessionDepend {
     key: String,
     collection_row: SessionCollectionRow,
 }
-impl SessionDepend{
-    pub fn new(key:&str,collection_row:SessionCollectionRow)->Self{
-        Self { key:key.to_owned(), collection_row }
+impl SessionDepend {
+    pub fn new(key: &str, collection_row: SessionCollectionRow) -> Self {
+        Self {
+            key: key.to_owned(),
+            collection_row,
+        }
     }
-    pub fn collection_id(&self)->i32{
+    pub fn collection_id(&self) -> i32 {
         self.collection_row.collection_id()
     }
-    pub fn row(&self)->i64{
+    pub fn row(&self) -> i64 {
         self.collection_row.row()
     }
-    pub fn key(&self)->&str{
+    pub fn key(&self) -> &str {
         &self.key
     }
 }
