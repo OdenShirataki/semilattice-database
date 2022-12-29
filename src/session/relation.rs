@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use idx_binary::IdxBinary;
 use versatile_data::IdxSized;
 
@@ -35,19 +37,33 @@ pub struct SessionRelation {
     pub(crate) rows: SessionRelationRows,
 }
 impl SessionRelation {
-    pub fn new(session_dir: &str) -> Self {
-        let relation_dir = session_dir.to_string() + "/relation/";
-        if !std::path::Path::new(&relation_dir).exists() {
-            std::fs::create_dir_all(&relation_dir).unwrap();
+    pub fn new<P: AsRef<Path>>(session_dir: P) -> std::io::Result<Self> {
+        let mut relation_dir = session_dir.as_ref().to_path_buf();
+        relation_dir.push("relation");
+        if !relation_dir.exists() {
+            std::fs::create_dir_all(&relation_dir)?;
         }
-        Self {
-            key_names: IdxBinary::new(&(relation_dir.to_string() + "/key_name")).unwrap(),
+
+        let mut path_key_name = relation_dir.clone();
+        path_key_name.push("key_name");
+
+        let mut path_key = relation_dir.clone();
+        path_key.push("key.i");
+
+        let mut path_session_row = relation_dir.clone();
+        path_session_row.push("session_row.i");
+
+        let mut path_depend = relation_dir.clone();
+        path_depend.push("depend.i");
+
+        Ok(Self {
+            key_names: IdxBinary::new(path_key_name)?,
             rows: SessionRelationRows {
-                key: IdxSized::new(&(relation_dir.to_string() + "/key.i")).unwrap(),
-                session_row: IdxSized::new(&(relation_dir.to_string() + "/session_row.i")).unwrap(),
-                depend: IdxSized::new(&(relation_dir.to_string() + "/depend.i")).unwrap(),
+                key: IdxSized::new(path_key)?,
+                session_row: IdxSized::new(path_session_row)?,
+                depend: IdxSized::new(path_depend)?,
             },
-        }
+        })
     }
     pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: SessionCollectionRow) {
         if let Ok(key_id) = self.key_names.entry(relation_key.as_bytes()) {

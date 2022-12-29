@@ -146,9 +146,9 @@ impl Session {
 
         let fields_dir = session_dir.to_string() + "/fields/";
         if !std::path::Path::new(&fields_dir).exists() {
-            std::fs::create_dir_all(fields_dir.to_owned()).unwrap();
+            std::fs::create_dir_all(fields_dir.to_owned())?;
         }
-        let d = std::fs::read_dir(fields_dir).unwrap();
+        let d = std::fs::read_dir(fields_dir)?;
         for p in d {
             if let Ok(p) = p {
                 let path = p.path();
@@ -156,7 +156,7 @@ impl Session {
                     if let Some(fname) = path.file_name() {
                         if let Some(str_fname) = fname.to_str() {
                             if let Some(p) = path.to_str() {
-                                let field = FieldData::new(&(p.to_string() + "/")).unwrap();
+                                let field = FieldData::new(&(p.to_string() + "/"))?;
                                 fields.insert(String::from(str_fname), field);
                             }
                         }
@@ -175,7 +175,7 @@ impl Session {
             term_begin: IdxSized::new(&(session_dir.to_string() + "/term_begin.i"))?,
             term_end: IdxSized::new(&(session_dir.to_string() + "/term_end.i"))?,
             fields,
-            relation: SessionRelation::new(&session_dir),
+            relation: SessionRelation::new(&session_dir)?,
         })
     }
 
