@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     io,
+    path::{Path, PathBuf},
 };
 
 pub use idx_binary::IdxBinary;
@@ -30,41 +31,37 @@ mod update;
 pub mod prelude;
 
 pub struct Database {
-    root_dir: String,
+    root_dir: PathBuf,
+    sessions_dir: PathBuf,
+    collections_dir: PathBuf,
     collections_map: HashMap<String, i32>,
     collections: BTreeMap<i32, Collection>,
     relation: RelationIndex,
 }
 impl Database {
-    pub fn new(dir: &str) -> io::Result<Self> {
-        let root_dir = if dir.ends_with("/") || dir.ends_with("\\") {
-            let mut d = dir.to_string();
-            d.pop();
-            d
-        } else {
-            dir.to_string()
-        };
+    pub fn new<P: AsRef<Path>>(dir: P) -> io::Result<Self> {
+        let dir = dir.as_ref();
+
+        let mut collections_dir = dir.to_path_buf();
+        collections_dir.push("collection");
+
         let mut collections_map = HashMap::new();
         let mut collections = BTreeMap::new();
-        let collections_dir = root_dir.to_string() + "/collection/";
-        if let Ok(dir) = std::fs::read_dir(&collections_dir) {
+
+        if collections_dir.exists() {
+            let dir = collections_dir.read_dir()?;
             for d in dir.into_iter() {
-                let d = d.unwrap();
-                let dt = d.file_type().unwrap();
-                if dt.is_dir() {
-                    if let Some(fname) = d.path().file_name() {
-                        if let Some(fname) = fname.to_str() {
-                            let s: Vec<&str> = fname.split("_").collect();
-                            if s.len() > 1 {
-                                if let Some(path) = d.path().to_str() {
-                                    if let Ok(collection_id) = s[0].parse::<i32>() {
-                                        let name = s[1];
-                                        let data =
-                                            Collection::new(Data::new(path)?, collection_id, name);
-                                        collections_map.insert(name.to_string(), collection_id);
-                                        collections.insert(collection_id, data);
-                                    }
-                                }
+                let d = d?;
+                if d.file_type()?.is_dir() {
+                    if let Some(fname) = d.file_name().to_str() {
+                        let s: Vec<&str> = fname.split("_").collect();
+                        if s.len() > 1 {
+                            if let Ok(collection_id) = s[0].parse::<i32>() {
+                                let name = s[1];
+                                let data =
+                                    Collection::new(Data::new(d.path())?, collection_id, name);
+                                collections_map.insert(name.to_string(), collection_id);
+                                collections.insert(collection_id, data);
                             }
                         }
                     }
@@ -72,18 +69,25 @@ impl Database {
             }
         }
 
+        let mut sessions_dir = dir.to_path_buf();
+        sessions_dir.push("sessions");
+
         Ok(Self {
-            root_dir: root_dir.to_string(),
+            root_dir: dir.to_path_buf(),
+            sessions_dir,
+            collections_dir,
             collections,
             collections_map,
-            relation: RelationIndex::new(&root_dir)?,
+            relation: RelationIndex::new(dir)?,
         })
     }
-    pub fn root_dir(&self) -> &str {
+    pub fn root_dir(&self) -> &Path {
         &self.root_dir
     }
-    fn session_dir(&self, session_name: &str) -> String {
-        self.root_dir.to_string() + "/sessions/" + session_name
+    fn session_dir(&self, session_name: &str) -> PathBuf {
+        let mut dir = self.sessions_dir.clone();
+        dir.push(session_name);
+        dir
     }
     pub fn session(&self, session_name: &str) -> io::Result<Session> {
         let session_dir = self.session_dir(session_name);
@@ -141,27 +145,21 @@ impl Database {
     }
     fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
         let mut max_id = 0;
-        let collections_dir = self.root_dir.to_string() + "/collection/";
-        if let Ok(dir) = std::fs::read_dir(&collections_dir) {
-            for d in dir.into_iter() {
-                let d = d.unwrap();
-                let dt = d.file_type().unwrap();
-                if dt.is_dir() {
-                    if let Some(fname) = d.path().file_name() {
-                        if let Some(fname) = fname.to_str() {
-                            let s: Vec<&str> = fname.split("_").collect();
-                            if s.len() > 1 {
-                                if let Ok(i) = s[0].parse() {
-                                    max_id = std::cmp::max(max_id, i);
-                                }
-                                if s[1] == name {
-                                    if let Some(path) = d.path().to_str() {
-                                        let data = Collection::new(Data::new(path)?, max_id, name);
-                                        self.collections_map.insert(name.to_string(), max_id);
-                                        self.collections.insert(max_id, data);
-                                        return Ok(max_id);
-                                    }
-                                }
+        if self.collections_dir.exists() {
+            for d in self.collections_dir.read_dir()? {
+                let d = d?;
+                if d.file_type()?.is_dir() {
+                    if let Some(fname) = d.file_name().to_str() {
+                        let s: Vec<&str> = fname.split("_").collect();
+                        if s.len() > 1 {
+                            if let Ok(i) = s[0].parse() {
+                                max_id = std::cmp::max(max_id, i);
+                            }
+                            if s[1] == name {
+                                let data = Collection::new(Data::new(d.path())?, max_id, name);
+                                self.collections_map.insert(name.to_string(), max_id);
+                                self.collections.insert(max_id, data);
+                                return Ok(max_id);
                             }
                         }
                     }
@@ -170,7 +168,11 @@ impl Database {
         }
         let collection_id = max_id + 1;
         let data = Collection::new(
-            Data::new(&(collections_dir + "/" + &collection_id.to_string() + "_" + name))?,
+            Data::new({
+                let mut collecion_dir = self.collections_dir.clone();
+                collecion_dir.push(&(collection_id.to_string() + "_" + name));
+                collecion_dir
+            })?,
             collection_id,
             name,
         );
@@ -204,10 +206,13 @@ impl Database {
     pub fn search(&self, colletion: &Collection) -> Search {
         Search::new(colletion)
     }
-    pub fn result(&self, search: Search) -> RowSet {
+    pub fn result(&self, search: Search) -> Result<RowSet, std::sync::mpsc::SendError<RowSet>> {
         search.result(self)
     }
-    pub fn result_session(&self, search: SessionSearch) -> BTreeSet<i64> {
+    pub fn result_session(
+        &self,
+        search: SessionSearch,
+    ) -> Result<BTreeSet<i64>, std::sync::mpsc::SendError<RowSet>> {
         search.result(self)
     }
 

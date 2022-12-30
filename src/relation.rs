@@ -1,6 +1,9 @@
 use file_mmap::FileMmap;
 use idx_binary::IdxBinary;
-use std::io;
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 use versatile_data::IdxSized;
 
 use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
@@ -36,18 +39,39 @@ pub struct RelationIndex {
     rows: RelationIndexRows,
 }
 impl RelationIndex {
-    pub fn new(root_dir: &str) -> io::Result<Self> {
-        let dir = root_dir.to_string() + "/relation/";
-        if !std::path::Path::new(&dir).exists() {
-            std::fs::create_dir_all(&dir).unwrap();
+    pub fn new(root_dir: &Path) -> io::Result<Self> {
+        let mut dir = root_dir.to_path_buf();
+        dir.push("relation");
+        if !dir.exists() {
+            std::fs::create_dir_all(&dir)?;
         }
         Ok(Self {
-            key_names: IdxBinary::new(&(dir.to_string() + "/key_name"))?,
-            fragment: Fragment::new(&(dir.to_string() + "/fragment.f"))?,
+            key_names: IdxBinary::new({
+                let mut path = dir.clone();
+                path.push("key_name");
+                path
+            })?,
+            fragment: Fragment::new({
+                let mut path = dir.clone();
+                path.push("fragment.f");
+                path
+            })?,
             rows: RelationIndexRows {
-                key: IdxSized::new(&(dir.to_string() + "/key.i"))?,
-                depend: IdxSized::new(&(dir.to_string() + "/depend.i"))?,
-                pend: IdxSized::new(&(dir.to_string() + "/pend.i"))?,
+                key: IdxSized::new({
+                    let mut path = dir.clone();
+                    path.push("key.i");
+                    path
+                })?,
+                depend: IdxSized::new({
+                    let mut path = dir.clone();
+                    path.push("depend.i");
+                    path
+                })?,
+                pend: IdxSized::new({
+                    let mut path = dir.clone();
+                    path.push("pend.i");
+                    path
+                })?,
             },
         })
     }
@@ -70,16 +94,17 @@ impl RelationIndex {
         }
         Ok(())
     }
-    pub fn delete(&mut self, row: u32) {
+    pub fn delete(&mut self, row: u32) -> io::Result<()> {
         self.rows.key.delete(row);
         self.rows.depend.delete(row);
         self.rows.pend.delete(row);
-        self.fragment.insert_blank(row);
+        self.fragment.insert_blank(row)
     }
-    pub fn delete_by_collection_row(&mut self, collection_row: CollectionRow) {
+    pub fn delete_by_collection_row(&mut self, collection_row: CollectionRow) -> io::Result<()> {
         for i in self.rows.pend.select_by_value(&collection_row) {
-            self.delete(i);
+            self.delete(i)?;
         }
+        Ok(())
     }
     pub fn pends(&self, key: &str, depend: &CollectionRow) -> Vec<CollectionRow> {
         let mut ret: Vec<CollectionRow> = Vec::new();
@@ -125,7 +150,7 @@ impl RelationIndex {
                     (self.rows.key.value(i), self.rows.pend.value(i))
                 {
                     ret.push(SessionDepend::new(
-                        unsafe { self.key_names.str(key) },
+                        unsafe { self.key_names.str(key) }.unwrap(),
                         SessionCollectionRow::new(
                             collection_row.collection_id(),
                             collection_row.row() as i64,
@@ -145,12 +170,12 @@ impl RelationIndex {
     pub fn depend(&self, row: u32) -> Option<CollectionRow> {
         self.rows.depend.value(row)
     }
-    pub unsafe fn key(&self, row: u32) -> &str {
-        if let Some(key_row) = self.rows.key.value(row) {
-            self.key_names.str(key_row)
+    pub unsafe fn key(&self, row: u32) -> Result<&str, std::str::Utf8Error> {
+        Ok(if let Some(key_row) = self.rows.key.value(row) {
+            self.key_names.str(key_row)?
         } else {
             ""
-        }
+        })
     }
 }
 
@@ -161,7 +186,7 @@ struct Fragment {
     blank_count: u32,
 }
 impl Fragment {
-    pub fn new(path: &str) -> io::Result<Self> {
+    pub fn new(path: PathBuf) -> io::Result<Self> {
         let mut filemmap = FileMmap::new(path)?;
         if filemmap.len()? == 0 {
             filemmap.set_len(U32SIZE as u64)?;
@@ -174,12 +199,13 @@ impl Fragment {
             blank_count,
         })
     }
-    pub fn insert_blank(&mut self, id: u32) {
-        self.filemmap.append(&[0, 0, 0, 0]).unwrap();
+    pub fn insert_blank(&mut self, id: u32) -> io::Result<()> {
+        self.filemmap.append(&[0, 0, 0, 0])?;
         unsafe {
             *(self.blank_list.as_ptr() as *mut u32).offset(self.blank_count as isize) = id;
         }
         self.blank_count += 1;
+        Ok(())
     }
     pub fn pop(&mut self) -> Option<u32> {
         if self.blank_count > 0 {

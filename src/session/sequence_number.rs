@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use file_mmap::FileMmap;
 
@@ -8,7 +8,7 @@ pub struct SequenceNumber {
     sequence_number: Vec<usize>,
 }
 impl SequenceNumber {
-    pub fn new<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
+    pub fn new(path: PathBuf) -> std::io::Result<Self> {
         let mut filemmap = FileMmap::new(path)?;
         if filemmap.len()? == 0 {
             filemmap.set_len(std::mem::size_of::<usize>() as u64)?;

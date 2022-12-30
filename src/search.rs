@@ -54,49 +54,49 @@ impl Search {
         relation: &RelationIndex,
         condtion: &Condition,
         tx: Sender<RowSet>,
-    ) {
+    ) -> Result<(), std::sync::mpsc::SendError<RowSet>> {
         match condtion {
             Condition::Activity(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Activity(*c),
                     tx,
-                );
+                )?;
             }
             Condition::Term(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Term(c.clone()),
                     tx,
-                );
+                )?;
             }
             Condition::Row(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Row(c.clone()),
                     tx,
-                );
+                )?;
             }
             Condition::Uuid(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Uuid(c.clone()),
                     tx,
-                );
+                )?;
             }
             Condition::LastUpdated(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::LastUpdated(c.clone()),
                     tx,
-                );
+                )?;
             }
             Condition::Field(key, condition) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Field(key.to_owned(), condition.clone()),
                     tx,
-                );
+                )?;
             }
             Condition::Depend(depend) => {
                 let rel = relation.pends(depend.key(), depend.collection_row());
@@ -116,7 +116,7 @@ impl Search {
                 let (tx_inner, rx) = std::sync::mpsc::channel();
                 for c in conditions {
                     let tx_inner = tx_inner.clone();
-                    Self::exec_cond(collection, relation, c, tx_inner);
+                    Self::exec_cond(collection, relation, c, tx_inner)?;
                 }
                 drop(tx_inner);
                 std::thread::spawn(move || {
@@ -137,7 +137,7 @@ impl Search {
                 let (tx_inner, rx) = std::sync::mpsc::channel();
                 for c in conditions {
                     let tx_inner = tx_inner.clone();
-                    Self::exec_cond(collection, relation, c, tx_inner);
+                    Self::exec_cond(collection, relation, c, tx_inner)?;
                 }
                 drop(tx_inner);
                 std::thread::spawn(move || {
@@ -149,14 +149,18 @@ impl Search {
                 });
             }
         }
+        Ok(())
     }
-    pub(super) fn result(&self, database: &Database) -> RowSet {
+    pub(super) fn result(
+        &self,
+        database: &Database,
+    ) -> Result<RowSet, std::sync::mpsc::SendError<RowSet>> {
         let mut rows = RowSet::default();
         if let Some(collection) = database.collection(self.collection_id) {
             if self.conditions.len() > 0 {
                 let (tx, rx) = std::sync::mpsc::channel();
                 for c in &self.conditions {
-                    Self::exec_cond(collection, &database.relation, c, tx.clone());
+                    Self::exec_cond(collection, &database.relation, c, tx.clone())?;
                 }
                 drop(tx);
                 let mut fst = true;
@@ -174,6 +178,6 @@ impl Search {
                 }
             }
         }
-        rows
+        Ok(rows)
     }
 }

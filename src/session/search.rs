@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+use versatile_data::RowSet;
+
 use super::{Session, TemporaryDataEntity};
 use crate::{search, Activity, Condition, Database};
 
@@ -147,14 +149,17 @@ impl<'a> SessionSearch<'a> {
         is_match
     }
 
-    pub(crate) fn result(self, database: &Database) -> BTreeSet<i64> {
+    pub(crate) fn result(
+        self,
+        database: &Database,
+    ) -> Result<BTreeSet<i64>, std::sync::mpsc::SendError<RowSet>> {
         let mut new_rows: BTreeSet<i64> = BTreeSet::new();
         if let Some(collection) = database.collection(self.collection_id) {
             let mut search = database.search(collection);
             for c in &self.conditions {
                 search = search.search(c.clone());
             }
-            let r = database.result(search);
+            let r = database.result(search)?;
             if let Some(tmp) = self.session.temporary_data.get(&self.collection_id) {
                 for row in r {
                     if let Some(ent) = tmp.get(&(row as i64)) {
@@ -183,6 +188,6 @@ impl<'a> SessionSearch<'a> {
                 new_rows = r.into_iter().map(|x| x as i64).collect();
             }
         }
-        new_rows
+        Ok(new_rows)
     }
 }

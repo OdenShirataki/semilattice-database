@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, io, path::Path};
 use versatile_data::{Activity, FieldData, IdxSized};
 
 use crate::{Collection, CollectionRow, Condition};
@@ -88,9 +88,9 @@ impl Session {
         if name == "" {
             name = "untitiled".to_owned();
         }
-        let session_dir = main_database.root_dir().to_string() + "/sessions/" + &name;
+        let session_dir = main_database.session_dir(&name);
         if !std::path::Path::new(&session_dir).exists() {
-            std::fs::create_dir_all(&session_dir).unwrap();
+            std::fs::create_dir_all(&session_dir)?;
         }
         let session_data = Self::new_data(&session_dir)?;
         let temporary_data = Self::init_temporary_data(&session_data)?;
@@ -141,41 +141,68 @@ impl Session {
         }
         Ok(temporary_data)
     }
-    pub fn new_data(session_dir: &str) -> io::Result<SessionData> {
+    pub fn new_data(session_dir: &Path) -> io::Result<SessionData> {
         let mut fields = HashMap::new();
 
-        let fields_dir = session_dir.to_string() + "/fields/";
-        if !std::path::Path::new(&fields_dir).exists() {
-            std::fs::create_dir_all(fields_dir.to_owned())?;
+        let mut fields_dir = session_dir.to_path_buf();
+        fields_dir.push("fields");
+        if !fields_dir.exists() {
+            std::fs::create_dir_all(&fields_dir.to_owned())?;
         }
-        let d = std::fs::read_dir(fields_dir)?;
-        for p in d {
-            if let Ok(p) = p {
-                let path = p.path();
-                if path.is_dir() {
-                    if let Some(fname) = path.file_name() {
-                        if let Some(str_fname) = fname.to_str() {
-                            if let Some(p) = path.to_str() {
-                                let field = FieldData::new(&(p.to_string() + "/"))?;
-                                fields.insert(String::from(str_fname), field);
-                            }
-                        }
-                    }
+        for p in fields_dir.read_dir()? {
+            let p = p?;
+            let path = p.path();
+            if path.is_dir() {
+                if let Some(fname) = p.file_name().to_str() {
+                    let field = FieldData::new(path)?;
+                    fields.insert(fname.to_owned(), field);
                 }
             }
         }
 
         Ok(SessionData {
-            sequence_number: SequenceNumber::new(&(session_dir.to_string() + "/sequece_number.i"))?,
-            sequence: IdxSized::new(&(session_dir.to_string() + "/sequence.i"))?,
-            collection_id: IdxSized::new(&(session_dir.to_string() + "/collection_id.i"))?,
-            row: IdxSized::new(&(session_dir.to_string() + "/row.i"))?,
-            operation: IdxSized::new(&(session_dir.to_string() + "/operation.i"))?,
-            activity: IdxSized::new(&(session_dir.to_string() + "/activity.i"))?,
-            term_begin: IdxSized::new(&(session_dir.to_string() + "/term_begin.i"))?,
-            term_end: IdxSized::new(&(session_dir.to_string() + "/term_end.i"))?,
+            sequence_number: SequenceNumber::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("sequece_number.i");
+                path
+            })?,
+            sequence: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("sequence.i");
+                path
+            })?,
+            collection_id: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("collection_id.i");
+                path
+            })?,
+            row: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("row.i");
+                path
+            })?,
+            operation: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("operation.i");
+                path
+            })?,
+            activity: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("activity.i");
+                path
+            })?,
+            term_begin: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("term_begin.i");
+                path
+            })?,
+            term_end: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("term_end.i");
+                path
+            })?,
             fields,
-            relation: SessionRelation::new(&session_dir)?,
+            relation: SessionRelation::new(session_dir)?,
         })
     }
 
@@ -277,7 +304,7 @@ impl Session {
                         session_data.relation.rows.depend.value(*relation_row),
                     ) {
                         r.push(SessionDepend::new(
-                            unsafe { session_data.relation.key_names.str(key) },
+                            unsafe { session_data.relation.key_names.str(key) }.unwrap(),
                             depend,
                         ));
                     }

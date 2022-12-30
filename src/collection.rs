@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, io};
 use versatile_data::{Activity, Data, KeyValue, Operation, Order, RowSet, Term};
 
 pub struct Collection {
@@ -50,7 +50,7 @@ impl Collection {
         term_begin: &Term,
         term_end: &Term,
         fields: &Vec<KeyValue>,
-    ) -> u32 {
+    ) -> io::Result<u32> {
         self.data.create_row(activity, term_begin, term_end, fields)
     }
     pub fn update_row(
@@ -60,11 +60,11 @@ impl Collection {
         term_begin: &Term,
         term_end: &Term,
         fields: &Vec<KeyValue>,
-    ) {
+    ) -> io::Result<()> {
         self.data
-            .update_row(collection_row, &activity, &term_begin, &term_end, &fields);
+            .update_row(collection_row, &activity, &term_begin, &term_end, &fields)
     }
-    pub fn update(&mut self, operation: &Operation) -> u32 {
+    pub fn update(&mut self, operation: &Operation) -> io::Result<u32> {
         self.data.update(operation)
     }
     pub fn sort(&self, rows: RowSet, orders: Vec<Order>) -> Vec<u32> {

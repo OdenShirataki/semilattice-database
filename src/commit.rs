@@ -45,8 +45,12 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
                             Term::Overwrite(session_data.term_end.value(session_row).unwrap());
                         let collection_row = if row == 0 {
                             //new
-                            let row =
-                                collection.create_row(&activity, &term_begin, &term_end, &fields);
+                            let row = collection.create_row(
+                                &activity,
+                                &term_begin,
+                                &term_end,
+                                &fields,
+                            )?;
                             CollectionRow::new(collection_id, row)
                         } else {
                             if row < 0 {
@@ -61,7 +65,7 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
                                         &term_begin,
                                         &term_end,
                                         &fields,
-                                    );
+                                    )?;
                                     CollectionRow::new(master_collection_row.collection_id(), row)
                                 } else {
                                     panic!("crash");
@@ -75,19 +79,20 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
                                     &term_begin,
                                     &term_end,
                                     &fields,
-                                );
+                                )?;
                                 CollectionRow::new(collection_id, row)
                             }
                         };
                         main_database
                             .relation
-                            .delete_by_collection_row(collection_row);
+                            .delete_by_collection_row(collection_row)?;
                         session_collection_row_map.insert(session_row, collection_row);
                         if let Some(depend_rows) = session_relation.get(&session_row) {
                             for (session_row, depend) in depend_rows {
                                 let key =
                                     session_data.relation.rows.key.value(*session_row).unwrap();
-                                let key = unsafe { session_data.relation.key_names.str(key) };
+                                let key =
+                                    unsafe { session_data.relation.key_names.str(key) }.unwrap(); //todo:resultにerrorのタイプが複数ある場合はどうしたらいいんだろう
 
                                 if depend.row < 0 {
                                     if let Some(depend) =
@@ -114,10 +119,10 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
                         delete_recursive(
                             main_database,
                             &SessionCollectionRow::new(collection_id, row),
-                        );
+                        )?;
                         if row > 0 {
                             if let Some(collection) = main_database.collection_mut(collection_id) {
-                                collection.update(&Operation::Delete { row: row as u32 });
+                                collection.update(&Operation::Delete { row: row as u32 })?;
                             }
                         }
                     }
@@ -128,7 +133,10 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
     Ok(())
 }
 
-pub(super) fn delete_recursive(database: &mut Database, target: &SessionCollectionRow) {
+pub(super) fn delete_recursive(
+    database: &mut Database,
+    target: &SessionCollectionRow,
+) -> std::io::Result<()> {
     if target.row > 0 {
         let depend = CollectionRow::new(target.collection_id, target.row as u32);
         let c = database.relation.index_depend().select_by_value(&depend);
@@ -140,14 +148,16 @@ pub(super) fn delete_recursive(database: &mut Database, target: &SessionCollecti
                         collection_row.collection_id(),
                         collection_row.row() as i64,
                     ),
-                );
+                )?;
                 if let Some(collection) = database.collection_mut(collection_row.collection_id()) {
                     collection.update(&Operation::Delete {
                         row: collection_row.row(),
-                    });
+                    })?;
                 }
             }
-            database.relation.delete(relation_row);
+            database.relation.delete(relation_row)?;
         }
     }
+
+    Ok(())
 }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 use versatile_data::{Activity, FieldData, KeyValue, Term};
 
 use crate::{
@@ -27,7 +27,7 @@ pub fn incidentally_depend(
 }
 
 pub fn update_row(
-    session_dir: &str,
+    session_dir: &Path,
     session_data: &mut SessionData,
     session_row: u32,
     row: i64,
@@ -51,10 +51,12 @@ pub fn update_row(
         let field = if session_data.fields.contains_key(key) {
             session_data.fields.get_mut(key).unwrap()
         } else {
-            let dir_name = session_dir.to_string() + "/fields/" + key + "/";
-            std::fs::create_dir_all(dir_name.to_owned()).unwrap();
-            if std::path::Path::new(&dir_name).exists() {
-                let field = FieldData::new(&dir_name).unwrap();
+            let mut dir = session_dir.to_path_buf();
+            dir.push("fields");
+            dir.push(key);
+            std::fs::create_dir_all(&dir).unwrap();
+            if dir.exists() {
+                let field = FieldData::new(&dir).unwrap();
                 session_data
                     .fields
                     .entry(String::from(key))
@@ -70,7 +72,7 @@ pub(super) fn update_recursive(
     master_database: &Database,
     session_data: &mut SessionData,
     temporary_data: &mut TemporaryData,
-    session_dir: &str,
+    session_dir: &Path,
     sequence_number: usize,
     records: &Vec<Record>,
     depend_by_pend: Option<(&str, u32)>,
@@ -237,7 +239,7 @@ pub(super) fn update_recursive(
                                         master_database.relation().depend(i as u32)
                                     {
                                         session_data.relation.insert(
-                                            unsafe { master_database.relation().key(i as u32) },
+                                            unsafe { master_database.relation().key(i as u32) }.unwrap(),
                                             session_row,
                                             SessionCollectionRow::new(
                                                 depend.collection_id(),
