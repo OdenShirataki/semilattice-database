@@ -1,3 +1,5 @@
+use serde::Serialize;
+use serde_json::json;
 use std::collections::HashMap;
 use versatile_data::{Activity, KeyValue, Operation, Term};
 
@@ -5,6 +7,12 @@ use crate::{
     session::{SessionCollectionRow, SessionData, SessionOperation},
     CollectionRow, Database,
 };
+
+#[derive(Serialize)]
+struct LogDepend {
+    session_row: u32,
+    depend: SessionCollectionRow,
+}
 
 pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::io::Result<()> {
     let mut session_collection_row_map: HashMap<u32, CollectionRow> = HashMap::new();
@@ -25,15 +33,62 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
             session_data.collection_id.value(session_row),
             session_data.row.value(session_row),
         ) {
+            let collection_name = if let Some(collection) = main_database.collection(collection_id)
+            {
+                Some(collection.name().to_owned())
+            } else {
+                None
+            };
+            let fields = if op == SessionOperation::Delete {
+                vec![]
+            } else {
+                let mut fields: Vec<KeyValue> = Vec::new();
+                for (key, ref field_data) in &session_data.fields {
+                    if let Some(val) = field_data.get(session_row) {
+                        fields.push(KeyValue::new(key, val));
+                    }
+                }
+                fields
+            };
+
+            if let Some(collection_name) = collection_name {
+                let json_fields = json!(fields).to_string();
+
+                let mut depends = vec![];
+                if op == SessionOperation::Delete {
+                    if let Some(depend_rows) = session_relation.get(&session_row) {
+                        for (session_row, depend) in depend_rows {
+                            depends.push(LogDepend {
+                                session_row: *session_row,
+                                depend: depend.clone(),
+                            });
+                        }
+                    }
+                }
+                let json_depends = json!(depends).to_string();
+                main_database.commit_log().update(&Operation::New {
+                    activity: Activity::Active,
+                    term_begin: Term::Defalut,
+                    term_end: Term::Defalut,
+                    fields: vec![
+                        KeyValue::new("operation", {
+                            match op {
+                                SessionOperation::New => "new",
+                                SessionOperation::Update => "update",
+                                SessionOperation::Delete => "delete",
+                            }
+                        }),
+                        KeyValue::new("collection", collection_name),
+                        KeyValue::new("row", row.to_string()),
+                        KeyValue::new("fields", json_fields),
+                        KeyValue::new("depends", json_depends),
+                    ],
+                })?;
+            }
+
             if let Some(collection) = main_database.collection_mut(collection_id) {
                 match op {
                     SessionOperation::New | SessionOperation::Update => {
-                        let mut fields: Vec<KeyValue> = Vec::new();
-                        for (key, ref field_data) in &session_data.fields {
-                            if let Some(val) = field_data.get(session_row) {
-                                fields.push(KeyValue::new(key, val));
-                            }
-                        }
                         let activity = if session_data.activity.value(session_row).unwrap() == 1 {
                             Activity::Active
                         } else {

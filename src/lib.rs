@@ -37,6 +37,7 @@ pub struct Database {
     collections_map: HashMap<String, i32>,
     collections: BTreeMap<i32, Collection>,
     relation: RelationIndex,
+    commit_log: Data,
 }
 impl Database {
     pub fn new<P: AsRef<Path>>(dir: P) -> io::Result<Self> {
@@ -79,6 +80,11 @@ impl Database {
             collections,
             collections_map,
             relation: RelationIndex::new(dir)?,
+            commit_log: Data::new({
+                let mut dir = dir.to_path_buf();
+                dir.push("log");
+                dir
+            })?,
         })
     }
     pub fn root_dir(&self) -> &Path {
@@ -102,6 +108,9 @@ impl Database {
             self.session_clear(session)?;
         }
         Ok(())
+    }
+    pub(crate) fn commit_log(&mut self) -> &mut Data {
+        &mut self.commit_log
     }
     pub fn session_clear(&self, session: &mut Session) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());

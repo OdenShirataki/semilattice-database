@@ -11,6 +11,8 @@ pub use operation::{Depends, Pend, Record, SessionOperation};
 mod sequence_number;
 use sequence_number::SequenceNumber;
 
+use serde::Serialize;
+
 mod relation;
 pub use relation::SessionDepend;
 use relation::SessionRelation;
@@ -18,7 +20,7 @@ use relation::SessionRelation;
 pub mod search;
 use search::SessionSearch;
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct SessionCollectionRow {
     pub(crate) collection_id: i32,
     pub(crate) row: i64, //-の場合はセッションの行が入る
