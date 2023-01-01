@@ -51,6 +51,7 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
                 fields
             };
 
+            /*
             if let Some(collection_name) = collection_name {
                 let json_fields = json!(fields).to_string();
 
@@ -85,6 +86,7 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
                     ],
                 })?;
             }
+             */
 
             if let Some(collection) = main_database.collection_mut(collection_id) {
                 match op {
