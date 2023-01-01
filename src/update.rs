@@ -35,17 +35,11 @@ pub fn update_row(
     term_begin: i64,
     term_end: i64,
     fields: &Vec<KeyValue>,
-) {
-    session_data.row.update(session_row, row).unwrap();
-    session_data
-        .activity
-        .update(session_row, *activity as u8)
-        .unwrap();
-    session_data
-        .term_begin
-        .update(session_row, term_begin)
-        .unwrap();
-    session_data.term_end.update(session_row, term_end).unwrap();
+) -> std::io::Result<()> {
+    session_data.row.update(session_row, row)?;
+    session_data.activity.update(session_row, *activity as u8)?;
+    session_data.term_begin.update(session_row, term_begin)?;
+    session_data.term_end.update(session_row, term_end)?;
     for kv in fields {
         let key = kv.key();
         let field = if session_data.fields.contains_key(key) {
@@ -54,9 +48,9 @@ pub fn update_row(
             let mut dir = session_dir.to_path_buf();
             dir.push("fields");
             dir.push(key);
-            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::create_dir_all(&dir)?;
             if dir.exists() {
-                let field = FieldData::new(&dir).unwrap();
+                let field = FieldData::new(&dir)?;
                 session_data
                     .fields
                     .entry(String::from(key))
@@ -64,8 +58,9 @@ pub fn update_row(
             }
             session_data.fields.get_mut(key).unwrap()
         };
-        field.update(session_row, kv.value()).unwrap();
+        field.update(session_row, kv.value())?;
     }
+    Ok(())
 }
 
 pub(super) fn update_recursive(
@@ -142,7 +137,7 @@ pub(super) fn update_recursive(
                         term_begin,
                         term_end,
                         fields,
-                    );
+                    )?;
 
                     if let Depends::Overwrite(depends) = depends {
                         for (key, depend) in depends {
@@ -226,7 +221,7 @@ pub(super) fn update_recursive(
                         term_begin,
                         term_end,
                         fields,
-                    );
+                    )?;
                     match depends {
                         Depends::Default => {
                             if row > 0 {
@@ -239,7 +234,8 @@ pub(super) fn update_recursive(
                                         master_database.relation().depend(i as u32)
                                     {
                                         session_data.relation.insert(
-                                            unsafe { master_database.relation().key(i as u32) }.unwrap(),
+                                            unsafe { master_database.relation().key(i as u32) }
+                                                .unwrap(),
                                             session_row,
                                             SessionCollectionRow::new(
                                                 depend.collection_id(),
