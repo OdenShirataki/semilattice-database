@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.40.1"
+version = "0.40.2"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -19,4 +19,4 @@ serde = "1"
 
 versatile-data = { version = "0.58" , path = "../versatile-data" }
 idx_binary = { version = "0.11" , path = "../idx_binary" }
-file_mmap = { version = "0.13" , path = "../file_mmap" }
+file_mmap = { version = "0.14" , path = "../file_mmap" }
