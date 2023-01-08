@@ -54,10 +54,9 @@ impl Database {
                 let d = d?;
                 if d.file_type()?.is_dir() {
                     if let Some(fname) = d.file_name().to_str() {
-                        let s: Vec<&str> = fname.split("_").collect();
-                        if s.len() > 1 {
-                            if let Ok(collection_id) = s[0].parse::<i32>() {
-                                let name = s[1];
+                        if let Some(pos) = fname.find("_") {
+                            if let Ok(collection_id) = (&fname[..pos]).parse::<i32>() {
+                                let name = &fname[(pos + 1)..];
                                 let data =
                                     Collection::new(Data::new(d.path())?, collection_id, name);
                                 collections_map.insert(name.to_string(), collection_id);
