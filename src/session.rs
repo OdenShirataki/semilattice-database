@@ -91,7 +91,7 @@ impl Session {
             name = "untitiled".to_owned();
         }
         let session_dir = main_database.session_dir(&name);
-        if !std::path::Path::new(&session_dir).exists() {
+        if !session_dir.exists() {
             std::fs::create_dir_all(&session_dir)?;
         }
         let session_data = Self::new_data(&session_dir)?;
@@ -144,8 +144,15 @@ impl Session {
         Ok(temporary_data)
     }
     pub fn new_data(session_dir: &Path) -> io::Result<SessionData> {
-        let mut fields = HashMap::new();
+        let mut access = session_dir.to_path_buf();
+        access.push("access");
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(access)?;
+        file.set_len(0)?;
 
+        let mut fields = HashMap::new();
         let mut fields_dir = session_dir.to_path_buf();
         fields_dir.push("fields");
         if !fields_dir.exists() {

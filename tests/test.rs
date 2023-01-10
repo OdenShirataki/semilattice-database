@@ -1,6 +1,6 @@
 #[cfg(test)]
 #[test]
-fn it_works() {
+fn test() {
     use semilattice_database::prelude::*;
 
     let dir = "./sl-test/";
@@ -61,6 +61,7 @@ fn it_works() {
                 )
                 .unwrap();
         }
+        database.session_gc(60*60*24).unwrap();
     }
     if let Ok(sess) = database.session("login") {
         let search = sess.begin_search(collection_login);

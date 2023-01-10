@@ -90,10 +90,32 @@ impl Database {
     }
     pub fn session(&self, session_name: &str) -> io::Result<Session> {
         let session_dir = self.session_dir(session_name);
-        if !std::path::Path::new(&session_dir).exists() {
+        if !session_dir.exists() {
             std::fs::create_dir_all(&session_dir)?;
         }
         Session::new(self, session_name)
+    }
+    pub fn session_gc(&self, interval_sec: u64) -> io::Result<()> {
+        if self.sessions_dir.exists() {
+            for p in self.sessions_dir.read_dir()? {
+                let p = p?;
+                let path = p.path();
+                if path.is_dir() {
+                    let mut stamp = path.to_path_buf();
+                    stamp.push("access");
+                    if let Ok(md) = stamp.metadata() {
+                        if let Ok(m) = md.modified() {
+                            if m < std::time::SystemTime::now()
+                                - std::time::Duration::new(interval_sec, 0)
+                            {
+                                std::fs::remove_dir_all(&path)?;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
     pub fn commit(&mut self, session: &mut Session) -> io::Result<()> {
         if let Some(ref mut data) = session.session_data {
@@ -105,7 +127,7 @@ impl Database {
     pub fn session_clear(&self, session: &mut Session) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());
         session.session_data = None;
-        if std::path::Path::new(&session_dir).exists() {
+        if session_dir.exists() {
             std::fs::remove_dir_all(&session_dir)?;
         }
         Ok(())
