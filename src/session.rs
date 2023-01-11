@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io, path::Path};
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+    path::Path,
+};
 use versatile_data::{Activity, FieldData, IdxSized};
 
 use crate::{Collection, CollectionRow, Condition};
@@ -84,7 +88,11 @@ pub struct Session {
     pub(super) temporary_data: TemporaryData,
 }
 impl Session {
-    pub fn new(main_database: &Database, name: impl Into<String>) -> io::Result<Self> {
+    pub fn new(
+        main_database: &Database,
+        name: impl Into<String>,
+        expire_interval_sec: Option<i64>,
+    ) -> io::Result<Self> {
         let mut name: String = name.into();
         assert!(name != "");
         if name == "" {
@@ -94,7 +102,7 @@ impl Session {
         if !session_dir.exists() {
             std::fs::create_dir_all(&session_dir)?;
         }
-        let session_data = Self::new_data(&session_dir)?;
+        let session_data = Self::new_data(&session_dir, expire_interval_sec)?;
         let temporary_data = Self::init_temporary_data(&session_data)?;
         Ok(Self {
             name,
@@ -143,14 +151,22 @@ impl Session {
         }
         Ok(temporary_data)
     }
-    pub fn new_data(session_dir: &Path) -> io::Result<SessionData> {
+    pub fn new_data(
+        session_dir: &Path,
+        expire_interval_sec: Option<i64>,
+    ) -> io::Result<SessionData> {
         let mut access = session_dir.to_path_buf();
-        access.push("access");
-        let file = std::fs::OpenOptions::new()
+        access.push("expire");
+        let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .open(access)?;
-        file.set_len(0)?;
+        let expire = if let Some(expire) = expire_interval_sec {
+            expire
+        } else {
+            -1
+        };
+        file.write(&expire.to_be_bytes())?;
 
         let mut fields = HashMap::new();
         let mut fields_dir = session_dir.to_path_buf();

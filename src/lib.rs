@@ -1,6 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
-    io,
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 
@@ -88,29 +88,46 @@ impl Database {
         dir.push(session_name);
         dir
     }
-    pub fn session(&self, session_name: &str) -> io::Result<Session> {
+    pub fn session(
+        &self,
+        session_name: &str,
+        expire_interval_sec: Option<i64>,
+    ) -> io::Result<Session> {
         let session_dir = self.session_dir(session_name);
         if !session_dir.exists() {
             std::fs::create_dir_all(&session_dir)?;
         }
-        Session::new(self, session_name)
+        Session::new(self, session_name, expire_interval_sec)
     }
-    pub fn session_gc(&self, interval_sec: u64) -> io::Result<()> {
+    pub fn session_gc(&self, default_expire_interval_sec: i64) -> io::Result<()> {
         if self.sessions_dir.exists() {
             for p in self.sessions_dir.read_dir()? {
                 let p = p?;
                 let path = p.path();
                 if path.is_dir() {
-                    let mut stamp = path.to_path_buf();
-                    stamp.push("access");
-                    if let Ok(md) = stamp.metadata() {
-                        if let Ok(m) = md.modified() {
-                            if m < std::time::SystemTime::now()
-                                - std::time::Duration::new(interval_sec, 0)
-                            {
-                                std::fs::remove_dir_all(&path)?;
+                    let mut expire_file = path.to_path_buf();
+                    expire_file.push("expire");
+                    if expire_file.exists() {
+                        if let Ok(md) = expire_file.metadata() {
+                            if let Ok(m) = md.modified() {
+                                let mut file = std::fs::File::open(expire_file)?;
+                                let mut buf = [0u8; 8];
+                                file.read(&mut buf)?;
+                                let expire = i64::from_be_bytes(buf);
+                                let expire = if expire < 0 {
+                                    default_expire_interval_sec
+                                } else {
+                                    expire
+                                };
+                                if m < std::time::SystemTime::now()
+                                    - std::time::Duration::new(expire as u64, 0)
+                                {
+                                    std::fs::remove_dir_all(&path)?;
+                                }
                             }
                         }
+                    } else {
+                        std::fs::remove_dir_all(&path)?;
                     }
                 }
             }
@@ -132,24 +149,23 @@ impl Database {
         }
         Ok(())
     }
-    pub fn session_start(&self, session: &mut Session) {
+    pub fn session_start(&self, session: &mut Session, expire_interval_sec: Option<i64>) {
         let session_dir = self.session_dir(session.name());
-        if let Ok(session_data) = Session::new_data(&session_dir) {
+        if let Ok(session_data) = Session::new_data(&session_dir, expire_interval_sec) {
             session.session_data = Some(session_data);
         }
     }
-    pub fn session_restart(&self, session: &mut Session) -> io::Result<()> {
+    pub fn session_restart(
+        &self,
+        session: &mut Session,
+        expire_interval_sec: Option<i64>,
+    ) -> io::Result<()> {
         self.session_clear(session)?;
-        self.session_start(session);
+        self.session_start(session, expire_interval_sec);
         Ok(())
     }
     pub fn update(&self, session: &mut Session, records: Vec<Record>) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());
-        if let None = session.session_data {
-            if let Ok(session_data) = Session::new_data(&session_dir) {
-                session.session_data = Some(session_data);
-            }
-        }
         if let Some(ref mut session_data) = session.session_data {
             let sequence = session_data.sequence_number.next();
             update::update_recursive(

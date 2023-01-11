@@ -14,7 +14,7 @@ fn test() {
     let mut database = Database::new(dir).unwrap();
 
     let collection_admin = database.collection_id_or_create("admin").unwrap();
-    if let Ok(mut sess) = database.session("creatre_account_1st") {
+    if let Ok(mut sess) = database.session("creatre_account_1st", None) {
         database
             .update(
                 &mut sess,
@@ -36,7 +36,7 @@ fn test() {
     }
 
     let collection_login = database.collection_id_or_create("login").unwrap();
-    if let Ok(mut sess) = database.session("login") {
+    if let Ok(mut sess) = database.session("login", None) {
         let search = sess
             .begin_search(collection_admin)
             .search_field("id", search::Field::Match(b"test".to_vec()))
@@ -61,9 +61,8 @@ fn test() {
                 )
                 .unwrap();
         }
-        database.session_gc(60*60*24).unwrap();
     }
-    if let Ok(sess) = database.session("login") {
+    if let Ok(sess) = database.session("login", None) {
         let search = sess.begin_search(collection_login);
         for row in database.result_session(search).unwrap() {
             let depends = database.depends(Some("admin"), collection_login, row, Some(&sess));
@@ -87,7 +86,7 @@ fn test() {
     let collection_person = database.collection_id_or_create("person").unwrap();
     let collection_history = database.collection_id_or_create("history").unwrap();
 
-    if let Ok(mut sess) = database.session("test") {
+    if let Ok(mut sess) = database.session("test", None) {
         database
             .update(
                 &mut sess,
@@ -205,7 +204,7 @@ fn test() {
             }
         }
     }
-    if let Ok(mut sess) = database.session("test") {
+    if let Ok(mut sess) = database.session("test", None) {
         database
             .update(
                 &mut sess,
@@ -222,7 +221,7 @@ fn test() {
             )
             .unwrap();
     }
-    if let Ok(mut sess) = database.session("test") {
+    if let Ok(mut sess) = database.session("test", None) {
         let search = sess
             .begin_search(collection_person)
             .search_activity(Activity::Active);
@@ -240,7 +239,7 @@ fn test() {
 
     let test1 = database.collection_id_or_create("test1").unwrap();
     let range = 1u32..=10;
-    if let Ok(mut sess) = database.session("test") {
+    if let Ok(mut sess) = database.session("test", None) {
         for i in range.clone() {
             database
                 .update(
@@ -263,7 +262,7 @@ fn test() {
         database.commit(&mut sess).unwrap();
     }
 
-    if let Ok(mut sess) = database.session("test") {
+    if let Ok(mut sess) = database.session("test", None) {
         database
             .update(
                 &mut sess,
