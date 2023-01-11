@@ -29,13 +29,13 @@ impl Collection {
     pub fn uuid_str(&self, row: u32) -> String {
         self.data.uuid_str(row)
     }
-    pub fn last_updated(&self, row: u32) -> i64 {
+    pub fn last_updated(&self, row: u32) -> u64 {
         self.data.last_updated(row)
     }
-    pub fn term_begin(&self, row: u32) -> i64 {
+    pub fn term_begin(&self, row: u32) -> u64 {
         self.data.term_begin(row)
     }
-    pub fn term_end(&self, row: u32) -> i64 {
+    pub fn term_end(&self, row: u32) -> u64 {
         self.data.term_end(row)
     }
     pub fn field_bytes(&self, row: u32, field_name: &str) -> &[u8] {

@@ -1,4 +1,8 @@
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    path::Path,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use versatile_data::{Activity, FieldData, KeyValue, Term};
 
 use crate::{
@@ -32,8 +36,8 @@ pub fn update_row(
     session_row: u32,
     row: i64,
     activity: &Activity,
-    term_begin: i64,
-    term_end: i64,
+    term_begin: u64,
+    term_end: u64,
     fields: &Vec<KeyValue>,
 ) -> std::io::Result<()> {
     session_data.row.update(session_row, row)?;
@@ -97,7 +101,10 @@ pub(super) fn update_recursive(
                     let term_begin = if let Term::Overwrite(term_begin) = term_begin {
                         *term_begin
                     } else {
-                        chrono::Local::now().timestamp()
+                        SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs()
                     };
                     let term_end = if let Term::Overwrite(term_end) = term_end {
                         *term_end
@@ -175,16 +182,17 @@ pub(super) fn update_recursive(
                     let term_begin = match term_begin {
                         Term::Overwrite(term_begin) => *term_begin,
                         Term::Defalut => {
+                            let mut r = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
                             if row > 0 {
                                 if let Some(collection) = master_database.collection(collection_id)
                                 {
-                                    collection.term_begin(row as u32)
-                                } else {
-                                    chrono::Local::now().timestamp()
+                                    r = collection.term_begin(row as u32);
                                 }
-                            } else {
-                                chrono::Local::now().timestamp()
                             }
+                            r
                         }
                     };
                     let term_end = if let Term::Overwrite(term_end) = term_end {

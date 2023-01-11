@@ -1,5 +1,7 @@
-use std::collections::BTreeSet;
-
+use std::{
+    collections::BTreeSet,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use versatile_data::RowSet;
 
 use super::{Session, TemporaryDataEntity};
@@ -20,7 +22,10 @@ impl<'a> SessionSearch<'a> {
     }
     pub fn search_default(mut self) -> Self {
         self.conditions.push(Condition::Term(search::Term::In(
-            chrono::Local::now().timestamp(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
         )));
         self.conditions.push(Condition::Activity(Activity::Active));
         self

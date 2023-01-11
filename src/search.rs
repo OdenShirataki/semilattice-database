@@ -1,4 +1,7 @@
-use std::sync::mpsc::Sender;
+use std::{
+    sync::mpsc::Sender,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub use versatile_data::search::{Field, Number, Term};
 use versatile_data::{
@@ -36,8 +39,12 @@ impl Search {
         self
     }
     pub fn default(mut self) -> Self {
-        self.conditions
-            .push(Condition::Term(Term::In(chrono::Local::now().timestamp())));
+        self.conditions.push(Condition::Term(Term::In(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        )));
         self.conditions.push(Condition::Activity(Activity::Active));
         self
     }

@@ -46,18 +46,18 @@ impl From<CollectionRow> for SessionCollectionRow {
 }
 pub struct TemporaryDataEntity {
     pub(super) activity: Activity,
-    pub(super) term_begin: i64,
-    pub(super) term_end: i64,
+    pub(super) term_begin: u64,
+    pub(super) term_end: u64,
     pub(super) fields: HashMap<String, Vec<u8>>,
 }
 impl TemporaryDataEntity {
     pub fn activity(&self) -> Activity {
         self.activity
     }
-    pub fn term_begin(&self) -> i64 {
+    pub fn term_begin(&self) -> u64 {
         self.term_begin
     }
-    pub fn term_end(&self) -> i64 {
+    pub fn term_end(&self) -> u64 {
         self.term_end
     }
     pub fn fields(&self) -> &HashMap<String, Vec<u8>> {
@@ -73,8 +73,8 @@ pub struct SessionData {
     pub(super) row: IdxSized<i64>,
     pub(super) operation: IdxSized<SessionOperation>,
     pub(super) activity: IdxSized<u8>,
-    pub(super) term_begin: IdxSized<i64>,
-    pub(super) term_end: IdxSized<i64>,
+    pub(super) term_begin: IdxSized<u64>,
+    pub(super) term_end: IdxSized<u64>,
     pub(super) fields: HashMap<String, FieldData>,
     pub(super) relation: SessionRelation,
 }
