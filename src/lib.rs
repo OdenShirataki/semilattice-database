@@ -6,7 +6,7 @@ use std::{
 
 pub use idx_binary::IdxBinary;
 
-use session::search::SessionSearch;
+use session::{search::SessionSearch, SessionInfo};
 use versatile_data::Data;
 pub use versatile_data::{Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term};
 
@@ -98,6 +98,42 @@ impl Database {
             std::fs::create_dir_all(&session_dir)?;
         }
         Session::new(self, session_name, expire_interval_sec)
+    }
+    pub fn sessions(&self) -> io::Result<Vec<SessionInfo>> {
+        let mut sessions = Vec::new();
+        if self.sessions_dir.exists() {
+            let dir = self.sessions_dir.read_dir()?;
+            for d in dir.into_iter() {
+                let d = d?;
+                if d.file_type()?.is_dir() {
+                    if let Some(fname) = d.file_name().to_str() {
+                        let mut access_at = 0;
+                        let mut expire = 0;
+
+                        let mut expire_file = d.path().to_path_buf();
+                        expire_file.push("expire");
+                        if expire_file.exists() {
+                            if let Ok(md) = expire_file.metadata() {
+                                if let Ok(m) = md.modified() {
+                                    access_at =
+                                        m.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+                                    let mut file = std::fs::File::open(expire_file)?;
+                                    let mut buf = [0u8; 8];
+                                    file.read(&mut buf)?;
+                                    expire = i64::from_be_bytes(buf);
+                                }
+                            }
+                        }
+                        sessions.push(SessionInfo {
+                            name: fname.to_owned(),
+                            access_at: access_at,
+                            expire: expire,
+                        });
+                    }
+                }
+            }
+        }
+        Ok(sessions)
     }
     pub fn session_gc(&self, default_expire_interval_sec: i64) -> io::Result<()> {
         if self.sessions_dir.exists() {
@@ -224,6 +260,7 @@ impl Database {
         }
         r
     }
+
     pub fn collection(&self, id: i32) -> Option<&Collection> {
         self.collections.get(&id)
     }

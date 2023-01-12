@@ -24,6 +24,13 @@ use relation::SessionRelation;
 pub mod search;
 use search::SessionSearch;
 
+#[derive(Serialize)]
+pub struct SessionInfo {
+    pub(super) name: String,
+    pub(super) access_at: u64,
+    pub(super) expire: i64,
+}
+
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct SessionCollectionRow {
     pub(crate) collection_id: i32,
