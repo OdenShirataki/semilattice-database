@@ -217,6 +217,13 @@ impl Database {
         self.collections.insert(collection_id, data);
         Ok(collection_id)
     }
+    pub fn collections(&self) -> Vec<String> {
+        let mut r = Vec::new();
+        for (_, collection) in self.collections.iter() {
+            r.push(collection.name().to_owned());
+        }
+        r
+    }
     pub fn collection(&self, id: i32) -> Option<&Collection> {
         self.collections.get(&id)
     }
