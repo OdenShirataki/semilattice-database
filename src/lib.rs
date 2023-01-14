@@ -2,6 +2,7 @@ use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     io::{self, Read},
     path::{Path, PathBuf},
+    time::{self, UNIX_EPOCH},
 };
 
 pub use idx_binary::IdxBinary;
@@ -115,8 +116,7 @@ impl Database {
                         if expire_file.exists() {
                             if let Ok(md) = expire_file.metadata() {
                                 if let Ok(m) = md.modified() {
-                                    access_at =
-                                        m.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+                                    access_at = m.duration_since(UNIX_EPOCH).unwrap().as_secs();
                                     let mut file = std::fs::File::open(expire_file)?;
                                     let mut buf = [0u8; 8];
                                     file.read(&mut buf)?;
@@ -136,36 +136,21 @@ impl Database {
         Ok(sessions)
     }
     pub fn session_gc(&self, default_expire_interval_sec: i64) -> io::Result<()> {
-        if self.sessions_dir.exists() {
-            for p in self.sessions_dir.read_dir()? {
-                let p = p?;
-                let path = p.path();
-                if path.is_dir() {
-                    let mut expire_file = path.to_path_buf();
-                    expire_file.push("expire");
-                    if expire_file.exists() {
-                        if let Ok(md) = expire_file.metadata() {
-                            if let Ok(m) = md.modified() {
-                                let mut file = std::fs::File::open(expire_file)?;
-                                let mut buf = [0u8; 8];
-                                file.read(&mut buf)?;
-                                let expire = i64::from_be_bytes(buf);
-                                let expire = if expire < 0 {
-                                    default_expire_interval_sec
-                                } else {
-                                    expire
-                                };
-                                if m < std::time::SystemTime::now()
-                                    - std::time::Duration::new(expire as u64, 0)
-                                {
-                                    std::fs::remove_dir_all(&path)?;
-                                }
-                            }
-                        }
-                    } else {
-                        std::fs::remove_dir_all(&path)?;
-                    }
-                }
+        for session in self.sessions()? {
+            let expire = if session.expire < 0 {
+                default_expire_interval_sec
+            } else {
+                session.expire
+            };
+            if session.access_at
+                < (time::SystemTime::now() - time::Duration::new(expire as u64, 0))
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+            {
+                let mut path = self.sessions_dir.clone();
+                path.push(session.name);
+                std::fs::remove_dir_all(&path)?;
             }
         }
         Ok(())
