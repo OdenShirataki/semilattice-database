@@ -170,19 +170,18 @@ impl Database {
         }
         Ok(())
     }
-    pub fn session_start(&self, session: &mut Session, expire_interval_sec: Option<i64>) {
-        let session_dir = self.session_dir(session.name());
-        if let Ok(session_data) = Session::new_data(&session_dir, expire_interval_sec) {
-            session.session_data = Some(session_data);
-        }
-    }
     pub fn session_restart(
         &self,
         session: &mut Session,
         expire_interval_sec: Option<i64>,
     ) -> io::Result<()> {
         self.session_clear(session)?;
-        self.session_start(session, expire_interval_sec);
+
+        let session_dir = self.session_dir(session.name());
+        std::fs::create_dir_all(&session_dir)?;
+        let session_data = Session::new_data(&session_dir, expire_interval_sec)?;
+        session.session_data = Some(session_data);
+
         Ok(())
     }
     pub fn update(&self, session: &mut Session, records: Vec<Record>) -> io::Result<()> {
