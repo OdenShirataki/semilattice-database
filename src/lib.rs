@@ -180,7 +180,9 @@ impl Database {
         let session_dir = self.session_dir(session.name());
         std::fs::create_dir_all(&session_dir)?;
         let session_data = Session::new_data(&session_dir, expire_interval_sec)?;
+        let temporary_data = Session::init_temporary_data(&session_data)?;
         session.session_data = Some(session_data);
+        session.temporary_data = temporary_data;
 
         Ok(())
     }

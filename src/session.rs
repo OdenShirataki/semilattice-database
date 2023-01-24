@@ -120,7 +120,7 @@ impl Session {
     pub fn name(&mut self) -> &str {
         &self.name
     }
-    fn init_temporary_data(session_data: &SessionData) -> io::Result<TemporaryData> {
+    pub(super) fn init_temporary_data(session_data: &SessionData) -> io::Result<TemporaryData> {
         let mut temporary_data = HashMap::new();
         for session_row in 1..session_data.sequence.max_rows()? {
             let collection_id = session_data.collection_id.value(session_row).unwrap();
