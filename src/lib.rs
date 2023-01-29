@@ -8,8 +8,8 @@ use std::{
 pub use idx_binary::IdxBinary;
 
 use session::{search::SessionSearch, SessionInfo};
-use versatile_data::Data;
 pub use versatile_data::{Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term};
+use versatile_data::{Data, Operation};
 
 mod collection;
 pub use collection::{Collection, CollectionRow};
@@ -268,15 +268,38 @@ impl Database {
         }
     }
 
-    pub fn delete_collection(&mut self, name: &str) {
-        if let Some(collection_id) = self.collections_map.get(name) {
-            if let Some(collection) = self.collections.get(collection_id) {
-                let rows = collection.data.all();
-                for row in rows {}
+    pub fn delete_collection(&mut self, name: &str) -> std::io::Result<()> {
+        let collection_id = if let Some(collection_id) = self.collections_map.get(name) {
+            *collection_id
+        } else {
+            0
+        };
+        if collection_id>0{
+            let rows = {
+                let mut rows = Default::default();
+                if let Some(collection) = self.collections.get(&collection_id) {
+                    rows = collection.data.all();
+                }
+                rows
+            };
+            for row in rows {
+                let collection_row = SessionCollectionRow::new(collection_id, row as i64);
+                commit::delete_recursive(self, &collection_row)?;
+                if let Some(collection) = self.collection_mut(collection_id) {
+                    collection.update(&Operation::Delete { row: row as u32 })?;
+                }
             }
-            //self.relation.depend(row)
+            self.collections_map.remove(name);
+            self.collections.remove(&collection_id);
+
+            let mut dir=self.collections_dir.clone();
+            dir.push(collection_id.to_string()+"_"+name);
+            std::fs::remove_dir_all(&dir)?;
         }
+        
+        Ok(())
     }
+
     pub fn relation(&self) -> &RelationIndex {
         &self.relation
     }
