@@ -13,7 +13,7 @@ struct LogDepend {
     depend: SessionCollectionRow,
 }
 
-pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::io::Result<()> {
+pub fn commit(main_database: &mut Database, session_data: &SessionData) -> Result<(), anyhow::Error> {
     let mut session_collection_row_map: HashMap<u32, CollectionRow> = HashMap::new();
 
     let mut session_relation: HashMap<u32, Vec<(u32, SessionCollectionRow)>> = HashMap::new();
@@ -105,7 +105,7 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> std::
                                 let key =
                                     session_data.relation.rows.key.value(*session_row).unwrap();
                                 let key =
-                                    unsafe { session_data.relation.key_names.str(key) }.unwrap(); //todo:resultにerrorのタイプが複数ある場合はどうしたらいいんだろう
+                                    unsafe { session_data.relation.key_names.str(key) }?;
 
                                 if depend.row < 0 {
                                     if let Some(depend) =

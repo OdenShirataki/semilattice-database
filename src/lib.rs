@@ -155,7 +155,7 @@ impl Database {
         }
         Ok(())
     }
-    pub fn commit(&mut self, session: &mut Session) -> io::Result<()> {
+    pub fn commit(&mut self, session: &mut Session) -> Result<(), anyhow::Error> {
         if let Some(ref mut data) = session.session_data {
             commit::commit(self, data)?;
             self.session_clear(session)?;
@@ -265,6 +265,16 @@ impl Database {
             Ok(*self.collections_map.get(name).unwrap())
         } else {
             self.collection_by_name_or_create(name)
+        }
+    }
+
+    pub fn delete_collection(&mut self, name: &str) {
+        if let Some(collection_id) = self.collections_map.get(name) {
+            if let Some(collection) = self.collections.get(collection_id) {
+                let rows = collection.data.all();
+                for row in rows {}
+            }
+            //self.relation.depend(row)
         }
     }
     pub fn relation(&self) -> &RelationIndex {
