@@ -8,7 +8,7 @@ use std::{
 pub use idx_binary::IdxBinary;
 
 use session::{search::SessionSearch, SessionInfo};
-pub use versatile_data::{Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term};
+pub use versatile_data::{natord, Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term};
 use versatile_data::{Data, Operation};
 
 mod collection;
@@ -18,6 +18,7 @@ mod relation;
 pub use relation::{Depend, RelationIndex};
 
 mod session;
+use session::TemporaryDataEntity;
 pub use session::{
     search as session_search, Depends, Pend, Record, Session, SessionCollectionRow, SessionDepend,
 };
@@ -274,7 +275,7 @@ impl Database {
         } else {
             0
         };
-        if collection_id>0{
+        if collection_id > 0 {
             let rows = {
                 let mut rows = Default::default();
                 if let Some(collection) = self.collections.get(&collection_id) {
@@ -292,11 +293,11 @@ impl Database {
             self.collections_map.remove(name);
             self.collections.remove(&collection_id);
 
-            let mut dir=self.collections_dir.clone();
-            dir.push(collection_id.to_string()+"_"+name);
+            let mut dir = self.collections_dir.clone();
+            dir.push(collection_id.to_string() + "_" + name);
             std::fs::remove_dir_all(&dir)?;
         }
-        
+
         Ok(())
     }
 
@@ -314,6 +315,13 @@ impl Database {
         search: SessionSearch,
     ) -> Result<BTreeSet<i64>, std::sync::mpsc::SendError<RowSet>> {
         search.result(self)
+    }
+    pub fn result_session_with_order(
+        &self,
+        search: SessionSearch,
+        orders: Vec<Order>,
+    ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
+        search.result_with_order(self, orders)
     }
 
     pub fn depends(

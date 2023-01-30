@@ -24,6 +24,8 @@ use relation::SessionRelation;
 pub mod search;
 use search::SessionSearch;
 
+mod sort;
+
 #[derive(Serialize)]
 pub struct SessionInfo {
     pub(super) name: String,

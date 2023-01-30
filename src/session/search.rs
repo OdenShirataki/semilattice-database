@@ -2,7 +2,7 @@ use std::{
     collections::BTreeSet,
     time::{SystemTime, UNIX_EPOCH},
 };
-use versatile_data::RowSet;
+use versatile_data::{Order, RowSet};
 
 use super::{Session, TemporaryDataEntity};
 use crate::{search, Activity, Condition, Database};
@@ -154,6 +154,49 @@ impl<'a> SessionSearch<'a> {
         is_match
     }
 
+    pub(crate) fn result_with_order(
+        self,
+        database: &Database,
+        orders: Vec<Order>,
+    ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
+        let mut new_rows: Vec<i64> = Vec::new();
+        if let Some(collection) = database.collection(self.collection_id) {
+            let mut search = database.search(collection);
+            for c in &self.conditions {
+                search = search.search(c.clone());
+            }
+            let r = database.result(search)?;
+            if let Some(tmp) = self.session.temporary_data.get(&self.collection_id) {
+                for row in r {
+                    if let Some(ent) = tmp.get(&(row as i64)) {
+                        let mut is_match = true;
+                        for c in &self.conditions {
+                            is_match = Self::temporary_data_match(ent, c);
+                            if !is_match {
+                                break;
+                            }
+                        }
+                        if is_match {
+                            new_rows.push(row as i64);
+                        }
+                    } else {
+                        new_rows.push(row as i64);
+                    }
+                }
+                for (row, _) in tmp {
+                    //セッション中に新規作成されたデータ
+                    let row = *row;
+                    if row < 0 {
+                        new_rows.push(row);
+                    }
+                }
+                super::sort::sort(&mut new_rows, orders, collection, tmp);
+            } else {
+                new_rows = r.into_iter().map(|x| x as i64).collect();
+            }
+        }
+        Ok(new_rows)
+    }
     pub(crate) fn result(
         self,
         database: &Database,
