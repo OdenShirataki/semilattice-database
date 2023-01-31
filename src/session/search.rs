@@ -154,7 +154,7 @@ impl<'a> SessionSearch<'a> {
         is_match
     }
 
-    pub(crate) fn result_with_order(
+    pub(crate) fn result(
         self,
         database: &Database,
         orders: Vec<Order>,
@@ -167,6 +167,7 @@ impl<'a> SessionSearch<'a> {
             }
             let r = database.result(search)?;
             if let Some(tmp) = self.session.temporary_data.get(&self.collection_id) {
+                let mut tmp_rows: BTreeSet<i64> = BTreeSet::new();
                 for row in r {
                     if let Some(ent) = tmp.get(&(row as i64)) {
                         let mut is_match = true;
@@ -177,61 +178,21 @@ impl<'a> SessionSearch<'a> {
                             }
                         }
                         if is_match {
-                            new_rows.push(row as i64);
+                            tmp_rows.insert(row as i64);
                         }
                     } else {
-                        new_rows.push(row as i64);
+                        tmp_rows.insert(row as i64);
                     }
                 }
                 for (row, _) in tmp {
                     //セッション中に新規作成されたデータ
                     let row = *row;
                     if row < 0 {
-                        new_rows.push(row);
+                        tmp_rows.insert(row);
                     }
                 }
+                new_rows = tmp_rows.into_iter().collect();
                 super::sort::sort(&mut new_rows, orders, collection, tmp);
-            } else {
-                new_rows = r.into_iter().map(|x| x as i64).collect();
-            }
-        }
-        Ok(new_rows)
-    }
-    pub(crate) fn result(
-        self,
-        database: &Database,
-    ) -> Result<BTreeSet<i64>, std::sync::mpsc::SendError<RowSet>> {
-        let mut new_rows: BTreeSet<i64> = BTreeSet::new();
-        if let Some(collection) = database.collection(self.collection_id) {
-            let mut search = database.search(collection);
-            for c in &self.conditions {
-                search = search.search(c.clone());
-            }
-            let r = database.result(search)?;
-            if let Some(tmp) = self.session.temporary_data.get(&self.collection_id) {
-                for row in r {
-                    if let Some(ent) = tmp.get(&(row as i64)) {
-                        let mut is_match = true;
-                        for c in &self.conditions {
-                            is_match = Self::temporary_data_match(ent, c);
-                            if !is_match {
-                                break;
-                            }
-                        }
-                        if is_match {
-                            new_rows.insert(row as i64);
-                        }
-                    } else {
-                        new_rows.insert(row as i64);
-                    }
-                }
-                for (row, _) in tmp {
-                    //セッション中に新規作成されたデータ
-                    let row = *row;
-                    if row < 0 {
-                        new_rows.insert(row);
-                    }
-                }
             } else {
                 new_rows = r.into_iter().map(|x| x as i64).collect();
             }

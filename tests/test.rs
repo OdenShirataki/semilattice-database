@@ -41,7 +41,7 @@ fn test() {
             .begin_search(collection_admin)
             .search_field("id", search::Field::Match(b"test".to_vec()))
             .search_field("password", search::Field::Match(b"test".to_vec()));
-        for row in database.result_session(search).unwrap() {
+        for row in database.result_session(search,vec![]).unwrap() {
             println!("session_search : {row}");
             database
                 .update(
@@ -64,7 +64,7 @@ fn test() {
     }
     if let Ok(sess) = database.session("login", None) {
         let search = sess.begin_search(collection_login);
-        for row in database.result_session(search).unwrap() {
+        for row in database.result_session(search,vec![]).unwrap() {
             let depends = database.depends(Some("admin"), collection_login, row, Some(&sess));
             for d in depends {
                 let collection_id = d.collection_id();
@@ -72,7 +72,7 @@ fn test() {
                     let search = sess
                         .begin_search(collection_id)
                         .search_row(search::Number::In(vec![d.row() as isize]));
-                    for row in database.result_session(search).unwrap() {
+                    for row in database.result_session(search,vec![]).unwrap() {
                         println!(
                             "login id : {}",
                             std::str::from_utf8(collection.field_bytes(row as u32, "id")).unwrap()
@@ -225,7 +225,7 @@ fn test() {
         let search = sess
             .begin_search(collection_person)
             .search_activity(Activity::Active);
-        for r in database.result_session(search).unwrap() {
+        for r in database.result_session(search,vec![]).unwrap() {
             println!(
                 "session_search : {},{}",
                 std::str::from_utf8(sess.field_bytes(&database, collection_person, r, "name"))

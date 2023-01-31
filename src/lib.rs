@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, HashMap},
     io::{self, Read},
     path::{Path, PathBuf},
     time::{self, UNIX_EPOCH},
@@ -313,15 +313,9 @@ impl Database {
     pub fn result_session(
         &self,
         search: SessionSearch,
-    ) -> Result<BTreeSet<i64>, std::sync::mpsc::SendError<RowSet>> {
-        search.result(self)
-    }
-    pub fn result_session_with_order(
-        &self,
-        search: SessionSearch,
         orders: Vec<Order>,
     ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
-        search.result_with_order(self, orders)
+        search.result(self, orders)
     }
 
     pub fn depends(
