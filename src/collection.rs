@@ -1,5 +1,5 @@
 use std::{cmp::Ordering, io};
-use versatile_data::{Activity, Data, KeyValue, Operation, Order, RowSet, Term};
+use versatile_data::{Activity, Data, KeyValue, Operation, Term};
 
 pub struct Collection {
     pub(crate) data: Data,
@@ -66,9 +66,6 @@ impl Collection {
     }
     pub fn update(&mut self, operation: &Operation) -> io::Result<u32> {
         self.data.update(operation)
-    }
-    pub fn sort(&self, rows: RowSet, orders: Vec<Order>) -> Vec<u32> {
-        self.data.sort(rows, orders)
     }
 }
 

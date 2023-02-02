@@ -159,13 +159,12 @@ impl<'a> SessionSearch<'a> {
         database: &Database,
         orders: Vec<Order>,
     ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
-        let mut new_rows: Vec<i64> = Vec::new();
         if let Some(collection) = database.collection(self.collection_id) {
             let mut search = database.search(collection);
             for c in &self.conditions {
                 search = search.search(c.clone());
             }
-            let r = database.result(search)?;
+            let r = database.result(search, &orders)?;
             if let Some(tmp) = self.session.temporary_data.get(&self.collection_id) {
                 let mut tmp_rows: BTreeSet<i64> = BTreeSet::new();
                 for row in r {
@@ -191,12 +190,16 @@ impl<'a> SessionSearch<'a> {
                         tmp_rows.insert(row);
                     }
                 }
-                new_rows = tmp_rows.into_iter().collect();
-                super::sort::sort(&mut new_rows, orders, collection, tmp);
+                let mut new_rows = tmp_rows.into_iter().collect();
+                if orders.len() > 0 {
+                    super::sort::sort(&mut new_rows, orders, collection, tmp);
+                }
+                Ok(new_rows)
             } else {
-                new_rows = r.into_iter().map(|x| x as i64).collect();
+                Ok(r.into_iter().map(|x| x as i64).collect())
             }
+        } else {
+            Ok(vec![])
         }
-        Ok(new_rows)
     }
 }

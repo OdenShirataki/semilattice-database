@@ -43,7 +43,7 @@ if let Ok(mut sess) = database.session("login", None) {
         .begin_search(collection_admin)
         .search_field("id", search::Field::Match(b"test".to_vec()))
         .search_field("password", search::Field::Match(b"test".to_vec()));
-    for row in database.result_session(search,vec![]).unwrap() {
+    for row in database.result_session(search, vec![]).unwrap() {
         println!("session_search : {row}");
         database
             .update(
@@ -66,7 +66,7 @@ if let Ok(mut sess) = database.session("login", None) {
 }
 if let Ok(sess) = database.session("login", None) {
     let search = sess.begin_search(collection_login);
-    for row in database.result_session(search,vec![]).unwrap() {
+    for row in database.result_session(search, vec![]).unwrap() {
         let depends = database.depends(Some("admin"), collection_login, row, Some(&sess));
         for d in depends {
             let collection_id = d.collection_id();
@@ -74,7 +74,7 @@ if let Ok(sess) = database.session("login", None) {
                 let search = sess
                     .begin_search(collection_id)
                     .search_row(search::Number::In(vec![d.row() as isize]));
-                for row in database.result_session(search,vec![]).unwrap() {
+                for row in database.result_session(search, vec![]).unwrap() {
                     println!(
                         "login id : {}",
                         std::str::from_utf8(collection.field_bytes(row as u32, "id")).unwrap()
@@ -182,11 +182,12 @@ if let (Some(person), Some(history)) = (
     database.collection(collection_history),
 ) {
     let search = database.search(person);
-    let person_rows = database.result(search).unwrap();
-    let person_rows = person.sort(
-        person_rows,
-        vec![Order::Asc(OrderKey::Field("birthday".to_owned()))],
-    );
+    let person_rows = database
+        .result(
+            search,
+            &vec![Order::Asc(OrderKey::Field("birthday".to_owned()))],
+        )
+        .unwrap();
     for i in person_rows {
         println!(
             "{},{}",
@@ -197,7 +198,7 @@ if let (Some(person), Some(history)) = (
             "history",
             CollectionRow::new(collection_person, i as u32),
         ));
-        for h in database.result(search).unwrap() {
+        for h in database.result(search, &vec![]).unwrap() {
             println!(
                 " {} : {}",
                 std::str::from_utf8(history.field_bytes(h, "date")).unwrap(),
@@ -227,7 +228,7 @@ if let Ok(mut sess) = database.session("test", None) {
     let search = sess
         .begin_search(collection_person)
         .search_activity(Activity::Active);
-    for r in database.result_session(search,vec![]).unwrap() {
+    for r in database.result_session(search, vec![]).unwrap() {
         println!(
             "session_search : {},{}",
             std::str::from_utf8(sess.field_bytes(&database, collection_person, r, "name"))

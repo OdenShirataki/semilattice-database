@@ -307,8 +307,8 @@ impl Database {
     pub fn search(&self, colletion: &Collection) -> Search {
         Search::new(colletion)
     }
-    pub fn result(&self, search: Search) -> Result<RowSet, std::sync::mpsc::SendError<RowSet>> {
-        search.result(self)
+    pub fn result(&self, search: Search,orders:&[Order]) -> Result<Vec<u32>, std::sync::mpsc::SendError<RowSet>> {
+        search.result(self,orders)
     }
     pub fn result_session(
         &self,

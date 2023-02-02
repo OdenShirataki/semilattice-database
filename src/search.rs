@@ -1,11 +1,12 @@
 use std::{
-    sync::mpsc::Sender,
+    sync::mpsc::{channel, SendError, Sender},
+    thread::spawn,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 pub use versatile_data::search::{Field, Number, Term};
 use versatile_data::{
-    Activity, Condition as VersatileDataCondition, RowSet, Search as VersatileDataSearch,
+    Activity, Condition as VersatileDataCondition, Order, RowSet, Search as VersatileDataSearch,
 };
 
 use crate::{Collection, Database, Depend, RelationIndex};
@@ -61,7 +62,7 @@ impl Search {
         relation: &RelationIndex,
         condtion: &Condition,
         tx: Sender<RowSet>,
-    ) -> Result<(), std::sync::mpsc::SendError<RowSet>> {
+    ) -> Result<(), SendError<RowSet>> {
         match condtion {
             Condition::Activity(c) => {
                 VersatileDataSearch::search_exec_cond(
@@ -108,7 +109,7 @@ impl Search {
             Condition::Depend(depend) => {
                 let rel = relation.pends(depend.key(), depend.collection_row());
                 let collection_id = collection.id();
-                std::thread::spawn(move || {
+                spawn(move || {
                     let mut tmp = RowSet::default();
                     for r in rel {
                         if r.collection_id() == collection_id {
@@ -120,13 +121,13 @@ impl Search {
                 });
             }
             Condition::Narrow(conditions) => {
-                let (tx_inner, rx) = std::sync::mpsc::channel();
+                let (tx_inner, rx) = channel();
                 for c in conditions {
                     let tx_inner = tx_inner.clone();
                     Self::exec_cond(collection, relation, c, tx_inner)?;
                 }
                 drop(tx_inner);
-                std::thread::spawn(move || {
+                spawn(move || {
                     let mut is_1st = true;
                     let mut tmp = RowSet::default();
                     for mut rs in rx {
@@ -141,13 +142,13 @@ impl Search {
                 });
             }
             Condition::Wide(conditions) => {
-                let (tx_inner, rx) = std::sync::mpsc::channel();
+                let (tx_inner, rx) = channel();
                 for c in conditions {
                     let tx_inner = tx_inner.clone();
                     Self::exec_cond(collection, relation, c, tx_inner)?;
                 }
                 drop(tx_inner);
-                std::thread::spawn(move || {
+                spawn(move || {
                     let mut tmp = RowSet::default();
                     for ref mut rs in rx {
                         tmp.append(rs);
@@ -161,11 +162,12 @@ impl Search {
     pub(super) fn result(
         &self,
         database: &Database,
-    ) -> Result<RowSet, std::sync::mpsc::SendError<RowSet>> {
-        let mut rows = RowSet::default();
+        orders: &[Order],
+    ) -> Result<Vec<u32>, SendError<RowSet>> {
         if let Some(collection) = database.collection(self.collection_id) {
+            let mut rows = RowSet::default();
             if self.conditions.len() > 0 {
-                let (tx, rx) = std::sync::mpsc::channel();
+                let (tx, rx) = channel();
                 for c in &self.conditions {
                     Self::exec_cond(collection, &database.relation, c, tx.clone())?;
                 }
@@ -184,7 +186,13 @@ impl Search {
                     rows.insert(row);
                 }
             }
+            if orders.len() > 0 {
+                Ok(collection.data.sort(rows, &orders))
+            } else {
+                Ok(rows.into_iter().collect())
+            }
+        } else {
+            Ok(vec![])
         }
-        Ok(rows)
     }
 }

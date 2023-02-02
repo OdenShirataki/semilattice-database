@@ -101,7 +101,7 @@ fn test2() {
             database.collection(collection_bbs_comment),
         ) {
             let search = database.search(bbs);
-            let bbs_rows = database.result(search).unwrap();
+            let bbs_rows = database.result(search, &vec![]).unwrap();
             for i in bbs_rows {
                 println!(
                     "{},{}",
@@ -112,7 +112,7 @@ fn test2() {
                     "bbs",
                     CollectionRow::new(collection_bbs, i as u32),
                 ));
-                for h in database.result(search).unwrap() {
+                for h in database.result(search, &vec![]).unwrap() {
                     println!(
                         " {}",
                         std::str::from_utf8(bbs_comment.field_bytes(h, "text")).unwrap(),
@@ -132,7 +132,7 @@ fn test2() {
             database.collection(collection_bbs_comment),
         ) {
             let search = database.search(bbs);
-            let bbs_rows = database.result(search).unwrap();
+            let bbs_rows = database.result(search, &vec![]).unwrap();
             for i in bbs_rows {
                 println!(
                     "POST : {},{}",
@@ -143,7 +143,7 @@ fn test2() {
                     "bbs",
                     CollectionRow::new(collection_bbs, i as u32),
                 ));
-                for h in database.result(search).unwrap() {
+                for h in database.result(search, &vec![]).unwrap() {
                     println!(
                         "COMMENT : {}",
                         std::str::from_utf8(bbs_comment.field_bytes(h, "text")).unwrap(),
