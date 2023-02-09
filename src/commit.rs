@@ -1,4 +1,3 @@
-use serde::Serialize;
 use std::collections::HashMap;
 use versatile_data::{Activity, KeyValue, Operation, Term};
 
@@ -7,13 +6,10 @@ use crate::{
     CollectionRow, Database,
 };
 
-#[derive(Serialize)]
-struct LogDepend {
-    session_row: u32,
-    depend: SessionCollectionRow,
-}
-
-pub fn commit(main_database: &mut Database, session_data: &SessionData) -> Result<(), anyhow::Error> {
+pub fn commit(
+    main_database: &mut Database,
+    session_data: &SessionData,
+) -> Result<(), anyhow::Error> {
     let mut session_collection_row_map: HashMap<u32, CollectionRow> = HashMap::new();
 
     let mut session_relation: HashMap<u32, Vec<(u32, SessionCollectionRow)>> = HashMap::new();
@@ -104,8 +100,7 @@ pub fn commit(main_database: &mut Database, session_data: &SessionData) -> Resul
                             for (session_row, depend) in depend_rows {
                                 let key =
                                     session_data.relation.rows.key.value(*session_row).unwrap();
-                                let key =
-                                    unsafe { session_data.relation.key_names.str(key) }?;
+                                let key = unsafe { session_data.relation.key_names.str(key) }?;
 
                                 if depend.row < 0 {
                                     if let Some(depend) =
@@ -152,8 +147,8 @@ pub(super) fn delete_recursive(
 ) -> std::io::Result<()> {
     if target.row > 0 {
         let depend = CollectionRow::new(target.collection_id, target.row as u32);
-        let c = database.relation.index_depend().select_by_value(&depend);
-        for relation_row in c {
+
+        for relation_row in database.relation.index_depend().select_by_value(&depend) {
             if let Some(collection_row) = database.relation.index_pend().value(relation_row) {
                 delete_recursive(
                     database,
@@ -168,6 +163,10 @@ pub(super) fn delete_recursive(
                     })?;
                 }
             }
+            database.relation.delete(relation_row)?;
+        }
+
+        for relation_row in database.relation.index_pend().select_by_value(&depend) {
             database.relation.delete(relation_row)?;
         }
     }
