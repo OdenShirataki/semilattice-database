@@ -64,21 +64,17 @@ pub fn commit(
                         } else {
                             if row < 0 {
                                 //update new data in session.
-                                if let Some(master_collection_row) =
-                                    session_collection_row_map.get(&(-row as u32))
-                                {
-                                    let row = master_collection_row.row();
-                                    collection.update_row(
-                                        row,
-                                        &activity,
-                                        &term_begin,
-                                        &term_end,
-                                        &fields,
-                                    )?;
-                                    CollectionRow::new(master_collection_row.collection_id(), row)
-                                } else {
-                                    panic!("crash");
-                                }
+                                let master_collection_row =
+                                    session_collection_row_map.get(&(-row as u32)).unwrap();
+                                let row = master_collection_row.row();
+                                collection.update_row(
+                                    row,
+                                    &activity,
+                                    &term_begin,
+                                    &term_end,
+                                    &fields,
+                                )?;
+                                CollectionRow::new(master_collection_row.collection_id(), row)
                             } else {
                                 //update
                                 let row = row as u32;

@@ -181,7 +181,7 @@ pub(super) fn update_recursive(
 
                     let term_begin = match term_begin {
                         Term::Overwrite(term_begin) => *term_begin,
-                        Term::Defalut => {
+                        Term::Default => {
                             let mut r = SystemTime::now()
                                 .duration_since(UNIX_EPOCH)
                                 .unwrap()
@@ -241,15 +241,14 @@ pub(super) fn update_recursive(
                                     if let Some(depend) =
                                         master_database.relation().depend(i as u32)
                                     {
-                                        session_data.relation.insert(
+                                        let key =
                                             unsafe { master_database.relation().key(i as u32) }
-                                                .unwrap(),
-                                            session_row,
-                                            SessionCollectionRow::new(
-                                                depend.collection_id(),
-                                                depend.row() as i64,
-                                            ),
+                                                .unwrap();
+                                        let depend = SessionCollectionRow::new(
+                                            depend.collection_id(),
+                                            depend.row() as i64,
                                         );
+                                        session_data.relation.insert(key, session_row, depend);
                                     }
                                 }
                             } else {

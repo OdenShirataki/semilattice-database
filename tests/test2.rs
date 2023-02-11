@@ -12,20 +12,18 @@ fn test2() {
 
     {
         let mut database = Database::new(dir).unwrap();
-        let collection_bbs = database.collection_id_or_create("bbs").unwrap();
-        if let Ok(mut sess) = database.session("bbs", None) {
+        let collection_setting_article =
+            database.collection_id_or_create("setting_article").unwrap();
+        if let Ok(mut sess) = database.session("setting_article", None) {
             database
                 .update(
                     &mut sess,
                     vec![Record::New {
-                        collection_id: collection_bbs,
+                        collection_id: collection_setting_article,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
-                        fields: vec![
-                            KeyValue::new("name", "A".to_owned()),
-                            KeyValue::new("text", "A".to_owned()),
-                        ],
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
+                        fields: vec![KeyValue::new("name", "test".to_owned())],
                         depends: Depends::Overwrite(vec![]),
                         pends: vec![],
                     }],
@@ -33,41 +31,20 @@ fn test2() {
                 .unwrap();
             database.commit(&mut sess).unwrap();
         }
-        if let Ok(mut sess) = database.session("bbs", None) {
+        let collection_field = database.collection_id_or_create("field").unwrap();
+        if let Ok(mut sess) = database.session("field", None) {
             database
                 .update(
                     &mut sess,
                     vec![Record::New {
-                        collection_id: collection_bbs,
+                        collection_id: collection_field,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
-                        fields: vec![
-                            KeyValue::new("name", "B".to_owned()),
-                            KeyValue::new("text", "B".to_owned()),
-                        ],
-                        depends: Depends::Overwrite(vec![]),
-                        pends: vec![],
-                    }],
-                )
-                .unwrap();
-            database.commit(&mut sess).unwrap();
-        }
-
-        let collection_bbs_comment = database.collection_id_or_create("bbs_comment").unwrap();
-        if let Ok(mut sess) = database.session("bbs_comment", None) {
-            database
-                .update(
-                    &mut sess,
-                    vec![Record::New {
-                        collection_id: collection_bbs_comment,
-                        activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
-                        fields: vec![KeyValue::new("text", "C1".to_owned())],
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
+                        fields: vec![KeyValue::new("name", "f1".to_owned())],
                         depends: Depends::Overwrite(vec![(
-                            "bbs".to_owned(),
-                            SessionCollectionRow::new(collection_bbs, 1),
+                            "field".to_owned(),
+                            SessionCollectionRow::new(collection_setting_article, 1),
                         )]),
                         pends: vec![],
                     }],
@@ -75,19 +52,19 @@ fn test2() {
                 .unwrap();
             database.commit(&mut sess).unwrap();
         }
-        if let Ok(mut sess) = database.session("bbs_comment", None) {
+        if let Ok(mut sess) = database.session("field", None) {
             database
                 .update(
                     &mut sess,
                     vec![Record::New {
-                        collection_id: collection_bbs_comment,
+                        collection_id: collection_field,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
-                        fields: vec![KeyValue::new("text", "C2".to_owned())],
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
+                        fields: vec![KeyValue::new("name", "f2".to_owned())],
                         depends: Depends::Overwrite(vec![(
-                            "bbs".to_owned(),
-                            SessionCollectionRow::new(collection_bbs, 2),
+                            "field".to_owned(),
+                            SessionCollectionRow::new(collection_setting_article, 1),
                         )]),
                         pends: vec![],
                     }],
@@ -95,60 +72,95 @@ fn test2() {
                 .unwrap();
             database.commit(&mut sess).unwrap();
         }
-
-        if let (Some(bbs), Some(bbs_comment)) = (
-            database.collection(collection_bbs),
-            database.collection(collection_bbs_comment),
-        ) {
-            let search = database.search(bbs);
-            let bbs_rows = database.result(search, &vec![]).unwrap();
-            for i in bbs_rows {
+        if let Ok(mut sess) = database.session("field", None) {
+            database
+                .update(
+                    &mut sess,
+                    vec![Record::New {
+                        collection_id: collection_field,
+                        activity: Activity::Active,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
+                        fields: vec![KeyValue::new("name", "f3".to_owned())],
+                        depends: Depends::Overwrite(vec![(
+                            "field".to_owned(),
+                            SessionCollectionRow::new(collection_field, 2),
+                        )]),
+                        pends: vec![],
+                    }],
+                )
+                .unwrap();
+            database.commit(&mut sess).unwrap();
+        }
+        if let Ok(mut sess) = database.session("field", None) {
+            database
+                .update(
+                    &mut sess,
+                    vec![Record::New {
+                        collection_id: collection_field,
+                        activity: Activity::Active,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
+                        fields: vec![KeyValue::new("name", "f4".to_owned())],
+                        depends: Depends::Overwrite(vec![(
+                            "field".to_owned(),
+                            SessionCollectionRow::new(collection_field, 2),
+                        )]),
+                        pends: vec![],
+                    }],
+                )
+                .unwrap();
+            database.commit(&mut sess).unwrap();
+        }
+        if let Some(field) = database.collection(collection_field) {
+            let search = database.search(field).depend(Depend::new(
+                "field",
+                CollectionRow::new(collection_field, 2),
+            ));
+            let field_rows = database.result(search, &vec![]).unwrap();
+            for i in field_rows {
                 println!(
                     "{},{}",
-                    std::str::from_utf8(bbs.field_bytes(i, "name")).unwrap(),
-                    std::str::from_utf8(bbs.field_bytes(i, "text")).unwrap()
+                    i,
+                    std::str::from_utf8(field.field_bytes(i, "name")).unwrap(),
                 );
-                let search = database.search(bbs_comment).depend(Depend::new(
-                    "bbs",
-                    CollectionRow::new(collection_bbs, i as u32),
-                ));
-                for h in database.result(search, &vec![]).unwrap() {
-                    println!(
-                        " {}",
-                        std::str::from_utf8(bbs_comment.field_bytes(h, "text")).unwrap(),
-                    );
-                }
             }
         }
-    }
-    {
-        let mut database = Database::new(dir).unwrap();
-        let collection_bbs = database.collection_id_or_create("bbs").unwrap();
-        let collection_bbs_comment = database.collection_id_or_create("bbs_comment").unwrap();
+        println!("");
+        if let Ok(mut sess) = database.session("field", None) {
+            database
+                .update(
+                    &mut sess,
+                    vec![Record::Update {
+                        collection_id: collection_field,
+                        row: 4,
+                        activity: Activity::Active,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
+                        fields: vec![KeyValue::new("name", "f4_rename".to_owned())],
+                        depends: Depends::Overwrite(vec![(
+                            "field".to_owned(),
+                            SessionCollectionRow::new(collection_field, 2),
+                        )]),
+                        pends: vec![],
+                    }],
+                )
+                .unwrap();
+            database.commit(&mut sess).unwrap();
+        }
 
-        println!("{} {}", collection_bbs, collection_bbs_comment);
-        if let (Some(bbs), Some(bbs_comment)) = (
-            database.collection(collection_bbs),
-            database.collection(collection_bbs_comment),
-        ) {
-            let search = database.search(bbs);
-            let bbs_rows = database.result(search, &vec![]).unwrap();
-            for i in bbs_rows {
+        if let Some(field) = database.collection(collection_field) {
+            let search = database.search(field).depend(Depend::new(
+                "field",
+                CollectionRow::new(collection_field, 2),
+            ));
+            let field_rows = database.result(search, &vec![]).unwrap();
+            for i in field_rows {
                 println!(
-                    "POST : {},{}",
-                    std::str::from_utf8(bbs.field_bytes(i, "name")).unwrap(),
-                    std::str::from_utf8(bbs.field_bytes(i, "text")).unwrap()
+                    "{},{}",
+                    i,
+                    std::str::from_utf8(field.field_bytes(i, "name")).unwrap(),
                 );
-                let search = database.search(bbs_comment).depend(Depend::new(
-                    "bbs",
-                    CollectionRow::new(collection_bbs, i as u32),
-                ));
-                for h in database.result(search, &vec![]).unwrap() {
-                    println!(
-                        "COMMENT : {}",
-                        std::str::from_utf8(bbs_comment.field_bytes(h, "text")).unwrap(),
-                    );
-                }
             }
         }
     }

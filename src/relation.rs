@@ -1,10 +1,6 @@
-use file_mmap::FileMmap;
 use idx_binary::IdxBinary;
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
-use versatile_data::IdxSized;
+use std::{io, path::Path};
+use versatile_data::{IdxSized, RowFragment};
 
 use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
 
@@ -34,7 +30,7 @@ struct RelationIndexRows {
     pend: IdxSized<CollectionRow>,
 }
 pub struct RelationIndex {
-    fragment: Fragment,
+    fragment: RowFragment,
     key_names: IdxBinary,
     rows: RelationIndexRows,
 }
@@ -51,7 +47,7 @@ impl RelationIndex {
                 path.push("key_name");
                 path
             })?,
-            fragment: Fragment::new({
+            fragment: RowFragment::new({
                 let mut path = dir.clone();
                 path.push("fragment.f");
                 path
@@ -82,7 +78,7 @@ impl RelationIndex {
         pend: CollectionRow,
     ) -> io::Result<()> {
         if let Ok(key_id) = self.key_names.entry(relation_key.as_bytes()) {
-            if let Some(row) = self.fragment.pop() {
+            if let Some(row) = self.fragment.pop()? {
                 self.rows.key.update(row, key_id)?;
                 self.rows.depend.update(row, depend)?;
                 self.rows.pend.update(row, pend)?;
@@ -94,7 +90,7 @@ impl RelationIndex {
         }
         Ok(())
     }
-    pub fn delete(&mut self, row: u32) -> io::Result<()> {
+    pub fn delete(&mut self, row: u32) -> io::Result<u64> {
         self.rows.key.delete(row);
         self.rows.depend.delete(row);
         self.rows.pend.delete(row);
@@ -176,53 +172,5 @@ impl RelationIndex {
         } else {
             ""
         })
-    }
-}
-
-const U32SIZE: usize = std::mem::size_of::<u32>();
-struct Fragment {
-    filemmap: FileMmap,
-    blank_list: Vec<u32>,
-    blank_count: u32,
-}
-impl Fragment {
-    pub fn new(path: PathBuf) -> io::Result<Self> {
-        let mut filemmap = FileMmap::new(path)?;
-        if filemmap.len()? == 0 {
-            filemmap.set_len(U32SIZE as u64)?;
-        }
-        let blank_list = filemmap.as_ptr() as *mut u32;
-        let blank_count = (filemmap.len()? / U32SIZE as u64 - 1) as u32;
-        Ok(Self {
-            filemmap,
-            blank_list: unsafe { Vec::from_raw_parts(blank_list, 1, 0) },
-            blank_count,
-        })
-    }
-    pub fn insert_blank(&mut self, id: u32) -> io::Result<()> {
-        self.filemmap.append(&[0, 0, 0, 0])?;
-        unsafe {
-            *(self.blank_list.as_ptr() as *mut u32).offset(self.blank_count as isize) = id;
-        }
-        self.blank_count += 1;
-        Ok(())
-    }
-    pub fn pop(&mut self) -> Option<u32> {
-        if self.blank_count > 0 {
-            let p = unsafe {
-                (self.blank_list.as_ptr() as *mut u32).offset(self.blank_count as isize - 1)
-            };
-            let last = unsafe { *p };
-            unsafe {
-                *p = 0;
-            }
-            if let Ok(len) = self.filemmap.len() {
-                if let Ok(()) = self.filemmap.set_len(len - U32SIZE as u64) {
-                    self.blank_count -= 1;
-                    return Some(last);
-                }
-            }
-        }
-        None
     }
 }

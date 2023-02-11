@@ -21,8 +21,8 @@ fn test() {
                 vec![Record::New {
                     collection_id: collection_admin,
                     activity: Activity::Active,
-                    term_begin: Term::Defalut,
-                    term_end: Term::Defalut,
+                    term_begin: Term::Default,
+                    term_end: Term::Default,
                     fields: vec![
                         KeyValue::new("id", "test".to_owned()),
                         KeyValue::new("password", "test".to_owned()),
@@ -49,8 +49,8 @@ fn test() {
                     vec![Record::New {
                         collection_id: collection_login,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
                         fields: vec![],
                         depends: Depends::Overwrite(vec![(
                             "admin".to_owned(),
@@ -94,8 +94,8 @@ fn test() {
                     Record::New {
                         collection_id: collection_person,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
                         fields: vec![
                             KeyValue::new("name", "Joe"),
                             KeyValue::new("birthday", "1972-08-02"),
@@ -107,8 +107,8 @@ fn test() {
                                 Record::New {
                                     collection_id: collection_history,
                                     activity: Activity::Active,
-                                    term_begin: Term::Defalut,
-                                    term_end: Term::Defalut,
+                                    term_begin: Term::Default,
+                                    term_end: Term::Default,
                                     fields: vec![
                                         KeyValue::new("date", "1972-08-02"),
                                         KeyValue::new("event", "Birth"),
@@ -119,8 +119,8 @@ fn test() {
                                 Record::New {
                                     collection_id: collection_history,
                                     activity: Activity::Active,
-                                    term_begin: Term::Defalut,
-                                    term_end: Term::Defalut,
+                                    term_begin: Term::Default,
+                                    term_end: Term::Default,
                                     fields: vec![
                                         KeyValue::new("date", "1999-12-31"),
                                         KeyValue::new("event", "Mariage"),
@@ -134,8 +134,8 @@ fn test() {
                     Record::New {
                         collection_id: collection_person,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
                         fields: vec![
                             KeyValue::new("name", "Tom"),
                             KeyValue::new("birthday", "2000-12-12"),
@@ -146,8 +146,8 @@ fn test() {
                             vec![Record::New {
                                 collection_id: collection_history,
                                 activity: Activity::Active,
-                                term_begin: Term::Defalut,
-                                term_end: Term::Defalut,
+                                term_begin: Term::Default,
+                                term_end: Term::Default,
                                 fields: vec![
                                     KeyValue::new("date", "2000-12-12"),
                                     KeyValue::new("event", "Birth"),
@@ -160,8 +160,8 @@ fn test() {
                     Record::New {
                         collection_id: collection_person,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
                         fields: vec![
                             KeyValue::new("name", "Billy"),
                             KeyValue::new("birthday", "1982-03-03"),
@@ -213,8 +213,8 @@ fn test() {
                     collection_id: collection_person,
                     row: 1,
                     activity: Activity::Active,
-                    term_begin: Term::Defalut,
-                    term_end: Term::Defalut,
+                    term_begin: Term::Default,
+                    term_end: Term::Default,
                     fields: vec![KeyValue::new("name", "Renamed Joe")],
                     depends: Depends::Default,
                     pends: vec![],
@@ -248,8 +248,8 @@ fn test() {
                     vec![Record::New {
                         collection_id: test1,
                         activity: Activity::Active,
-                        term_begin: Term::Defalut,
-                        term_end: Term::Defalut,
+                        term_begin: Term::Default,
+                        term_end: Term::Default,
                         fields: vec![
                             KeyValue::new("num", i.to_string()),
                             KeyValue::new("num_by3", (i * 3).to_string()),
@@ -271,8 +271,8 @@ fn test() {
                     collection_id: test1,
                     row: 3,
                     activity: Activity::Inactive,
-                    term_begin: Term::Defalut,
-                    term_end: Term::Defalut,
+                    term_begin: Term::Default,
+                    term_end: Term::Default,
                     fields: vec![],
                     depends: Depends::Overwrite(vec![]),
                     pends: vec![],
