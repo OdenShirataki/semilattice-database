@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.46.2"
+version = "0.46.3"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -17,6 +17,6 @@ license = "MIT/Apache-2.0"
 serde = "1"
 anyhow = "1.0"
 
-versatile-data = { version = "0.62" , path = "../versatile-data" }
+versatile-data = { version = "0.63" , path = "../versatile-data" }
 idx_binary = { version = "0.11" , path = "../idx_binary" }
 file_mmap = { version = "0.14" , path = "../file_mmap" }

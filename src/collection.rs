@@ -1,5 +1,5 @@
 use std::{cmp::Ordering, io};
-use versatile_data::{Activity, Data, KeyValue, Operation, Term};
+use versatile_data::{Activity, Data, Operation};
 
 pub struct Collection {
     pub(crate) data: Data,
@@ -43,26 +43,6 @@ impl Collection {
     }
     pub fn field_num(&self, row: u32, field_name: &str) -> f64 {
         self.data.field_num(row, field_name)
-    }
-    pub fn create_row(
-        &mut self,
-        activity: &Activity,
-        term_begin: &Term,
-        term_end: &Term,
-        fields: &Vec<KeyValue>,
-    ) -> io::Result<u32> {
-        self.data.create_row(activity, term_begin, term_end, fields)
-    }
-    pub fn update_row(
-        &mut self,
-        collection_row: u32,
-        activity: &Activity,
-        term_begin: &Term,
-        term_end: &Term,
-        fields: &Vec<KeyValue>,
-    ) -> io::Result<()> {
-        self.data
-            .update_row(collection_row, &activity, &term_begin, &term_end, &fields)
     }
     pub fn update(&mut self, operation: &Operation) -> io::Result<u32> {
         self.data.update(operation)

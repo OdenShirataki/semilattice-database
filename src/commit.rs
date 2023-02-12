@@ -54,12 +54,12 @@ pub fn commit(
                             Term::Overwrite(session_data.term_end.value(session_row).unwrap());
                         let collection_row = if row == 0 {
                             //new
-                            let row = collection.create_row(
-                                &activity,
-                                &term_begin,
-                                &term_end,
-                                &fields,
-                            )?;
+                            let row = collection.update(&Operation::New {
+                                activity,
+                                term_begin,
+                                term_end,
+                                fields,
+                            })?;
                             CollectionRow::new(collection_id, row)
                         } else {
                             if row < 0 {
@@ -67,24 +67,24 @@ pub fn commit(
                                 let master_collection_row =
                                     session_collection_row_map.get(&(-row as u32)).unwrap();
                                 let row = master_collection_row.row();
-                                collection.update_row(
+                                collection.update(&Operation::Update {
                                     row,
-                                    &activity,
-                                    &term_begin,
-                                    &term_end,
-                                    &fields,
-                                )?;
+                                    activity,
+                                    term_begin,
+                                    term_end,
+                                    fields,
+                                })?;
                                 CollectionRow::new(master_collection_row.collection_id(), row)
                             } else {
                                 //update
                                 let row = row as u32;
-                                collection.update_row(
+                                collection.update(&Operation::Update {
                                     row,
-                                    &activity,
-                                    &term_begin,
-                                    &term_end,
-                                    &fields,
-                                )?;
+                                    activity,
+                                    term_begin,
+                                    term_end,
+                                    fields,
+                                })?;
                                 CollectionRow::new(collection_id, row)
                             }
                         };

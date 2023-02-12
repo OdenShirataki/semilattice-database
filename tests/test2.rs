@@ -12,18 +12,23 @@ fn test2() {
 
     {
         let mut database = Database::new(dir).unwrap();
-        let collection_setting_article =
-            database.collection_id_or_create("setting_article").unwrap();
-        if let Ok(mut sess) = database.session("setting_article", None) {
+        let collection_bbs = database.collection_id_or_create("bbs").unwrap();
+        if let Ok(mut sess) = database.session("bbs", None) {
             database
                 .update(
                     &mut sess,
                     vec![Record::New {
-                        collection_id: collection_setting_article,
+                        collection_id: collection_bbs,
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "test".to_owned())],
+                        fields: vec![
+                            KeyValue::new("name", "test".to_owned()),
+                            KeyValue::new("text", "test".to_owned()),
+                            KeyValue::new("image_type", "".to_owned()),
+                            KeyValue::new("image_name", "".to_owned()),
+                            KeyValue::new("image_data", "".to_owned()),
+                        ],
                         depends: Depends::Overwrite(vec![]),
                         pends: vec![],
                     }],
@@ -31,137 +36,42 @@ fn test2() {
                 .unwrap();
             database.commit(&mut sess).unwrap();
         }
-        let collection_field = database.collection_id_or_create("field").unwrap();
-        if let Ok(mut sess) = database.session("field", None) {
+        if let Ok(mut sess) = database.session("bbs", None) {
+            database
+                .update(
+                    &mut sess,
+                    vec![Record::Delete {
+                        collection_id: collection_bbs,
+                        row: 1,
+                    }],
+                )
+                .unwrap();
+            database.commit(&mut sess).unwrap();
+        }
+        println!("OK1");
+        if let Ok(mut sess) = database.session("bbs", None) {
             database
                 .update(
                     &mut sess,
                     vec![Record::New {
-                        collection_id: collection_field,
+                        collection_id: collection_bbs,
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "f1".to_owned())],
-                        depends: Depends::Overwrite(vec![(
-                            "field".to_owned(),
-                            SessionCollectionRow::new(collection_setting_article, 1),
-                        )]),
+                        fields: vec![
+                            KeyValue::new("name", "aa".to_owned()),
+                            KeyValue::new("text", "bb".to_owned()),
+                            KeyValue::new("image_type", "image/jpge".to_owned()),
+                            KeyValue::new("image_name", "hoge.jpg".to_owned()),
+                            KeyValue::new("image_data", "awdadadfaefaefawfafd".to_owned()),
+                        ],
+                        depends: Depends::Overwrite(vec![]),
                         pends: vec![],
                     }],
                 )
                 .unwrap();
             database.commit(&mut sess).unwrap();
         }
-        if let Ok(mut sess) = database.session("field", None) {
-            database
-                .update(
-                    &mut sess,
-                    vec![Record::New {
-                        collection_id: collection_field,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "f2".to_owned())],
-                        depends: Depends::Overwrite(vec![(
-                            "field".to_owned(),
-                            SessionCollectionRow::new(collection_setting_article, 1),
-                        )]),
-                        pends: vec![],
-                    }],
-                )
-                .unwrap();
-            database.commit(&mut sess).unwrap();
-        }
-        if let Ok(mut sess) = database.session("field", None) {
-            database
-                .update(
-                    &mut sess,
-                    vec![Record::New {
-                        collection_id: collection_field,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "f3".to_owned())],
-                        depends: Depends::Overwrite(vec![(
-                            "field".to_owned(),
-                            SessionCollectionRow::new(collection_field, 2),
-                        )]),
-                        pends: vec![],
-                    }],
-                )
-                .unwrap();
-            database.commit(&mut sess).unwrap();
-        }
-        if let Ok(mut sess) = database.session("field", None) {
-            database
-                .update(
-                    &mut sess,
-                    vec![Record::New {
-                        collection_id: collection_field,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "f4".to_owned())],
-                        depends: Depends::Overwrite(vec![(
-                            "field".to_owned(),
-                            SessionCollectionRow::new(collection_field, 2),
-                        )]),
-                        pends: vec![],
-                    }],
-                )
-                .unwrap();
-            database.commit(&mut sess).unwrap();
-        }
-        if let Some(field) = database.collection(collection_field) {
-            let search = database.search(field).depend(Depend::new(
-                "field",
-                CollectionRow::new(collection_field, 2),
-            ));
-            let field_rows = database.result(search, &vec![]).unwrap();
-            for i in field_rows {
-                println!(
-                    "{},{}",
-                    i,
-                    std::str::from_utf8(field.field_bytes(i, "name")).unwrap(),
-                );
-            }
-        }
-        println!("");
-        if let Ok(mut sess) = database.session("field", None) {
-            database
-                .update(
-                    &mut sess,
-                    vec![Record::Update {
-                        collection_id: collection_field,
-                        row: 4,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "f4_rename".to_owned())],
-                        depends: Depends::Overwrite(vec![(
-                            "field".to_owned(),
-                            SessionCollectionRow::new(collection_field, 2),
-                        )]),
-                        pends: vec![],
-                    }],
-                )
-                .unwrap();
-            database.commit(&mut sess).unwrap();
-        }
-
-        if let Some(field) = database.collection(collection_field) {
-            let search = database.search(field).depend(Depend::new(
-                "field",
-                CollectionRow::new(collection_field, 2),
-            ));
-            let field_rows = database.result(search, &vec![]).unwrap();
-            for i in field_rows {
-                println!(
-                    "{},{}",
-                    i,
-                    std::str::from_utf8(field.field_bytes(i, "name")).unwrap(),
-                );
-            }
-        }
+        println!("OK2");
     }
 }
