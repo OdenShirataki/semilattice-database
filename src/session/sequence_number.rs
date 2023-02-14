@@ -3,9 +3,7 @@ use std::path::PathBuf;
 use file_mmap::FileMmap;
 
 pub struct SequenceNumber {
-    #[allow(dead_code)]
     filemmap: FileMmap,
-    sequence_number: Vec<usize>,
 }
 impl SequenceNumber {
     pub fn new(path: PathBuf) -> std::io::Result<Self> {
@@ -13,14 +11,13 @@ impl SequenceNumber {
         if filemmap.len()? == 0 {
             filemmap.set_len(std::mem::size_of::<usize>() as u64)?;
         }
-        let ptr = filemmap.as_ptr() as *mut usize;
-        Ok(Self {
-            filemmap,
-            sequence_number: unsafe { Vec::from_raw_parts(ptr, 1, 0) },
-        })
+        Ok(Self { filemmap })
     }
     pub fn next(&mut self) -> usize {
-        self.sequence_number[0] += 1;
-        self.sequence_number[0]
+        let sequence_number = self.filemmap.as_ptr() as *mut usize;
+        unsafe {
+            *sequence_number += 1;
+            *sequence_number
+        }
     }
 }
