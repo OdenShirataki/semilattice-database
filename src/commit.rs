@@ -13,7 +13,7 @@ pub fn commit(
     let mut session_collection_row_map: HashMap<u32, CollectionRow> = HashMap::new();
 
     let mut session_relation: HashMap<u32, Vec<(u32, SessionCollectionRow)>> = HashMap::new();
-    for row in 1..session_data.relation.rows.session_row.max_rows()? {
+    for row in 1..=session_data.relation.rows.session_row.max_rows()? {
         if let (Some(session_row), Some(depend)) = (
             session_data.relation.rows.session_row.value(row),
             session_data.relation.rows.depend.value(row),
@@ -22,7 +22,7 @@ pub fn commit(
             m.push((row, depend));
         }
     }
-    for session_row in 1..session_data.sequence.max_rows()? {
+    for session_row in 1..=session_data.sequence.max_rows()? {
         if let (Some(op), Some(collection_id), Some(row)) = (
             session_data.operation.value(session_row),
             session_data.collection_id.value(session_row),

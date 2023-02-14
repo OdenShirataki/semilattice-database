@@ -25,7 +25,7 @@ fn test2() {
                         fields: vec![
                             KeyValue::new("name", "test".to_owned()),
                             KeyValue::new("text", "test".to_owned()),
-                            KeyValue::new("image_type", "".to_owned()),
+                            KeyValue::new("image_type", "application/octet-stream".to_owned()),
                             KeyValue::new("image_name", "".to_owned()),
                             KeyValue::new("image_data", "".to_owned()),
                         ],
@@ -36,6 +36,10 @@ fn test2() {
                 .unwrap();
             database.commit(&mut sess).unwrap();
         }
+    }
+    {
+        let mut database = Database::new(dir).unwrap();
+        let collection_bbs = database.collection_id_or_create("bbs").unwrap();
         if let Ok(mut sess) = database.session("bbs", None) {
             database
                 .update(
@@ -49,6 +53,10 @@ fn test2() {
             database.commit(&mut sess).unwrap();
         }
         println!("OK1");
+    }
+    {
+        let mut database = Database::new(dir).unwrap();
+        let collection_bbs = database.collection_id_or_create("bbs").unwrap();
         if let Ok(mut sess) = database.session("bbs", None) {
             database
                 .update(

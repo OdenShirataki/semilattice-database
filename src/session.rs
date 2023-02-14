@@ -124,39 +124,41 @@ impl Session {
     }
     pub(super) fn init_temporary_data(session_data: &SessionData) -> io::Result<TemporaryData> {
         let mut temporary_data = HashMap::new();
-        for session_row in 1..session_data.sequence.max_rows()? {
-            let collection_id = session_data.collection_id.value(session_row).unwrap();
-            if collection_id > 0 {
-                let col = temporary_data
-                    .entry(collection_id)
-                    .or_insert(HashMap::new());
-                let row = session_data.row.value(session_row).unwrap();
-
-                let temporary_row: i64 = if row == 0 {
-                    -(session_row as i64)
-                } else {
-                    row as i64
-                };
-                let mut fields = HashMap::new();
-                for (key, val) in &session_data.fields {
-                    if let Some(v) = val.get(session_row) {
-                        fields.insert(key.to_string(), v.to_vec());
+        for session_row in 1..=session_data.sequence.max_rows()? {
+            if let Some(collection_id) = session_data.collection_id.value(session_row){
+                if collection_id > 0 {
+                    let col = temporary_data
+                        .entry(collection_id)
+                        .or_insert(HashMap::new());
+                    let row = session_data.row.value(session_row).unwrap();
+    
+                    let temporary_row: i64 = if row == 0 {
+                        -(session_row as i64)
+                    } else {
+                        row as i64
+                    };
+                    let mut fields = HashMap::new();
+                    for (key, val) in &session_data.fields {
+                        if let Some(v) = val.get(session_row) {
+                            fields.insert(key.to_string(), v.to_vec());
+                        }
                     }
-                }
-                col.insert(
-                    temporary_row,
-                    TemporaryDataEntity {
-                        activity: if session_data.activity.value(session_row).unwrap() == 1 {
-                            Activity::Active
-                        } else {
-                            Activity::Inactive
+                    col.insert(
+                        temporary_row,
+                        TemporaryDataEntity {
+                            activity: if session_data.activity.value(session_row).unwrap() == 1 {
+                                Activity::Active
+                            } else {
+                                Activity::Inactive
+                            },
+                            term_begin: session_data.term_begin.value(session_row).unwrap(),
+                            term_end: session_data.term_end.value(session_row).unwrap(),
+                            fields,
                         },
-                        term_begin: session_data.term_begin.value(session_row).unwrap(),
-                        term_end: session_data.term_end.value(session_row).unwrap(),
-                        fields,
-                    },
-                );
+                    );
+                }
             }
+            
         }
         Ok(temporary_data)
     }

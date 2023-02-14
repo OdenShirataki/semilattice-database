@@ -78,12 +78,6 @@ pub(super) fn update_recursive(
 ) -> std::io::Result<()> {
     for record in records {
         if let Ok(session_row) = session_data.sequence.insert(sequence_number) {
-            session_data.row.resize_to(session_row)?;
-            session_data.operation.resize_to(session_row)?;
-            session_data.activity.resize_to(session_row)?;
-            session_data.term_begin.resize_to(session_row)?;
-            session_data.term_end.resize_to(session_row)?;
-
             match record {
                 Record::New {
                     collection_id,
