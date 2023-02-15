@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::{cmp::Ordering, io};
 use versatile_data::{Activity, Data, Operation};
 
@@ -49,7 +50,7 @@ impl Collection {
     }
 }
 
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, Serialize)]
 pub struct CollectionRow {
     collection_id: i32,
     row: u32,

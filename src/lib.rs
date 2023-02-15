@@ -156,12 +156,14 @@ impl Database {
         }
         Ok(())
     }
-    pub fn commit(&mut self, session: &mut Session) -> Result<(), anyhow::Error> {
+    pub fn commit(&mut self, session: &mut Session) -> Result<Vec<CollectionRow>, anyhow::Error> {
         if let Some(ref mut data) = session.session_data {
-            commit::commit(self, data)?;
+            let r = commit::commit(self, data)?;
             self.session_clear(session)?;
+            Ok(r)
+        } else {
+            Ok(vec![])
         }
-        Ok(())
     }
     pub fn session_clear(&self, session: &mut Session) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());

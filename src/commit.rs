@@ -9,7 +9,9 @@ use crate::{
 pub fn commit(
     main_database: &mut Database,
     session_data: &SessionData,
-) -> Result<(), anyhow::Error> {
+) -> Result<Vec<CollectionRow>, anyhow::Error> {
+    let mut commit_rows = Vec::new();
+
     let mut session_collection_row_map: HashMap<u32, CollectionRow> = HashMap::new();
 
     let mut session_relation: HashMap<u32, Vec<(u32, SessionCollectionRow)>> = HashMap::new();
@@ -88,6 +90,7 @@ pub fn commit(
                                 CollectionRow::new(collection_id, row)
                             }
                         };
+                        commit_rows.push(collection_row);
                         main_database
                             .relation
                             .delete_by_collection_row(collection_row)?;
@@ -134,7 +137,7 @@ pub fn commit(
             }
         }
     }
-    Ok(())
+    Ok(commit_rows)
 }
 
 pub(super) fn delete_recursive(
