@@ -4,7 +4,7 @@ use std::{
 };
 use versatile_data::{Order, RowSet};
 
-use super::{Session, TemporaryDataEntity};
+use super::{Session, SessionOperation, TemporaryDataEntity};
 use crate::{search, Activity, Condition, Database};
 
 pub struct SessionSearch<'a> {
@@ -169,15 +169,17 @@ impl<'a> SessionSearch<'a> {
                 let mut tmp_rows: BTreeSet<i64> = BTreeSet::new();
                 for row in r {
                     if let Some(ent) = tmp.get(&(row as i64)) {
-                        let mut is_match = true;
-                        for c in &self.conditions {
-                            is_match = Self::temporary_data_match(ent, c);
-                            if !is_match {
-                                break;
+                        if ent.operation != SessionOperation::Delete {
+                            let mut is_match = true;
+                            for c in &self.conditions {
+                                is_match = Self::temporary_data_match(ent, c);
+                                if !is_match {
+                                    break;
+                                }
                             }
-                        }
-                        if is_match {
-                            tmp_rows.insert(row as i64);
+                            if is_match {
+                                tmp_rows.insert(row as i64);
+                            }
                         }
                     } else {
                         tmp_rows.insert(row as i64);

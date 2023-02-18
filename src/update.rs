@@ -119,6 +119,7 @@ pub(super) fn update_recursive(
                             activity: *activity,
                             term_begin,
                             term_end,
+                            operation: SessionOperation::New,
                             fields: tmp_fields,
                         },
                     );
@@ -194,7 +195,6 @@ pub(super) fn update_recursive(
                     } else {
                         0
                     };
-
                     let col = temporary_data
                         .entry(collection_id)
                         .or_insert(HashMap::new());
@@ -202,6 +202,7 @@ pub(super) fn update_recursive(
                         activity: *activity,
                         term_begin,
                         term_end,
+                        operation: SessionOperation::Update,
                         fields: HashMap::new(),
                     });
                     for kv in fields {
