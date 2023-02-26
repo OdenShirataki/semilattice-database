@@ -11,7 +11,7 @@ use versatile_data::{
 
 use crate::{Collection, Database, Depend, RelationIndex};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Condition {
     Activity(Activity),
     Term(Term),
@@ -24,6 +24,7 @@ pub enum Condition {
     Depend(Depend),
 }
 
+#[derive(Debug)]
 pub struct Search {
     collection_id: i32,
     conditions: Vec<Condition>,

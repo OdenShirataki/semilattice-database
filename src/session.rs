@@ -33,7 +33,7 @@ pub struct SessionInfo {
     pub(super) expire: i64,
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Debug)]
 pub struct SessionCollectionRow {
     pub(crate) collection_id: i32,
     pub(crate) row: i64, //-の場合はセッションの行が入る
@@ -154,7 +154,7 @@ impl Session {
                                 term_begin: 0,
                                 term_end: 0,
                                 operation,
-                                fields:HashMap::new(),
+                                fields: HashMap::new(),
                             }
                         } else {
                             TemporaryDataEntity {

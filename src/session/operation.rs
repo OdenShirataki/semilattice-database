@@ -10,11 +10,13 @@ pub enum SessionOperation {
     Delete,
 }
 
+#[derive(Debug)]
 pub enum Depends {
     Default,
     Overwrite(Vec<(String, SessionCollectionRow)>),
 }
 
+#[derive(Debug)]
 pub struct Pend {
     key: String,
     records: Vec<Record>,
@@ -33,6 +35,8 @@ impl Pend {
         &self.records
     }
 }
+
+#[derive(Debug)]
 pub enum Record {
     New {
         collection_id: i32,

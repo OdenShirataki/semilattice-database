@@ -4,7 +4,7 @@ use versatile_data::{IdxSized, RowFragment};
 
 use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Depend {
     key: String,
     collection_row: CollectionRow,

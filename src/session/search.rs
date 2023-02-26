@@ -48,9 +48,17 @@ impl<'a> SessionSearch<'a> {
         self
     }
 
-    fn temporary_data_match(ent: &TemporaryDataEntity, condition: &Condition) -> bool {
+    fn temporary_data_match(row: i64, ent: &TemporaryDataEntity, condition: &Condition) -> bool {
         let mut is_match = true;
         match condition {
+            Condition::Row(cond) => {
+                is_match = match cond {
+                    search::Number::In(c) => c.contains(&(row as isize)),
+                    search::Number::Max(c) => row <= *c as i64,
+                    search::Number::Min(c) => row >= *c as i64,
+                    search::Number::Range(c) => c.contains(&(row as isize)),
+                }
+            }
             Condition::Activity(activity) => {
                 if ent.activity != *activity {
                     is_match = false;
@@ -131,7 +139,7 @@ impl<'a> SessionSearch<'a> {
             Condition::Narrow(conditions) => {
                 is_match = true;
                 for c in conditions {
-                    is_match &= Self::temporary_data_match(ent, c);
+                    is_match &= Self::temporary_data_match(row, ent, c);
                     if !is_match {
                         break;
                     }
@@ -140,20 +148,30 @@ impl<'a> SessionSearch<'a> {
             Condition::Wide(conditions) => {
                 is_match = false;
                 for c in conditions {
-                    is_match |= Self::temporary_data_match(ent, c);
+                    is_match |= Self::temporary_data_match(row, ent, c);
                     if is_match {
                         break;
                     }
                 }
             }
+
             Condition::Depend(_) => {}
-            Condition::Row(_) => {}
             Condition::LastUpdated(_) => {}
             Condition::Uuid(_) => {}
         }
         is_match
     }
 
+    fn temprary_data_match_conditions(&self, row: i64, ent: &TemporaryDataEntity) -> bool {
+        let mut is_match = true;
+        for c in &self.conditions {
+            is_match = Self::temporary_data_match(row, ent, c);
+            if !is_match {
+                break;
+            }
+        }
+        is_match
+    }
     pub(crate) fn result(
         self,
         database: &Database,
@@ -170,14 +188,7 @@ impl<'a> SessionSearch<'a> {
                 for row in r {
                     if let Some(ent) = tmp.get(&(row as i64)) {
                         if ent.operation != SessionOperation::Delete {
-                            let mut is_match = true;
-                            for c in &self.conditions {
-                                is_match = Self::temporary_data_match(ent, c);
-                                if !is_match {
-                                    break;
-                                }
-                            }
-                            if is_match {
+                            if self.temprary_data_match_conditions(row as i64, ent) {
                                 tmp_rows.insert(row as i64);
                             }
                         }
@@ -189,7 +200,13 @@ impl<'a> SessionSearch<'a> {
                     //セッション中に新規作成されたデータ
                     let row = *row;
                     if row < 0 {
-                        tmp_rows.insert(row);
+                        if let Some(ent) = tmp.get(&(row as i64)) {
+                            if ent.operation != SessionOperation::Delete {
+                                if self.temprary_data_match_conditions(row, ent) {
+                                    tmp_rows.insert(row as i64);
+                                }
+                            }
+                        }
                     }
                 }
                 let mut new_rows = tmp_rows.into_iter().collect();
