@@ -38,12 +38,14 @@ pub fn update_row(
     activity: &Activity,
     term_begin: u64,
     term_end: u64,
+    uuid: u128,
     fields: &Vec<KeyValue>,
 ) -> std::io::Result<()> {
     session_data.row.update(session_row, row)?;
     session_data.activity.update(session_row, *activity as u8)?;
     session_data.term_begin.update(session_row, term_begin)?;
     session_data.term_end.update(session_row, term_end)?;
+    session_data.uuid.update(session_row, uuid)?;
     for kv in fields {
         let key = kv.key();
         let field = if session_data.fields.contains_key(key) {
@@ -113,12 +115,14 @@ pub(super) fn update_recursive(
                     for kv in fields {
                         tmp_fields.insert(kv.key().to_string(), kv.value().to_vec());
                     }
+                    let uuid = versatile_data::create_uuid();
                     col.insert(
                         virtual_row,
                         TemporaryDataEntity {
                             activity: *activity,
                             term_begin,
                             term_end,
+                            uuid,
                             operation: SessionOperation::New,
                             fields: tmp_fields,
                         },
@@ -138,6 +142,7 @@ pub(super) fn update_recursive(
                         activity,
                         term_begin,
                         term_end,
+                        uuid,
                         fields,
                     )?;
 
@@ -195,13 +200,32 @@ pub(super) fn update_recursive(
                     } else {
                         0
                     };
+
                     let col = temporary_data
                         .entry(collection_id)
                         .or_insert(HashMap::new());
+
+                    let uuid = {
+                        if let Some(collection) = master_database.collection(collection_id) {
+                            let uuid = collection.uuid(row as u32);
+                            if uuid == 0 {
+                                versatile_data::create_uuid()
+                            } else {
+                                uuid
+                            }
+                        } else {
+                            if let Some(uuid) = session_data.uuid.value(session_row) {
+                                uuid
+                            } else {
+                                versatile_data::create_uuid()
+                            }
+                        }
+                    };
                     let entity = col.entry(row).or_insert(TemporaryDataEntity {
                         activity: *activity,
                         term_begin,
                         term_end,
+                        uuid,
                         operation: SessionOperation::Update,
                         fields: HashMap::new(),
                     });
@@ -223,6 +247,7 @@ pub(super) fn update_recursive(
                         activity,
                         term_begin,
                         term_end,
+                        uuid,
                         fields,
                     )?;
                     match depends {

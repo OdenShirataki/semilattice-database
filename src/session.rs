@@ -61,6 +61,7 @@ pub struct TemporaryDataEntity {
     pub(super) activity: Activity,
     pub(super) term_begin: u64,
     pub(super) term_end: u64,
+    pub(super) uuid: u128,
     pub(super) operation: SessionOperation,
     pub(super) fields: HashMap<String, Vec<u8>>,
 }
@@ -73,6 +74,12 @@ impl TemporaryDataEntity {
     }
     pub fn term_end(&self) -> u64 {
         self.term_end
+    }
+    pub fn uuid(&self) -> u128 {
+        self.uuid
+    }
+    pub fn uuid_string(&self) -> String {
+        versatile_data::uuid_string(self.uuid)
     }
     pub fn fields(&self) -> &HashMap<String, Vec<u8>> {
         &self.fields
@@ -89,6 +96,7 @@ pub struct SessionData {
     pub(super) activity: IdxSized<u8>,
     pub(super) term_begin: IdxSized<u64>,
     pub(super) term_end: IdxSized<u64>,
+    pub(super) uuid: IdxSized<u128>,
     pub(super) fields: HashMap<String, FieldData>,
     pub(super) relation: SessionRelation,
 }
@@ -145,7 +153,6 @@ impl Session {
                         }
                     }
                     let operation = session_data.operation.value(session_row).unwrap();
-
                     col.insert(
                         temporary_row,
                         if operation == SessionOperation::Delete {
@@ -153,6 +160,7 @@ impl Session {
                                 activity: Activity::Inactive,
                                 term_begin: 0,
                                 term_end: 0,
+                                uuid: 0,
                                 operation,
                                 fields: HashMap::new(),
                             }
@@ -166,6 +174,11 @@ impl Session {
                                 },
                                 term_begin: session_data.term_begin.value(session_row).unwrap(),
                                 term_end: session_data.term_end.value(session_row).unwrap(),
+                                uuid: if let Some(uuid) = session_data.uuid.value(session_row) {
+                                    uuid
+                                } else {
+                                    0
+                                },
                                 operation,
                                 fields,
                             }
@@ -249,6 +262,11 @@ impl Session {
             term_end: IdxSized::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("term_end.i");
+                path
+            })?,
+            uuid: IdxSized::new({
+                let mut path = session_dir.to_path_buf();
+                path.push("uuid.i");
                 path
             })?,
             fields,

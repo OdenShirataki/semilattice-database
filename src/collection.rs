@@ -27,8 +27,11 @@ impl Collection {
     pub fn serial(&self, row: u32) -> u32 {
         self.data.serial(row)
     }
-    pub fn uuid_str(&self, row: u32) -> String {
-        self.data.uuid_str(row)
+    pub fn uuid(&self, row: u32) -> u128 {
+        self.data.uuid(row)
+    }
+    pub fn uuid_string(&self, row: u32) -> String {
+        self.data.uuid_string(row)
     }
     pub fn last_updated(&self, row: u32) -> u64 {
         self.data.last_updated(row)

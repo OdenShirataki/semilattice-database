@@ -296,7 +296,7 @@ if let Some(t1) = database.collection(test1) {
             } else {
                 "Inactive"
             },
-            t1.uuid_str(i),
+            t1.uuid_string(i),
             t1.last_updated(i),
             t1.term_begin(i),
             t1.term_end(i),
