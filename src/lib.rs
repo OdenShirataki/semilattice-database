@@ -189,11 +189,16 @@ impl Database {
 
         Ok(())
     }
-    pub fn update(&self, session: &mut Session, records: Vec<Record>) -> io::Result<()> {
+    pub fn update(
+        &self,
+        session: &mut Session,
+        records: Vec<Record>,
+    ) -> io::Result<Vec<SessionCollectionRow>> {
+        let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
         if let Some(ref mut session_data) = session.session_data {
             let sequence = session_data.sequence_number.next();
-            update::update_recursive(
+            ret.append(&mut update::update_recursive(
                 self,
                 session_data,
                 &mut session.temporary_data,
@@ -201,9 +206,9 @@ impl Database {
                 sequence,
                 &records,
                 None,
-            )?;
+            )?);
         }
-        Ok(())
+        Ok(ret)
     }
     fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
         let mut max_id = 0;

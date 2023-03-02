@@ -77,7 +77,8 @@ pub(super) fn update_recursive(
     sequence_number: usize,
     records: &Vec<Record>,
     depend_by_pend: Option<(&str, u32)>,
-) -> std::io::Result<()> {
+) -> std::io::Result<Vec<SessionCollectionRow>> {
+    let mut ret = vec![];
     for record in records {
         if let Ok(session_row) = session_data.sequence.insert(sequence_number) {
             match record {
@@ -91,8 +92,9 @@ pub(super) fn update_recursive(
                     pends,
                 } => {
                     let collection_id = *collection_id;
-
                     let virtual_row = -(session_row as i64);
+
+                    ret.push(SessionCollectionRow::new(collection_id, virtual_row));
 
                     let term_begin = if let Term::Overwrite(term_begin) = term_begin {
                         *term_begin
@@ -178,6 +180,8 @@ pub(super) fn update_recursive(
                 } => {
                     let collection_id = *collection_id;
                     let row = *row;
+
+                    ret.push(SessionCollectionRow::new(collection_id, row));
 
                     let term_begin = match term_begin {
                         Term::Overwrite(term_begin) => *term_begin,
@@ -310,5 +314,5 @@ pub(super) fn update_recursive(
             }
         }
     }
-    Ok(())
+    Ok(ret)
 }
