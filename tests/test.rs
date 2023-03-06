@@ -192,9 +192,9 @@ fn test() {
                 std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
                 std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
             );
-            let search = database.search(history).depend(Depend::new(
+            let search = database.search(history).depend(SessionDepend::new(
                 "history",
-                CollectionRow::new(collection_person, i as u32),
+                SessionCollectionRow::new(collection_person, i as i64),
             ));
             for h in database.result(search, &vec![]).unwrap() {
                 println!(

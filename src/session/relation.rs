@@ -5,6 +5,7 @@ use versatile_data::IdxSized;
 
 use super::SessionCollectionRow;
 
+#[derive(Debug, Clone)]
 pub struct SessionDepend {
     key: String,
     collection_row: SessionCollectionRow,

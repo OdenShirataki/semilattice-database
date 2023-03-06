@@ -9,7 +9,7 @@ use versatile_data::{
     Activity, Condition as VersatileDataCondition, Order, RowSet, Search as VersatileDataSearch,
 };
 
-use crate::{Collection, Database, Depend, RelationIndex};
+use crate::{Collection, CollectionRow, Database, RelationIndex, SessionDepend};
 
 #[derive(Clone, Debug)]
 pub enum Condition {
@@ -21,7 +21,7 @@ pub enum Condition {
     Field(String, Field),
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
-    Depend(Depend),
+    Depend(SessionDepend),
 }
 
 #[derive(Debug)]
@@ -50,7 +50,7 @@ impl Search {
         self.conditions.push(Condition::Activity(Activity::Active));
         self
     }
-    pub fn depend(mut self, condition: Depend) -> Self {
+    pub fn depend(mut self, condition: SessionDepend) -> Self {
         self.conditions.push(Condition::Depend(condition));
         self
     }
@@ -108,18 +108,26 @@ impl Search {
                 )?;
             }
             Condition::Depend(depend) => {
-                let rel = relation.pends(depend.key(), depend.collection_row());
-                let collection_id = collection.id();
-                spawn(move || {
-                    let mut tmp = RowSet::default();
-                    for r in rel {
-                        if r.collection_id() == collection_id {
-                            tmp.insert(r.row());
+                let depend_row = depend.row();
+                if depend_row > 0 {
+                    let rel = relation.pends(
+                        depend.key(),
+                        &CollectionRow::new(depend.collection_id(), depend_row as u32),
+                    );
+                    let collection_id = collection.id();
+                    spawn(move || {
+                        let mut tmp = RowSet::default();
+                        for r in rel {
+                            if r.collection_id() == collection_id {
+                                tmp.insert(r.row());
+                            }
                         }
-                    }
-                    let tx = tx.clone();
-                    tx.send(tmp).unwrap();
-                });
+                        let tx = tx.clone();
+                        tx.send(tmp).unwrap();
+                    });
+                } else {
+                    //todo? : search session depend
+                }
             }
             Condition::Narrow(conditions) => {
                 let (tx_inner, rx) = channel();
