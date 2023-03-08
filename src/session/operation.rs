@@ -2,7 +2,7 @@ use versatile_data::{Activity, KeyValue, Term};
 
 use super::SessionCollectionRow;
 
-#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SessionOperation {
     #[default]
     New,

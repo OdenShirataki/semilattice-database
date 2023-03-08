@@ -57,6 +57,8 @@ impl From<CollectionRow> for SessionCollectionRow {
         }
     }
 }
+
+#[derive(Debug)]
 pub struct TemporaryDataEntity {
     pub(super) activity: Activity,
     pub(super) term_begin: u64,
@@ -100,6 +102,7 @@ pub struct SessionData {
     pub(super) fields: HashMap<String, FieldData>,
     pub(super) relation: SessionRelation,
 }
+
 pub struct Session {
     name: String,
     pub(super) session_data: Option<SessionData>,
