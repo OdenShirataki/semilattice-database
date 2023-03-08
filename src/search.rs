@@ -111,7 +111,7 @@ impl Search {
                 let depend_row = depend.row();
                 if depend_row > 0 {
                     let rel = relation.pends(
-                        depend.key(),
+                        Some(depend.key()),
                         &CollectionRow::new(depend.collection_id(), depend_row as u32),
                     );
                     let collection_id = collection.id();

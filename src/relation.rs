@@ -102,17 +102,26 @@ impl RelationIndex {
         }
         Ok(())
     }
-    pub fn pends(&self, key: &str, depend: &CollectionRow) -> Vec<CollectionRow> {
+    pub fn pends(&self, key: Option<&str>, depend: &CollectionRow) -> Vec<CollectionRow> {
         let mut ret: Vec<CollectionRow> = Vec::new();
-        if let Some(key) = self.key_names.find_row(key.as_bytes()) {
+        if let Some(key) = key {
+            if let Some(key) = self.key_names.find_row(key.as_bytes()) {
+                let c = self.rows.depend.select_by_value(depend);
+                for i in c {
+                    if let (Some(key_row), Some(collection_row)) =
+                        (self.rows.key.value(i), self.rows.pend.value(i))
+                    {
+                        if key_row == key {
+                            ret.push(collection_row);
+                        }
+                    }
+                }
+            }
+        } else {
             let c = self.rows.depend.select_by_value(depend);
             for i in c {
-                if let (Some(key_row), Some(collection_row)) =
-                    (self.rows.key.value(i), self.rows.pend.value(i))
-                {
-                    if key_row == key {
-                        ret.push(collection_row);
-                    }
+                if let Some(collection_row) = self.rows.pend.value(i) {
+                    ret.push(collection_row);
                 }
             }
         }
