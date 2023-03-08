@@ -148,21 +148,22 @@ pub(super) fn delete_recursive(
         let depend = CollectionRow::new(target.collection_id, target.row as u32);
 
         for relation_row in database.relation.index_depend().select_by_value(&depend) {
+            let mut chain=None;
             if let Some(collection_row) = database.relation.index_pend().value(relation_row) {
-                delete_recursive(
-                    database,
-                    &SessionCollectionRow::new(
-                        collection_row.collection_id(),
-                        collection_row.row() as i64,
-                    ),
-                )?;
-                if let Some(collection) = database.collection_mut(collection_row.collection_id()) {
-                    collection.update(&Operation::Delete {
-                        row: collection_row.row(),
-                    })?;
-                }
+                chain=Some(collection_row);
             }
             database.relation.delete(relation_row)?;
+            if let Some(collection_row)=chain{
+                let collection_id = collection_row.collection_id();
+                let row = collection_row.row();
+                delete_recursive(
+                    database,
+                    &SessionCollectionRow::new(collection_id, row as i64),
+                )?;
+                if let Some(collection) = database.collection_mut(collection_id) {
+                    collection.update(&Operation::Delete { row })?;
+                }
+            }
         }
 
         for relation_row in database.relation.index_pend().select_by_value(&depend) {
