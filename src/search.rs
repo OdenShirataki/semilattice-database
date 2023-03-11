@@ -125,8 +125,6 @@ impl Search {
                         let tx = tx.clone();
                         tx.send(tmp).unwrap();
                     });
-                } else {
-                    //todo? : search session depend
                 }
             }
             Condition::Narrow(conditions) => {

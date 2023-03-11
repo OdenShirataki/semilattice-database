@@ -48,7 +48,12 @@ impl<'a> SessionSearch<'a> {
         self
     }
 
-    fn temporary_data_match(row: i64, ent: &TemporaryDataEntity, condition: &Condition) -> bool {
+    fn temporary_data_match(
+        &self,
+        row: i64,
+        ent: &TemporaryDataEntity,
+        condition: &Condition,
+    ) -> bool {
         let mut is_match = true;
         match condition {
             Condition::Row(cond) => {
@@ -139,7 +144,7 @@ impl<'a> SessionSearch<'a> {
             Condition::Narrow(conditions) => {
                 is_match = true;
                 for c in conditions {
-                    is_match &= Self::temporary_data_match(row, ent, c);
+                    is_match &= self.temporary_data_match(row, ent, c);
                     if !is_match {
                         break;
                     }
@@ -148,14 +153,35 @@ impl<'a> SessionSearch<'a> {
             Condition::Wide(conditions) => {
                 is_match = false;
                 for c in conditions {
-                    is_match |= Self::temporary_data_match(row, ent, c);
+                    is_match |= self.temporary_data_match(row, ent, c);
                     if is_match {
                         break;
                     }
                 }
             }
-
-            Condition::Depend(_) => {}
+            Condition::Depend(condition) => {
+                is_match = false;
+                if let Some(ref session_data) = self.session.session_data {
+                    for depends_row in session_data.relation.rows.depend.select_by_value(
+                        &crate::SessionCollectionRow {
+                            collection_id: condition.collection_id(),
+                            row: condition.row(),
+                        },
+                    ) {
+                        if let (Some(session_collection_id), Some(session_row), Some(key)) = (
+                            session_data.collection_id.value(depends_row),
+                            session_data.relation.rows.session_row.value(depends_row),
+                            session_data.relation.rows.key.value(depends_row),
+                        ) {
+                            if let Ok(key) = unsafe { session_data.relation.key_names.str(key) } {
+                                is_match = key == condition.key()
+                                    && condition.collection_id() == session_collection_id
+                                    && session_row == (-row as u32);
+                            }
+                        }
+                    }
+                }
+            }
             Condition::LastUpdated(_) => {}
             Condition::Uuid(_) => {}
         }
@@ -165,7 +191,7 @@ impl<'a> SessionSearch<'a> {
     fn temprary_data_match_conditions(&self, row: i64, ent: &TemporaryDataEntity) -> bool {
         let mut is_match = true;
         for c in &self.conditions {
-            is_match = Self::temporary_data_match(row, ent, c);
+            is_match = self.temporary_data_match(row, ent, c);
             if !is_match {
                 break;
             }
@@ -197,7 +223,7 @@ impl<'a> SessionSearch<'a> {
                     }
                 }
                 for (row, _) in tmp {
-                    //セッション中に新規作成されたデータ
+                    //session new data
                     let row = *row;
                     if row < 0 {
                         if let Some(ent) = tmp.get(&(row as i64)) {
