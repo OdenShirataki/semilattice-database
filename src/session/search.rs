@@ -161,24 +161,12 @@ impl<'a> SessionSearch<'a> {
             }
             Condition::Depend(condition) => {
                 is_match = false;
-                if let Some(ref session_data) = self.session.session_data {
-                    for depends_row in session_data.relation.rows.depend.select_by_value(
-                        &crate::SessionCollectionRow {
-                            collection_id: condition.collection_id(),
-                            row: condition.row(),
-                        },
-                    ) {
-                        if let (Some(session_collection_id), Some(session_row), Some(key)) = (
-                            session_data.collection_id.value(depends_row),
-                            session_data.relation.rows.session_row.value(depends_row),
-                            session_data.relation.rows.key.value(depends_row),
-                        ) {
-                            if let Ok(key) = unsafe { session_data.relation.key_names.str(key) } {
-                                is_match = key == condition.key()
-                                    && condition.collection_id() == session_collection_id
-                                    && session_row == (-row as u32);
-                            }
-                        }
+                if let Some(session_depends) =
+                    self.session.depends(Some(condition.key()), -row as u32)
+                {
+                    for depend in session_depends {
+                        is_match = condition.collection_id() == depend.collection_id()
+                            && condition.row() == depend.row();
                     }
                 }
             }
