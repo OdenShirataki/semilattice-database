@@ -70,7 +70,6 @@ impl SessionRelation {
         if let Ok(key_id) = self.key_names.entry(relation_key.as_bytes()) {
             self.rows.key.insert(key_id).unwrap();
             self.rows.session_row.insert(session_row).unwrap();
-
             self.rows.depend.insert(depend).unwrap();
         }
     }
@@ -84,6 +83,13 @@ impl SessionRelation {
                 self.rows.session_row.insert(new_session_row).unwrap();
                 self.rows.depend.insert(depend).unwrap();
             }
+        }
+    }
+    pub fn delete(&mut self, session_row: u32) {
+        for relation_row in self.rows.session_row.select_by_value(&session_row) {
+            self.rows.session_row.delete(relation_row);
+            self.rows.key.delete(relation_row);
+            self.rows.depend.delete(relation_row);
         }
     }
 }

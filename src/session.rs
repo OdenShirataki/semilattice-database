@@ -134,59 +134,68 @@ impl Session {
     pub fn name(&mut self) -> &str {
         &self.name
     }
+    pub fn move_sequence(&mut self, current: usize) {
+        if let Some(session_data) = &mut self.session_data {
+            session_data.sequence_number.set_current(current);
+        }
+    }
     pub(super) fn init_temporary_data(session_data: &SessionData) -> io::Result<TemporaryData> {
         let mut temporary_data = HashMap::new();
-        for session_row in 1..=session_data.sequence.max_rows()? {
-            if let Some(collection_id) = session_data.collection_id.value(session_row) {
-                if collection_id > 0 {
-                    let col = temporary_data
-                        .entry(collection_id)
-                        .or_insert(HashMap::new());
-                    let row = session_data.row.value(session_row).unwrap();
+        let current = session_data.sequence_number.current() as u32;
+        if current > 0 {
+            for session_row in 1..=current {
+                if let Some(collection_id) = session_data.collection_id.value(session_row) {
+                    if collection_id > 0 {
+                        let col = temporary_data
+                            .entry(collection_id)
+                            .or_insert(HashMap::new());
+                        let row = session_data.row.value(session_row).unwrap();
 
-                    let temporary_row: i64 = if row == 0 {
-                        -(session_row as i64)
-                    } else {
-                        row as i64
-                    };
-                    let mut fields = HashMap::new();
-                    for (key, val) in &session_data.fields {
-                        if let Some(v) = val.get(session_row) {
-                            fields.insert(key.to_string(), v.to_vec());
-                        }
-                    }
-                    let operation = session_data.operation.value(session_row).unwrap();
-                    col.insert(
-                        temporary_row,
-                        if operation == SessionOperation::Delete {
-                            TemporaryDataEntity {
-                                activity: Activity::Inactive,
-                                term_begin: 0,
-                                term_end: 0,
-                                uuid: 0,
-                                operation,
-                                fields: HashMap::new(),
-                            }
+                        let temporary_row: i64 = if row == 0 {
+                            -(session_row as i64)
                         } else {
-                            TemporaryDataEntity {
-                                activity: if session_data.activity.value(session_row).unwrap() == 1
-                                {
-                                    Activity::Active
-                                } else {
-                                    Activity::Inactive
-                                },
-                                term_begin: session_data.term_begin.value(session_row).unwrap(),
-                                term_end: session_data.term_end.value(session_row).unwrap(),
-                                uuid: if let Some(uuid) = session_data.uuid.value(session_row) {
-                                    uuid
-                                } else {
-                                    0
-                                },
-                                operation,
-                                fields,
+                            row as i64
+                        };
+                        let mut fields = HashMap::new();
+                        for (key, val) in &session_data.fields {
+                            if let Some(v) = val.get(session_row) {
+                                fields.insert(key.to_string(), v.to_vec());
                             }
-                        },
-                    );
+                        }
+                        let operation = session_data.operation.value(session_row).unwrap();
+                        col.insert(
+                            temporary_row,
+                            if operation == SessionOperation::Delete {
+                                TemporaryDataEntity {
+                                    activity: Activity::Inactive,
+                                    term_begin: 0,
+                                    term_end: 0,
+                                    uuid: 0,
+                                    operation,
+                                    fields: HashMap::new(),
+                                }
+                            } else {
+                                TemporaryDataEntity {
+                                    activity: if session_data.activity.value(session_row).unwrap()
+                                        == 1
+                                    {
+                                        Activity::Active
+                                    } else {
+                                        Activity::Inactive
+                                    },
+                                    term_begin: session_data.term_begin.value(session_row).unwrap(),
+                                    term_end: session_data.term_end.value(session_row).unwrap(),
+                                    uuid: if let Some(uuid) = session_data.uuid.value(session_row) {
+                                        uuid
+                                    } else {
+                                        0
+                                    },
+                                    operation,
+                                    fields,
+                                }
+                            },
+                        );
+                    }
                 }
             }
         }
@@ -229,7 +238,7 @@ impl Session {
         Ok(SessionData {
             sequence_number: SequenceNumber::new({
                 let mut path = session_dir.to_path_buf();
-                path.push("sequece_number.i");
+                path.push("sequence_number.i");
                 path
             })?,
             sequence: IdxSized::new({

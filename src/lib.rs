@@ -101,6 +101,25 @@ impl Database {
         }
         Session::new(self, session_name, expire_interval_sec)
     }
+    /*
+    pub fn session_history(&self, session: &str) {
+        if let Ok(sess) = self.session(session, None) {
+            if let Some(ref session_data) = sess.session_data {
+                for i in session_data.sequence.triee().iter() {
+                    let sequence = i.row();
+                    if let (Some(collection_id), Some(row)) = (
+                        session_data.collection_id.value(sequence),
+                        session_data.row.value(sequence),
+                    ) {
+                        if let Some(collection) = self.collection(collection_id) {
+                            println!("{} : {}@{}", sequence, row, collection.name());
+                        }
+                    }
+                }
+            }
+        }
+    }
+     */
     pub fn sessions(&self) -> io::Result<Vec<SessionInfo>> {
         let mut sessions = Vec::new();
         if self.sessions_dir.exists() {
@@ -197,6 +216,30 @@ impl Database {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
         if let Some(ref mut session_data) = session.session_data {
+            let current = session_data.sequence_number.current();
+            let max = session_data.sequence_number.max();
+            if current < max {
+                for row in ((current + 1)..=max).rev() {
+                    for session_row in session_data.sequence.select_by_value(&row) {
+                        session_data.collection_id.delete(session_row);
+                        session_data.row.delete(session_row);
+                        session_data.operation.delete(session_row);
+                        session_data.activity.delete(session_row);
+                        session_data.term_begin.delete(session_row);
+                        session_data.term_end.delete(session_row);
+                        session_data.uuid.delete(session_row);
+
+                        for (_field_name, field_data) in session_data.fields.iter_mut() {
+                            field_data.delete(session_row);
+                        }
+
+                        session_data.relation.delete(session_row);
+
+                        session_data.sequence.delete(session_row);
+                    }
+                }
+            }
+
             let sequence = session_data.sequence_number.next();
             ret.append(&mut update::update_recursive(
                 self,
