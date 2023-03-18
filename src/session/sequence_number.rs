@@ -9,7 +9,7 @@ impl SequenceNumber {
     pub fn new(path: PathBuf) -> std::io::Result<Self> {
         let mut filemmap = FileMmap::new(path)?;
         let init_size = std::mem::size_of::<usize>() as u64 * 2;
-        if filemmap.len()? < init_size {
+        if filemmap.len()? == 0 {
             filemmap.set_len(init_size)?;
         }
         Ok(Self { filemmap })

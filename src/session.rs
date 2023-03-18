@@ -38,7 +38,7 @@ pub struct SessionInfo {
     pub(super) expire: i64,
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Hash, Debug)]
 pub struct SessionCollectionRow {
     pub(crate) collection_id: i32,
     pub(crate) row: i64, //-の場合はセッションの行が入る
@@ -156,60 +156,77 @@ impl Session {
     }
     pub(super) fn init_temporary_data(session_data: &SessionData) -> io::Result<TemporaryData> {
         let mut temporary_data = HashMap::new();
-        let current = session_data.sequence_number.current() as u32;
+        let current = session_data.sequence_number.current();
         if current > 0 {
-            for session_row in 1..=current {
-                if let Some(collection_id) = session_data.collection_id.value(session_row) {
-                    if collection_id > 0 {
-                        let col = temporary_data
-                            .entry(collection_id)
-                            .or_insert(HashMap::new());
-                        let row = session_data.row.value(session_row).unwrap();
+            let mut fields_overlaps: HashMap<SessionCollectionRow, HashMap<String, Vec<u8>>> =
+                HashMap::new();
+            for sequence in 1..=current {
+                for session_row in session_data.sequence.select_by_value(&sequence) {
+                    if let Some(collection_id) = session_data.collection_id.value(session_row) {
+                        if collection_id > 0 {
+                            let col = temporary_data
+                                .entry(collection_id)
+                                .or_insert(HashMap::new());
+                            let row = session_data.row.value(session_row).unwrap();
 
-                        let temporary_row: i64 = if row == 0 {
-                            -(session_row as i64)
-                        } else {
-                            row as i64
-                        };
-                        let mut fields = HashMap::new();
-                        for (key, val) in &session_data.fields {
-                            if let Some(v) = val.get(session_row) {
-                                fields.insert(key.to_string(), v.to_vec());
+                            let temporary_row: i64 = if row == 0 {
+                                -(sequence as i64)
+                            } else {
+                                row as i64
+                            };
+                            let operation = session_data.operation.value(session_row).unwrap();
+                            if operation == SessionOperation::Delete {
+                                col.insert(
+                                    temporary_row,
+                                    TemporaryDataEntity {
+                                        activity: Activity::Inactive,
+                                        term_begin: 0,
+                                        term_end: 0,
+                                        uuid: 0,
+                                        operation,
+                                        fields: HashMap::new(),
+                                    },
+                                );
+                            } else {
+                                let row_fields = fields_overlaps
+                                    .entry(SessionCollectionRow::new(collection_id, temporary_row))
+                                    .or_insert(HashMap::new());
+                                for (key, val) in &session_data.fields {
+                                    if let Some(v) = val.get(session_row) {
+                                        row_fields.insert(key.to_string(), v.to_vec());
+                                    }
+                                }
+                                col.insert(
+                                    temporary_row,
+                                    TemporaryDataEntity {
+                                        activity: if session_data
+                                            .activity
+                                            .value(session_row)
+                                            .unwrap()
+                                            == 1
+                                        {
+                                            Activity::Active
+                                        } else {
+                                            Activity::Inactive
+                                        },
+                                        term_begin: session_data
+                                            .term_begin
+                                            .value(session_row)
+                                            .unwrap(),
+                                        term_end: session_data.term_end.value(session_row).unwrap(),
+                                        uuid: if let Some(uuid) =
+                                            session_data.uuid.value(session_row)
+                                        {
+                                            uuid
+                                        } else {
+                                            0
+                                        },
+                                        operation,
+                                        fields: row_fields.clone(),
+                                    },
+                                );
                             }
                         }
-                        let operation = session_data.operation.value(session_row).unwrap();
-                        col.insert(
-                            temporary_row,
-                            if operation == SessionOperation::Delete {
-                                TemporaryDataEntity {
-                                    activity: Activity::Inactive,
-                                    term_begin: 0,
-                                    term_end: 0,
-                                    uuid: 0,
-                                    operation,
-                                    fields: HashMap::new(),
-                                }
-                            } else {
-                                TemporaryDataEntity {
-                                    activity: if session_data.activity.value(session_row).unwrap()
-                                        == 1
-                                    {
-                                        Activity::Active
-                                    } else {
-                                        Activity::Inactive
-                                    },
-                                    term_begin: session_data.term_begin.value(session_row).unwrap(),
-                                    term_end: session_data.term_end.value(session_row).unwrap(),
-                                    uuid: if let Some(uuid) = session_data.uuid.value(session_row) {
-                                        uuid
-                                    } else {
-                                        0
-                                    },
-                                    operation,
-                                    fields,
-                                }
-                            },
-                        );
                     }
                 }
             }
