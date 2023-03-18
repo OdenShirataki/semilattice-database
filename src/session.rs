@@ -26,6 +26,11 @@ use search::SessionSearch;
 
 mod sort;
 
+pub struct SessionSequenceCursor {
+    pub max: usize,
+    pub current: usize,
+}
+
 #[derive(Serialize)]
 pub struct SessionInfo {
     pub(super) name: String,
@@ -134,9 +139,19 @@ impl Session {
     pub fn name(&mut self) -> &str {
         &self.name
     }
-    pub fn move_sequence(&mut self, current: usize) {
+    pub fn set_sequence_cursor(&mut self, current: usize) {
         if let Some(session_data) = &mut self.session_data {
             session_data.sequence_number.set_current(current);
+        }
+    }
+    pub fn sequence_cursor(&self) -> Option<SessionSequenceCursor> {
+        if let Some(session_data) = &self.session_data {
+            Some(SessionSequenceCursor {
+                max: session_data.sequence_number.max(),
+                current: session_data.sequence_number.current(),
+            })
+        } else {
+            None
         }
     }
     pub(super) fn init_temporary_data(session_data: &SessionData) -> io::Result<TemporaryData> {

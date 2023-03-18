@@ -82,7 +82,7 @@ fn test4() {
                     }],
                 )
                 .unwrap();
-            sess.move_sequence(3);
+            sess.set_sequence_cursor(3);
         }
         if let Ok(mut sess) = database.session("widget", None) {
             database
