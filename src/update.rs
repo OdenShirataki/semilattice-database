@@ -23,7 +23,7 @@ pub fn incidentally_depend(
             .collection_id
             .value(depend_session_row)
             .unwrap(),
-        -(depend_session_row as i64),
+        session_data.row.value(depend_session_row).unwrap(),
     );
     session_data
         .relation
@@ -300,7 +300,7 @@ pub(super) fn update_recursive(
                             }
                             tmp
                         },
-                        depends: vec![], //TODO
+                        depends: tmp_depends,
                     });
                     if let Some((key, depend_session_row)) = depend_by_pend {
                         incidentally_depend(session_data, session_row, key, depend_session_row);
