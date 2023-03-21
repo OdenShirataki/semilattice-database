@@ -160,14 +160,8 @@ impl<'a> SessionSearch<'a> {
                 }
             }
             Condition::Depend(condition) => {
-                is_match = false;
-                if let Some(session_depends) =
-                    self.session.depends(Some(condition.key()), -row as u32)
-                {
-                    for depend in session_depends {
-                        is_match = condition.collection_id() == depend.collection_id()
-                            && condition.row() == depend.row();
-                    }
+                for depend in &ent.depends {
+                    is_match = *condition == *depend
                 }
             }
             Condition::LastUpdated(_) => {}

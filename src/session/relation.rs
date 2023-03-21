@@ -5,7 +5,7 @@ use versatile_data::IdxSized;
 
 use super::SessionCollectionRow;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionDepend {
     key: String,
     collection_row: SessionCollectionRow,
@@ -16,6 +16,9 @@ impl SessionDepend {
             key: key.to_owned(),
             collection_row,
         }
+    }
+    pub fn collection_row(&self) -> &SessionCollectionRow {
+        &self.collection_row
     }
     pub fn collection_id(&self) -> i32 {
         self.collection_row.collection_id()
@@ -73,7 +76,12 @@ impl SessionRelation {
             self.rows.depend.insert(depend).unwrap();
         }
     }
-    pub fn from_session_row(&mut self, session_row: u32, new_session_row: u32) {
+    pub fn from_session_row(
+        &mut self,
+        session_row: u32,
+        new_session_row: u32,
+    ) -> Vec<SessionDepend> {
+        let mut ret = vec![];
         for session_relation_row in self.rows.session_row.select_by_value(&session_row).iter() {
             if let (Some(key), Some(depend)) = (
                 self.rows.key.value(*session_relation_row),
@@ -82,8 +90,12 @@ impl SessionRelation {
                 self.rows.key.insert(key).unwrap();
                 self.rows.session_row.insert(new_session_row).unwrap();
                 self.rows.depend.insert(depend).unwrap();
+                if let Ok(key_name) = unsafe { self.key_names.str(key) } {
+                    ret.push(SessionDepend::new(key_name, depend))
+                }
             }
         }
+        ret
     }
     pub fn delete(&mut self, session_row: u32) {
         for relation_row in self.rows.session_row.select_by_value(&session_row) {

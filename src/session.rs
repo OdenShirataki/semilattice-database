@@ -71,6 +71,7 @@ pub struct TemporaryDataEntity {
     pub(super) uuid: u128,
     pub(super) operation: SessionOperation,
     pub(super) fields: HashMap<String, Vec<u8>>,
+    pub(super) depends: Vec<SessionDepend>,
 }
 impl TemporaryDataEntity {
     pub fn activity(&self) -> Activity {
@@ -174,6 +175,7 @@ impl Session {
                             } else {
                                 row as i64
                             };
+
                             let operation = session_data.operation.value(session_row).unwrap();
                             if operation == SessionOperation::Delete {
                                 col.insert(
@@ -185,6 +187,7 @@ impl Session {
                                         uuid: 0,
                                         operation,
                                         fields: HashMap::new(),
+                                        depends: vec![],
                                     },
                                 );
                             } else {
@@ -223,6 +226,38 @@ impl Session {
                                         },
                                         operation,
                                         fields: row_fields.clone(),
+                                        depends: {
+                                            let mut depends = vec![];
+                                            for relation_row in session_data
+                                                .relation
+                                                .rows
+                                                .session_row
+                                                .select_by_value(&session_row)
+                                                .iter()
+                                            {
+                                                if let (Some(key), Some(depend)) = (
+                                                    session_data
+                                                        .relation
+                                                        .rows
+                                                        .key
+                                                        .value(*relation_row),
+                                                    session_data
+                                                        .relation
+                                                        .rows
+                                                        .depend
+                                                        .value(*relation_row),
+                                                ) {
+                                                    if let Ok(key_name) = unsafe {
+                                                        session_data.relation.key_names.str(key)
+                                                    } {
+                                                        depends.push(SessionDepend::new(
+                                                            key_name, depend,
+                                                        ));
+                                                    }
+                                                }
+                                            }
+                                            depends
+                                        },
                                     },
                                 );
                             }
