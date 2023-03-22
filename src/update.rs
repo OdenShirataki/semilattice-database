@@ -18,12 +18,17 @@ pub fn incidentally_depend(
     relation_key: &str,
     depend_session_row: u32,
 ) {
+    let row = session_data.row.value(depend_session_row).unwrap();
     let depend = SessionCollectionRow::new(
         session_data
             .collection_id
             .value(depend_session_row)
             .unwrap(),
-        session_data.row.value(depend_session_row).unwrap(),
+        if row == 0 {
+            -(depend_session_row as i64)
+        } else {
+            row
+        },
     );
     session_data
         .relation
