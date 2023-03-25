@@ -170,11 +170,7 @@ impl Session {
                                 .or_insert(HashMap::new());
                             let row = session_data.row.value(session_row).unwrap();
 
-                            let temporary_row: i64 = if row == 0 {
-                                -(sequence as i64)
-                            } else {
-                                row as i64
-                            };
+                            let temporary_row = if row == 0 { -(session_row as i64) } else { row };
 
                             let operation = session_data.operation.value(session_row).unwrap();
                             if operation == SessionOperation::Delete {
