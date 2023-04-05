@@ -66,10 +66,6 @@ pub fn commit(
                                         let master_collection_row = session_collection_row_map
                                             .get(&session_collection_row)
                                             .unwrap();
-                                        println!(
-                                            "master_collection_row:{:?}",
-                                            &master_collection_row
-                                        );
                                         collection.update(&Operation::Update {
                                             row: master_collection_row.row(),
                                             activity,

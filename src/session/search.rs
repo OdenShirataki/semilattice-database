@@ -161,7 +161,10 @@ impl<'a> SessionSearch<'a> {
             }
             Condition::Depend(condition) => {
                 for depend in &ent.depends {
-                    is_match = *condition == *depend
+                    is_match = *condition == *depend;
+                    if is_match {
+                        break;
+                    }
                 }
             }
             Condition::LastUpdated(_) => {}
