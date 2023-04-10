@@ -95,17 +95,17 @@ impl<'a> SessionSearch<'a> {
                             }
                         }
                         search::Field::Range(min, max) => {
-                            if min < field_tmp || max > field_tmp {
+                            if min > field_tmp || max < field_tmp {
                                 is_match = false;
                             }
                         }
                         search::Field::Min(min) => {
-                            if min < field_tmp {
+                            if min > field_tmp {
                                 is_match = false;
                             }
                         }
                         search::Field::Max(max) => {
-                            if max > field_tmp {
+                            if max < field_tmp {
                                 is_match = false;
                             }
                         }
