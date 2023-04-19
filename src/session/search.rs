@@ -64,6 +64,11 @@ impl<'a> SessionSearch<'a> {
                     search::Number::Range(c) => c.contains(&(row as isize)),
                 }
             }
+            Condition::Uuid(uuid) => {
+                if !uuid.contains(&ent.uuid) {
+                    is_match = false;
+                }
+            }
             Condition::Activity(activity) => {
                 if ent.activity != *activity {
                     is_match = false;
@@ -168,7 +173,6 @@ impl<'a> SessionSearch<'a> {
                 }
             }
             Condition::LastUpdated(_) => {}
-            Condition::Uuid(_) => {}
         }
         is_match
     }

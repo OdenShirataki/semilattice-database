@@ -5,6 +5,8 @@ use std::{
     time::{self, UNIX_EPOCH},
 };
 
+pub use versatile_data::Uuid;
+
 pub use idx_binary::IdxBinary;
 
 use session::{search::SessionSearch, SessionInfo};

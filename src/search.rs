@@ -16,7 +16,7 @@ pub enum Condition {
     Activity(Activity),
     Term(Term),
     Row(Number),
-    Uuid(u128),
+    Uuid(Vec<u128>),
     LastUpdated(Number),
     Field(String, Field),
     Narrow(Vec<Condition>),
