@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use versatile_data::{Activity, KeyValue, Operation, Term};
 
 use crate::{
+    anyhow::Result,
     session::{SessionCollectionRow, SessionData, SessionOperation},
     CollectionRow, Database,
 };
@@ -9,7 +10,7 @@ use crate::{
 pub fn commit(
     main_database: &mut Database,
     session_data: &SessionData,
-) -> Result<Vec<CollectionRow>, anyhow::Error> {
+) -> Result<Vec<CollectionRow>> {
     let mut commit_rows = Vec::new();
 
     let mut session_collection_row_map: HashMap<SessionCollectionRow, CollectionRow> =
@@ -156,7 +157,7 @@ pub fn commit(
 pub(super) fn delete_recursive(
     database: &mut Database,
     target: &SessionCollectionRow,
-) -> std::io::Result<()> {
+) -> Result<()> {
     if target.row > 0 {
         let depend = CollectionRow::new(target.collection_id, target.row as u32);
 

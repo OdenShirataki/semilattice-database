@@ -1,6 +1,8 @@
 use serde::Serialize;
-use std::{cmp::Ordering, io};
+use std::cmp::Ordering;
 use versatile_data::{Activity, Data, Operation};
+
+use crate::anyhow::Result;
 
 pub struct Collection {
     pub(crate) data: Data,
@@ -48,7 +50,7 @@ impl Collection {
     pub fn field_num(&self, row: u32, field_name: &str) -> f64 {
         self.data.field_num(row, field_name)
     }
-    pub fn update(&mut self, operation: &Operation) -> io::Result<u32> {
+    pub fn update(&mut self, operation: &Operation) -> Result<u32> {
         self.data.update(operation)
     }
 }

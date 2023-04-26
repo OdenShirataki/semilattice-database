@@ -61,10 +61,10 @@ impl Search {
     fn exec_cond(
         collection: &Collection,
         relation: &RelationIndex,
-        condtion: &Condition,
+        condition: &Condition,
         tx: Sender<RowSet>,
     ) -> Result<(), SendError<RowSet>> {
-        match condtion {
+        match condition {
             Condition::Activity(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,

@@ -6,6 +6,7 @@ use std::{
 use versatile_data::{Activity, FieldData, KeyValue, Term};
 
 use crate::{
+    anyhow::Result,
     session::{
         SessionCollectionRow, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity,
     },
@@ -45,7 +46,7 @@ pub fn update_row(
     term_end: u64,
     uuid: u128,
     fields: &Vec<KeyValue>,
-) -> std::io::Result<()> {
+) -> Result<()> {
     session_data.row.update(session_row, row)?;
     session_data.activity.update(session_row, *activity as u8)?;
     session_data.term_begin.update(session_row, term_begin)?;
@@ -82,7 +83,7 @@ pub(super) fn update_recursive(
     sequence_number: usize,
     records: &Vec<Record>,
     depend_by_pend: Option<(&str, u32)>,
-) -> std::io::Result<Vec<SessionCollectionRow>> {
+) -> Result<Vec<SessionCollectionRow>> {
     let mut ret = vec![];
     for record in records {
         if let Ok(session_row) = session_data.sequence.insert(sequence_number) {
@@ -104,10 +105,7 @@ pub(super) fn update_recursive(
                     let term_begin = if let Term::Overwrite(term_begin) = term_begin {
                         *term_begin
                     } else {
-                        SystemTime::now()
-                            .duration_since(UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs()
+                        SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()
                     };
                     let term_end = if let Term::Overwrite(term_end) = term_end {
                         *term_end
@@ -198,10 +196,7 @@ pub(super) fn update_recursive(
                     let term_begin = match term_begin {
                         Term::Overwrite(term_begin) => *term_begin,
                         Term::Default => {
-                            let mut r = SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs();
+                            let mut r = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
                             if row > 0 {
                                 if let Some(collection) = master_database.collection(collection_id)
                                 {

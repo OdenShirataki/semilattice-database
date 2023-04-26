@@ -20,15 +20,12 @@ impl<'a> SessionSearch<'a> {
             conditions: Vec::new(),
         }
     }
-    pub fn search_default(mut self) -> Self {
+    pub fn search_default(mut self) -> Result<Self, std::time::SystemTimeError> {
         self.conditions.push(Condition::Term(search::Term::In(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
         )));
         self.conditions.push(Condition::Activity(Activity::Active));
-        self
+        Ok(self)
     }
     pub fn search_field(self, field_name: impl Into<String>, condition: search::Field) -> Self {
         self.search(Condition::Field(field_name.into(), condition))

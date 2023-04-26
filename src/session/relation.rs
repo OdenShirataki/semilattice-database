@@ -97,11 +97,12 @@ impl SessionRelation {
         }
         ret
     }
-    pub fn delete(&mut self, session_row: u32) {
+    pub fn delete(&mut self, session_row: u32) -> std::io::Result<()> {
         for relation_row in self.rows.session_row.select_by_value(&session_row) {
-            self.rows.session_row.delete(relation_row);
-            self.rows.key.delete(relation_row);
-            self.rows.depend.delete(relation_row);
+            self.rows.session_row.delete(relation_row)?;
+            self.rows.key.delete(relation_row)?;
+            self.rows.depend.delete(relation_row)?;
         }
+        Ok(())
     }
 }

@@ -5,13 +5,16 @@ use std::{
     time::{self, UNIX_EPOCH},
 };
 
-pub use versatile_data::Uuid;
-
 pub use idx_binary::IdxBinary;
+pub use versatile_data::{
+    anyhow, natord, Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term, Uuid,
+};
+
+use versatile_data::{Data, Operation};
+
+use anyhow::Result;
 
 use session::{search::SessionSearch, SessionInfo};
-pub use versatile_data::{natord, Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term};
-use versatile_data::{Data, Operation};
 
 mod collection;
 pub use collection::{Collection, CollectionRow};
@@ -177,7 +180,7 @@ impl Database {
         }
         Ok(())
     }
-    pub fn commit(&mut self, session: &mut Session) -> Result<Vec<CollectionRow>, anyhow::Error> {
+    pub fn commit(&mut self, session: &mut Session) -> Result<Vec<CollectionRow>> {
         if let Some(ref mut data) = session.session_data {
             let r = commit::commit(self, data)?;
             self.session_clear(session)?;
@@ -214,7 +217,7 @@ impl Database {
         &self,
         session: &mut Session,
         records: Vec<Record>,
-    ) -> io::Result<Vec<SessionCollectionRow>> {
+    ) -> Result<Vec<SessionCollectionRow>> {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
         if let Some(ref mut session_data) = session.session_data {
@@ -223,21 +226,21 @@ impl Database {
             if current < max {
                 for row in ((current + 1)..=max).rev() {
                     for session_row in session_data.sequence.select_by_value(&row) {
-                        session_data.collection_id.delete(session_row);
-                        session_data.row.delete(session_row);
-                        session_data.operation.delete(session_row);
-                        session_data.activity.delete(session_row);
-                        session_data.term_begin.delete(session_row);
-                        session_data.term_end.delete(session_row);
-                        session_data.uuid.delete(session_row);
+                        session_data.collection_id.delete(session_row)?;
+                        session_data.row.delete(session_row)?;
+                        session_data.operation.delete(session_row)?;
+                        session_data.activity.delete(session_row)?;
+                        session_data.term_begin.delete(session_row)?;
+                        session_data.term_end.delete(session_row)?;
+                        session_data.uuid.delete(session_row)?;
 
                         for (_field_name, field_data) in session_data.fields.iter_mut() {
-                            field_data.delete(session_row);
+                            field_data.delete(session_row)?;
                         }
 
-                        session_data.relation.delete(session_row);
+                        session_data.relation.delete(session_row)?;
 
-                        session_data.sequence.delete(session_row);
+                        session_data.sequence.delete(session_row)?;
                     }
                 }
             }
@@ -321,7 +324,7 @@ impl Database {
         }
     }
 
-    pub fn delete_collection(&mut self, name: &str) -> std::io::Result<()> {
+    pub fn delete_collection(&mut self, name: &str) -> Result<()> {
         let collection_id = if let Some(collection_id) = self.collections_map.get(name) {
             *collection_id
         } else {

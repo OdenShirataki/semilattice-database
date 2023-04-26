@@ -91,9 +91,9 @@ impl RelationIndex {
         Ok(())
     }
     pub fn delete(&mut self, row: u32) -> io::Result<u64> {
-        self.rows.key.delete(row);
-        self.rows.depend.delete(row);
-        self.rows.pend.delete(row);
+        self.rows.key.delete(row)?;
+        self.rows.depend.delete(row)?;
+        self.rows.pend.delete(row)?;
         self.fragment.insert_blank(row)
     }
     pub fn delete_pends_by_collection_row(
@@ -134,8 +134,7 @@ impl RelationIndex {
         let mut ret: Vec<SessionDepend> = Vec::new();
         if let Some(key_name) = key {
             if let Some(key) = self.key_names.find_row(key_name.as_bytes()) {
-                let c = self.rows.pend.select_by_value(pend);
-                for i in c {
+                for i in self.rows.pend.select_by_value(pend) {
                     if let (Some(key_row), Some(collection_row)) =
                         (self.rows.key.value(i), self.rows.depend.value(i))
                     {
@@ -152,8 +151,7 @@ impl RelationIndex {
                 }
             }
         } else {
-            let c = self.rows.pend.select_by_value(pend);
-            for i in c {
+            for i in self.rows.pend.select_by_value(pend) {
                 if let (Some(key), Some(collection_row)) =
                     (self.rows.key.value(i), self.rows.pend.value(i))
                 {
