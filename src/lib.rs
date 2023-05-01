@@ -110,7 +110,7 @@ impl Database {
     pub fn session_history(&self, session: &str) {
         if let Ok(sess) = self.session(session, None) {
             if let Some(ref session_data) = sess.session_data {
-                for i in session_data.sequence.triee().iter() {
+                for i in session_data.sequence.iter() {
                     let sequence = i.row();
                     if let (Some(collection_id), Some(row)) = (
                         session_data.collection_id.value(sequence),
@@ -225,7 +225,13 @@ impl Database {
             let max = session_data.sequence_number.max();
             if current < max {
                 for row in ((current + 1)..=max).rev() {
-                    for session_row in session_data.sequence.select_by_value(&row) {
+                    for session_row in session_data
+                        .sequence
+                        .triee()
+                        .iter_by_value(&row)
+                        .map(|x| x.row())
+                        .collect::<Vec<u32>>()
+                    {
                         session_data.collection_id.delete(session_row)?;
                         session_data.row.delete(session_row)?;
                         session_data.operation.delete(session_row)?;

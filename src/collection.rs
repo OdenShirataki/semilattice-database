@@ -55,7 +55,7 @@ impl Collection {
     }
 }
 
-#[derive(Clone, Copy, Default, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct CollectionRow {
     collection_id: i32,
     row: u32,

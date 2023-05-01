@@ -19,9 +19,9 @@ pub fn incidentally_depend(
     relation_key: &str,
     depend_session_row: u32,
 ) {
-    let row = session_data.row.value(depend_session_row).unwrap();
+    let row = *session_data.row.value(depend_session_row).unwrap();
     let depend = SessionCollectionRow::new(
-        session_data
+        *session_data
             .collection_id
             .value(depend_session_row)
             .unwrap(),
@@ -226,7 +226,7 @@ pub(super) fn update_recursive(
                             }
                         } else {
                             if let Some(uuid) = session_data.uuid.value(session_row) {
-                                uuid
+                                *uuid
                             } else {
                                 versatile_data::create_uuid()
                             }
@@ -255,11 +255,13 @@ pub(super) fn update_recursive(
                     match depends {
                         Depends::Default => {
                             if row > 0 {
-                                let depends =
-                                    master_database.relation().index_pend().select_by_value(
-                                        &CollectionRow::new(collection_id, row as u32),
-                                    );
-                                for i in depends {
+                                for i in master_database
+                                    .relation()
+                                    .index_pend()
+                                    .triee()
+                                    .iter_by_value(&CollectionRow::new(collection_id, row as u32))
+                                    .map(|x| x.row())
+                                {
                                     if let Some(depend) =
                                         master_database.relation().depend(i as u32)
                                     {
@@ -277,7 +279,7 @@ pub(super) fn update_recursive(
                             } else {
                                 session_data
                                     .relation
-                                    .from_session_row((-row) as u32, session_row);
+                                    .from_session_row((-row) as u32, session_row)?;
                             }
                         }
                         Depends::Overwrite(depends) => {

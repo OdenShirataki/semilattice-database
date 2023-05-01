@@ -2,9 +2,8 @@ use versatile_data::{Activity, KeyValue, Term};
 
 use super::SessionCollectionRow;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SessionOperation {
-    #[default]
     New,
     Update,
     Delete,

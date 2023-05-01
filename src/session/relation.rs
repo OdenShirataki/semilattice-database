@@ -80,25 +80,41 @@ impl SessionRelation {
         &mut self,
         session_row: u32,
         new_session_row: u32,
-    ) -> Vec<SessionDepend> {
+    ) -> std::io::Result<Vec<SessionDepend>> {
         let mut ret = vec![];
-        for session_relation_row in self.rows.session_row.select_by_value(&session_row).iter() {
+        for session_relation_row in self
+            .rows
+            .session_row
+            .triee()
+            .iter_by_value(&session_row)
+            .map(|x| x.row())
+            .collect::<Vec<u32>>()
+        {
             if let (Some(key), Some(depend)) = (
-                self.rows.key.value(*session_relation_row),
-                self.rows.depend.value(*session_relation_row),
+                self.rows.key.value(session_relation_row),
+                self.rows.depend.value(session_relation_row),
             ) {
-                self.rows.key.insert(key).unwrap();
-                self.rows.session_row.insert(new_session_row).unwrap();
-                self.rows.depend.insert(depend).unwrap();
-                if let Ok(key_name) = unsafe { self.key_names.str(key) } {
+                let key = *key;
+                let depend = *depend;
+                self.rows.key.insert(key)?;
+                self.rows.session_row.insert(new_session_row)?;
+                self.rows.depend.insert(depend)?;
+                if let Ok(key_name) = std::str::from_utf8(unsafe { self.key_names.bytes(key) }) {
                     ret.push(SessionDepend::new(key_name, depend))
                 }
             }
         }
-        ret
+        Ok(ret)
     }
     pub fn delete(&mut self, session_row: u32) -> std::io::Result<()> {
-        for relation_row in self.rows.session_row.select_by_value(&session_row) {
+        for relation_row in self
+            .rows
+            .session_row
+            .triee()
+            .iter_by_value(&session_row)
+            .map(|x| x.row())
+            .collect::<Vec<u32>>()
+        {
             self.rows.session_row.delete(relation_row)?;
             self.rows.key.delete(relation_row)?;
             self.rows.depend.delete(relation_row)?;

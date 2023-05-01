@@ -100,7 +100,14 @@ impl RelationIndex {
         &mut self,
         collection_row: &CollectionRow,
     ) -> io::Result<()> {
-        for i in self.rows.pend.select_by_value(collection_row) {
+        for i in self
+            .rows
+            .pend
+            .triee()
+            .iter_by_value(collection_row)
+            .map(|x| x.row())
+            .collect::<Vec<u32>>()
+        {
             self.delete(i)?;
         }
         Ok(())
@@ -109,22 +116,32 @@ impl RelationIndex {
         let mut ret: Vec<CollectionRow> = Vec::new();
         if let Some(key) = key {
             if let Some(key) = self.key_names.find_row(key.as_bytes()) {
-                let c = self.rows.depend.select_by_value(depend);
-                for i in c {
+                for i in self
+                    .rows
+                    .depend
+                    .triee()
+                    .iter_by_value(depend)
+                    .map(|x| x.row())
+                {
                     if let (Some(key_row), Some(collection_row)) =
                         (self.rows.key.value(i), self.rows.pend.value(i))
                     {
-                        if key_row == key {
-                            ret.push(collection_row);
+                        if *key_row == key {
+                            ret.push(*collection_row);
                         }
                     }
                 }
             }
         } else {
-            let c = self.rows.depend.select_by_value(depend);
-            for i in c {
+            for i in self
+                .rows
+                .depend
+                .triee()
+                .iter_by_value(depend)
+                .map(|x| x.row())
+            {
                 if let Some(collection_row) = self.rows.pend.value(i) {
-                    ret.push(collection_row);
+                    ret.push(*collection_row);
                 }
             }
         }
@@ -134,11 +151,11 @@ impl RelationIndex {
         let mut ret: Vec<SessionDepend> = Vec::new();
         if let Some(key_name) = key {
             if let Some(key) = self.key_names.find_row(key_name.as_bytes()) {
-                for i in self.rows.pend.select_by_value(pend) {
+                for i in self.rows.pend.triee().iter_by_value(pend).map(|x| x.row()) {
                     if let (Some(key_row), Some(collection_row)) =
                         (self.rows.key.value(i), self.rows.depend.value(i))
                     {
-                        if key_row == key {
+                        if *key_row == key {
                             ret.push(SessionDepend::new(
                                 key_name,
                                 SessionCollectionRow::new(
@@ -151,12 +168,12 @@ impl RelationIndex {
                 }
             }
         } else {
-            for i in self.rows.pend.select_by_value(pend) {
+            for i in self.rows.pend.triee().iter_by_value(pend).map(|x| x.row()) {
                 if let (Some(key), Some(collection_row)) =
                     (self.rows.key.value(i), self.rows.pend.value(i))
                 {
                     ret.push(SessionDepend::new(
-                        unsafe { self.key_names.str(key) }.unwrap(),
+                        unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(*key)) },
                         SessionCollectionRow::new(
                             collection_row.collection_id(),
                             collection_row.row() as i64,
@@ -173,12 +190,12 @@ impl RelationIndex {
     pub fn index_pend(&self) -> &IdxSized<CollectionRow> {
         &self.rows.pend
     }
-    pub fn depend(&self, row: u32) -> Option<CollectionRow> {
+    pub fn depend(&self, row: u32) -> Option<&CollectionRow> {
         self.rows.depend.value(row)
     }
     pub unsafe fn key(&self, row: u32) -> Result<&str, std::str::Utf8Error> {
         Ok(if let Some(key_row) = self.rows.key.value(row) {
-            self.key_names.str(key_row)?
+            std::str::from_utf8(self.key_names.bytes(*key_row))?
         } else {
             ""
         })
