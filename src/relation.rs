@@ -100,7 +100,7 @@ impl RelationIndex {
         &mut self,
         collection_row: &CollectionRow,
     ) -> io::Result<()> {
-        for i in self
+        for row in self
             .rows
             .pend
             .triee()
@@ -108,7 +108,7 @@ impl RelationIndex {
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
-            self.delete(i)?;
+            self.delete(row)?;
         }
         Ok(())
     }
