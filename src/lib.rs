@@ -228,7 +228,7 @@ impl Database {
                     for session_row in session_data
                         .sequence
                         .triee()
-                        .iter_by_value(&row)
+                        .iter_by(|v| v.cmp(&row))
                         .map(|x| x.row())
                         .collect::<Vec<u32>>()
                     {

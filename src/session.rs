@@ -165,7 +165,7 @@ impl Session {
                 for session_row in session_data
                     .sequence
                     .triee()
-                    .iter_by_value(&sequence)
+                    .iter_by(|v| v.cmp(&sequence))
                     .map(|x| x.row())
                 {
                     if let Some(collection_id) = session_data.collection_id.value(session_row) {
@@ -238,7 +238,7 @@ impl Session {
                                                 .rows
                                                 .session_row
                                                 .triee()
-                                                .iter_by_value(&session_row)
+                                                .iter_by(|v| v.cmp(&session_row))
                                                 .map(|x| x.row())
                                             {
                                                 if let (Some(key), Some(depend)) = (
@@ -436,7 +436,7 @@ impl Session {
                         .rows
                         .session_row
                         .triee()
-                        .iter_by_value(&pend_row)
+                        .iter_by(|v| v.cmp(&pend_row))
                         .map(|x| x.row())
                     {
                         if let (Some(key), Some(depend)) = (
@@ -456,7 +456,7 @@ impl Session {
                     .rows
                     .session_row
                     .triee()
-                    .iter_by_value(&pend_row)
+                    .iter_by(|v| v.cmp(&pend_row))
                     .map(|x| x.row())
                 {
                     if let (Some(key), Some(depend)) = (

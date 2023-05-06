@@ -104,7 +104,7 @@ impl RelationIndex {
             .rows
             .pend
             .triee()
-            .iter_by_value(collection_row)
+            .iter_by(|v| v.cmp(collection_row))
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
@@ -120,7 +120,7 @@ impl RelationIndex {
                     .rows
                     .depend
                     .triee()
-                    .iter_by_value(depend)
+                    .iter_by(|v| v.cmp(depend))
                     .map(|x| x.row())
                 {
                     if let (Some(key_row), Some(collection_row)) =
@@ -137,7 +137,7 @@ impl RelationIndex {
                 .rows
                 .depend
                 .triee()
-                .iter_by_value(depend)
+                .iter_by(|v| v.cmp(depend))
                 .map(|x| x.row())
             {
                 if let Some(collection_row) = self.rows.pend.value(i) {
@@ -151,7 +151,13 @@ impl RelationIndex {
         let mut ret: Vec<SessionDepend> = Vec::new();
         if let Some(key_name) = key {
             if let Some(key) = self.key_names.find_row(key_name.as_bytes()) {
-                for i in self.rows.pend.triee().iter_by_value(pend).map(|x| x.row()) {
+                for i in self
+                    .rows
+                    .pend
+                    .triee()
+                    .iter_by(|v| v.cmp(pend))
+                    .map(|x| x.row())
+                {
                     if let (Some(key_row), Some(collection_row)) =
                         (self.rows.key.value(i), self.rows.depend.value(i))
                     {
@@ -168,7 +174,13 @@ impl RelationIndex {
                 }
             }
         } else {
-            for i in self.rows.pend.triee().iter_by_value(pend).map(|x| x.row()) {
+            for i in self
+                .rows
+                .pend
+                .triee()
+                .iter_by(|v| v.cmp(pend))
+                .map(|x| x.row())
+            {
                 if let (Some(key), Some(collection_row)) =
                     (self.rows.key.value(i), self.rows.pend.value(i))
                 {

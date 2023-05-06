@@ -259,7 +259,9 @@ pub(super) fn update_recursive(
                                     .relation()
                                     .index_pend()
                                     .triee()
-                                    .iter_by_value(&CollectionRow::new(collection_id, row as u32))
+                                    .iter_by(|v| {
+                                        v.cmp(&CollectionRow::new(collection_id, row as u32))
+                                    })
                                     .map(|x| x.row())
                                 {
                                     if let Some(depend) =

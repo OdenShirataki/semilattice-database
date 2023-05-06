@@ -22,7 +22,7 @@ pub fn commit(
         for session_row in session_data
             .sequence
             .triee()
-            .iter_by_value(&sequence)
+            .iter_by(|v| v.cmp(&sequence))
             .map(|r| r.row())
             .collect::<Vec<u32>>()
             .iter()
@@ -109,7 +109,7 @@ pub fn commit(
                                 .rows
                                 .session_row
                                 .triee()
-                                .iter_by_value(&session_row)
+                                .iter_by(|v| v.cmp(&session_row))
                                 .map(|x| x.row())
                             {
                                 if let (Some(key), Some(depend)) = (
@@ -186,7 +186,7 @@ pub(super) fn delete_recursive(
             .relation
             .index_depend()
             .triee()
-            .iter_by_value(&depend)
+            .iter_by(|v| v.cmp(&depend))
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
@@ -212,7 +212,7 @@ pub(super) fn delete_recursive(
             .relation
             .index_pend()
             .triee()
-            .iter_by_value(&depend)
+            .iter_by(|v| v.cmp(&depend))
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {

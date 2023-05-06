@@ -86,7 +86,7 @@ impl SessionRelation {
             .rows
             .session_row
             .triee()
-            .iter_by_value(&session_row)
+            .iter_by(|v| v.cmp(&session_row))
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
@@ -111,7 +111,7 @@ impl SessionRelation {
             .rows
             .session_row
             .triee()
-            .iter_by_value(&session_row)
+            .iter_by(|v| v.cmp(&session_row))
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
