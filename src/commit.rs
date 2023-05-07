@@ -131,17 +131,17 @@ pub fn commit(
                                 .insert(session_collection_row, collection_row);
                         }
                         SessionOperation::Delete => {
-                            delete_recursive(
-                                main_database,
-                                &SessionCollectionRow::new(*collection_id, row),
-                            )?;
                             if row > 0 {
-                                if let Some(collection) =
-                                    main_database.collection_mut(*collection_id)
-                                {
-                                    collection.update(&Operation::Delete { row: row as u32 })?;
-                                }
+                                delete_recursive(
+                                    main_database,
+                                    &CollectionRow::new(*collection_id, row as u32),
+                                )?;
                             } else {
+                                if let Some(registered) =
+                                    session_collection_row_map.get(&session_collection_row)
+                                {
+                                    delete_recursive(main_database, registered)?;
+                                }
                                 session_collection_row_map.remove(&session_collection_row);
                             }
                         }
@@ -188,49 +188,39 @@ fn register_relations(
     Ok(())
 }
 
-pub(super) fn delete_recursive(
-    database: &mut Database,
-    target: &SessionCollectionRow,
-) -> Result<()> {
-    if target.row > 0 {
-        let depend = CollectionRow::new(target.collection_id, target.row as u32);
-
-        for relation_row in database
-            .relation
-            .index_depend()
-            .triee()
-            .iter_by(|v| v.cmp(&depend))
-            .map(|x| x.row())
-            .collect::<Vec<u32>>()
-        {
-            let mut chain = None;
-            if let Some(collection_row) = database.relation.index_pend().value(relation_row) {
-                chain = Some(*collection_row);
-            }
-            database.relation.delete(relation_row)?;
-            if let Some(collection_row) = chain {
-                let collection_id = collection_row.collection_id();
-                let row = collection_row.row();
-                delete_recursive(
-                    database,
-                    &SessionCollectionRow::new(collection_id, row as i64),
-                )?;
-                if let Some(collection) = database.collection_mut(collection_id) {
-                    collection.update(&Operation::Delete { row })?;
-                }
-            }
+pub(super) fn delete_recursive(database: &mut Database, target: &CollectionRow) -> Result<()> {
+    for relation_row in database
+        .relation
+        .index_depend()
+        .triee()
+        .iter_by(|v| v.cmp(&target))
+        .map(|x| x.row())
+        .collect::<Vec<u32>>()
+    {
+        let mut chain = None;
+        if let Some(collection_row) = database.relation.index_pend().value(relation_row) {
+            chain = Some(*collection_row);
         }
-
-        for relation_row in database
-            .relation
-            .index_pend()
-            .triee()
-            .iter_by(|v| v.cmp(&depend))
-            .map(|x| x.row())
-            .collect::<Vec<u32>>()
-        {
-            database.relation.delete(relation_row)?;
+        database.relation.delete(relation_row)?;
+        if let Some(collection_row) = chain {
+            let collection_id = collection_row.collection_id();
+            let row = collection_row.row();
+            delete_recursive(database, &CollectionRow::new(collection_id, row))?;
         }
+        if let Some(collection) = database.collection_mut(target.collection_id()) {
+            collection.update(&Operation::Delete { row: target.row() })?;
+        }
+    }
+
+    for relation_row in database
+        .relation
+        .index_pend()
+        .triee()
+        .iter_by(|v| v.cmp(&target))
+        .map(|x| x.row())
+        .collect::<Vec<u32>>()
+    {
+        database.relation.delete(relation_row)?;
     }
 
     Ok(())

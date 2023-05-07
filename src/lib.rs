@@ -345,8 +345,7 @@ impl Database {
                 rows
             };
             for row in rows {
-                let collection_row = SessionCollectionRow::new(collection_id, row as i64);
-                commit::delete_recursive(self, &collection_row)?;
+                commit::delete_recursive(self, &CollectionRow::new(collection_id, row))?;
                 if let Some(collection) = self.collection_mut(collection_id) {
                     collection.update(&Operation::Delete { row: row as u32 })?;
                 }
@@ -362,24 +361,6 @@ impl Database {
         Ok(())
     }
 
-    /*
-    pub fn collection_dump(&self, collection_id: i32) {
-        if let Some(collection) = self.collection(collection_id) {
-            for row in collection.data.all() {
-                if let Ok(name) = std::str::from_utf8(collection.field_bytes(row, "name")) {
-                    println!("{:?} : {}", row, name);
-                    let pend = self.relation.index_pend();
-                    let rel = pend.select_by_value(&CollectionRow::new(collection_id, row));
-                    for rel_row in rel {
-                        let depend = self.relation.index_depend().value(rel_row).unwrap();
-                        let rel_key = unsafe { self.relation.key(rel_row) };
-                        println!("{} : {:?} , {:?}", rel_row, rel_key, depend);
-                    }
-                }
-            }
-        }
-    }
-    */
     pub fn relation(&self) -> &RelationIndex {
         &self.relation
     }
