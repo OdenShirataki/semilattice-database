@@ -15,7 +15,7 @@ pub fn commit(
 
     let mut session_collection_row_map: HashMap<SessionCollectionRow, CollectionRow> =
         HashMap::new();
-    let mut relation_temporary: HashMap<SessionCollectionRow, Vec<(String, CollectionRow)>> =
+    let mut relation_temporary: HashMap<SessionCollectionRow, Vec<(String, SessionCollectionRow)>> =
         HashMap::new();
 
     for sequence in 1..=session_data.sequence_number.current() {
@@ -124,14 +124,13 @@ pub fn commit(
                                     let tmp = relation_temporary
                                         .entry(*depend)
                                         .or_insert_with(|| Vec::new());
-                                    tmp.push((key_name.to_owned(), collection_row));
+                                    tmp.push((key_name.to_owned(), session_collection_row));
                                 }
                             }
                             session_collection_row_map
                                 .insert(session_collection_row, collection_row);
                         }
                         SessionOperation::Delete => {
-                            //todo!("セッション考慮の削除処理");
                             delete_recursive(
                                 main_database,
                                 &SessionCollectionRow::new(*collection_id, row),
@@ -142,6 +141,8 @@ pub fn commit(
                                 {
                                     collection.update(&Operation::Delete { row: row as u32 })?;
                                 }
+                            } else {
+                                session_collection_row_map.remove(&session_collection_row);
                             }
                         }
                     }
@@ -152,13 +153,14 @@ pub fn commit(
     for (depend, pends) in relation_temporary {
         if depend.row < 0 {
             if let Some(depend) = session_collection_row_map.get(&depend) {
-                register_relations(main_database, *depend, pends)?;
+                register_relations(main_database, *depend, pends, &session_collection_row_map)?;
             }
         } else {
             register_relations(
                 main_database,
                 CollectionRow::new(depend.collection_id, depend.row as u32),
                 pends,
+                &session_collection_row_map,
             )?;
         }
     }
@@ -167,10 +169,21 @@ pub fn commit(
 fn register_relations(
     main_database: &mut Database,
     depend: CollectionRow,
-    pends: Vec<(String, CollectionRow)>,
+    pends: Vec<(String, SessionCollectionRow)>,
+    row_map: &HashMap<SessionCollectionRow, CollectionRow>,
 ) -> std::io::Result<()> {
     for (key_name, pend) in pends {
-        main_database.relation.insert(&key_name, depend, pend)?;
+        if pend.row > 0 {
+            main_database.relation.insert(
+                &key_name,
+                depend,
+                CollectionRow::new(pend.collection_id, pend.row as u32),
+            )?;
+        } else {
+            if let Some(pend) = row_map.get(&pend) {
+                main_database.relation.insert(&key_name, depend, *pend)?;
+            }
+        }
     }
     Ok(())
 }
