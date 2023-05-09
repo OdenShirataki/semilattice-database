@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use idx_binary::IdxBinary;
-use versatile_data::IdxSized;
+use versatile_data::{anyhow::Result, IdxSized};
 
 use super::SessionCollectionRow;
 
@@ -80,7 +80,7 @@ impl SessionRelation {
         &mut self,
         session_row: u32,
         new_session_row: u32,
-    ) -> std::io::Result<Vec<SessionDepend>> {
+    ) -> Result<Vec<SessionDepend>> {
         let mut ret = vec![];
         for session_relation_row in self
             .rows

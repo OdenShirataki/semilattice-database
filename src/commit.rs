@@ -171,7 +171,7 @@ fn register_relations(
     depend: CollectionRow,
     pends: Vec<(String, SessionCollectionRow)>,
     row_map: &HashMap<SessionCollectionRow, CollectionRow>,
-) -> std::io::Result<()> {
+) -> Result<()> {
     for (key_name, pend) in pends {
         if pend.row > 0 {
             main_database.relation.insert(

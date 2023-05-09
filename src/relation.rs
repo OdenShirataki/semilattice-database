@@ -1,6 +1,6 @@
 use idx_binary::IdxBinary;
 use std::{io, path::Path};
-use versatile_data::{IdxSized, RowFragment};
+use versatile_data::{anyhow::Result, IdxSized, RowFragment};
 
 use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
 
@@ -76,7 +76,7 @@ impl RelationIndex {
         relation_key: &str,
         depend: CollectionRow,
         pend: CollectionRow,
-    ) -> io::Result<()> {
+    ) -> Result<()> {
         if let Ok(key_id) = self.key_names.entry(relation_key.as_bytes()) {
             if let Some(row) = self.fragment.pop()? {
                 self.rows.key.update(row, key_id)?;
