@@ -7,7 +7,7 @@ use std::{
 
 pub use idx_binary::IdxBinary;
 pub use versatile_data::{
-    anyhow, natord, Activity, IdxSized, KeyValue, Order, OrderKey, RowSet, Term, Uuid,
+    anyhow, natord, Activity, IdxFile, KeyValue, Order, OrderKey, RowSet, Term, Uuid,
 };
 
 use versatile_data::{Data, Operation};

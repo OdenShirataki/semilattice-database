@@ -1,6 +1,6 @@
 use idx_binary::IdxBinary;
 use std::{io, path::Path};
-use versatile_data::{anyhow::Result, IdxSized, RowFragment};
+use versatile_data::{anyhow::Result, IdxFile, RowFragment};
 
 use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
 
@@ -25,9 +25,9 @@ impl Depend {
 }
 
 struct RelationIndexRows {
-    key: IdxSized<u32>,
-    depend: IdxSized<CollectionRow>,
-    pend: IdxSized<CollectionRow>,
+    key: IdxFile<u32>,
+    depend: IdxFile<CollectionRow>,
+    pend: IdxFile<CollectionRow>,
 }
 pub struct RelationIndex {
     fragment: RowFragment,
@@ -53,17 +53,17 @@ impl RelationIndex {
                 path
             })?,
             rows: RelationIndexRows {
-                key: IdxSized::new({
+                key: IdxFile::new({
                     let mut path = dir.clone();
                     path.push("key.i");
                     path
                 })?,
-                depend: IdxSized::new({
+                depend: IdxFile::new({
                     let mut path = dir.clone();
                     path.push("depend.i");
                     path
                 })?,
-                pend: IdxSized::new({
+                pend: IdxFile::new({
                     let mut path = dir.clone();
                     path.push("pend.i");
                     path
@@ -196,10 +196,10 @@ impl RelationIndex {
         }
         ret
     }
-    pub fn index_depend(&self) -> &IdxSized<CollectionRow> {
+    pub fn index_depend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.depend
     }
-    pub fn index_pend(&self) -> &IdxSized<CollectionRow> {
+    pub fn index_pend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.pend
     }
     pub fn depend(&self, row: u32) -> Option<&CollectionRow> {

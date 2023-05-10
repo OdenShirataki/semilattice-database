@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use idx_binary::IdxBinary;
-use versatile_data::{anyhow::Result, IdxSized};
+use versatile_data::{anyhow::Result, IdxFile};
 
 use super::SessionCollectionRow;
 
@@ -32,9 +32,9 @@ impl SessionDepend {
 }
 
 pub struct SessionRelationRows {
-    pub(crate) key: IdxSized<u32>,
-    pub(crate) session_row: IdxSized<u32>,
-    pub(crate) depend: IdxSized<SessionCollectionRow>,
+    pub(crate) key: IdxFile<u32>,
+    pub(crate) session_row: IdxFile<u32>,
+    pub(crate) depend: IdxFile<SessionCollectionRow>,
 }
 pub struct SessionRelation {
     pub(crate) key_names: IdxBinary,
@@ -63,9 +63,9 @@ impl SessionRelation {
         Ok(Self {
             key_names: IdxBinary::new(path_key_name)?,
             rows: SessionRelationRows {
-                key: IdxSized::new(path_key)?,
-                session_row: IdxSized::new(path_session_row)?,
-                depend: IdxSized::new(path_depend)?,
+                key: IdxFile::new(path_key)?,
+                session_row: IdxFile::new(path_session_row)?,
+                depend: IdxFile::new(path_depend)?,
             },
         })
     }

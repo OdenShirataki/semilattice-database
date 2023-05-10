@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
     path::Path,
 };
-use versatile_data::{Activity, FieldData, IdxSized};
+use versatile_data::{Activity, FieldData, IdxFile};
 
 use crate::{Collection, CollectionRow, Condition};
 
@@ -97,14 +97,14 @@ pub type TemporaryData = HashMap<i32, HashMap<i64, TemporaryDataEntity>>;
 
 pub struct SessionData {
     pub(super) sequence_number: SequenceNumber,
-    pub(super) sequence: IdxSized<usize>,
-    pub(super) collection_id: IdxSized<i32>,
-    pub(super) row: IdxSized<i64>,
-    pub(super) operation: IdxSized<SessionOperation>,
-    pub(super) activity: IdxSized<u8>,
-    pub(super) term_begin: IdxSized<u64>,
-    pub(super) term_end: IdxSized<u64>,
-    pub(super) uuid: IdxSized<u128>,
+    pub(super) sequence: IdxFile<usize>,
+    pub(super) collection_id: IdxFile<i32>,
+    pub(super) row: IdxFile<i64>,
+    pub(super) operation: IdxFile<SessionOperation>,
+    pub(super) activity: IdxFile<u8>,
+    pub(super) term_begin: IdxFile<u64>,
+    pub(super) term_end: IdxFile<u64>,
+    pub(super) uuid: IdxFile<u128>,
     pub(super) fields: HashMap<String, FieldData>,
     pub(super) relation: SessionRelation,
 }
@@ -319,42 +319,42 @@ impl Session {
                 path.push("sequence_number.i");
                 path
             })?,
-            sequence: IdxSized::new({
+            sequence: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("sequence.i");
                 path
             })?,
-            collection_id: IdxSized::new({
+            collection_id: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("collection_id.i");
                 path
             })?,
-            row: IdxSized::new({
+            row: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("row.i");
                 path
             })?,
-            operation: IdxSized::new({
+            operation: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("operation.i");
                 path
             })?,
-            activity: IdxSized::new({
+            activity: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("activity.i");
                 path
             })?,
-            term_begin: IdxSized::new({
+            term_begin: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("term_begin.i");
                 path
             })?,
-            term_end: IdxSized::new({
+            term_end: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("term_end.i");
                 path
             })?,
-            uuid: IdxSized::new({
+            uuid: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("uuid.i");
                 path
