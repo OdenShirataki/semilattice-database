@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use idx_binary::IdxBinary;
+use binary_set::BinarySet;
 use versatile_data::{anyhow::Result, IdxFile};
 
 use super::SessionCollectionRow;
@@ -37,7 +37,7 @@ pub struct SessionRelationRows {
     pub(crate) depend: IdxFile<SessionCollectionRow>,
 }
 pub struct SessionRelation {
-    pub(crate) key_names: IdxBinary,
+    pub(crate) key_names: BinarySet,
     pub(crate) rows: SessionRelationRows,
 }
 impl SessionRelation {
@@ -61,7 +61,7 @@ impl SessionRelation {
         path_depend.push("depend.i");
 
         Ok(Self {
-            key_names: IdxBinary::new(path_key_name)?,
+            key_names: BinarySet::new(path_key_name)?,
             rows: SessionRelationRows {
                 key: IdxFile::new(path_key)?,
                 session_row: IdxFile::new(path_session_row)?,
@@ -70,7 +70,7 @@ impl SessionRelation {
         })
     }
     pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: SessionCollectionRow) {
-        if let Ok(key_id) = self.key_names.entry(relation_key.as_bytes()) {
+        if let Ok(key_id) = self.key_names.row_or_insert(relation_key.as_bytes()) {
             self.rows.key.insert(key_id).unwrap();
             self.rows.session_row.insert(session_row).unwrap();
             self.rows.depend.insert(depend).unwrap();

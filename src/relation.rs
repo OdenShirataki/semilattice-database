@@ -1,8 +1,8 @@
-use idx_binary::IdxBinary;
 use std::{io, path::Path};
+
 use versatile_data::{anyhow::Result, IdxFile, RowFragment};
 
-use crate::{collection::CollectionRow, session::SessionDepend, SessionCollectionRow};
+use crate::{collection::CollectionRow, session::SessionDepend, BinarySet, SessionCollectionRow};
 
 #[derive(Clone, Debug)]
 pub struct Depend {
@@ -31,7 +31,7 @@ struct RelationIndexRows {
 }
 pub struct RelationIndex {
     fragment: RowFragment,
-    key_names: IdxBinary,
+    key_names: BinarySet,
     rows: RelationIndexRows,
 }
 impl RelationIndex {
@@ -42,7 +42,7 @@ impl RelationIndex {
             std::fs::create_dir_all(&dir)?;
         }
         Ok(Self {
-            key_names: IdxBinary::new({
+            key_names: BinarySet::new({
                 let mut path = dir.clone();
                 path.push("key_name");
                 path
@@ -77,7 +77,7 @@ impl RelationIndex {
         depend: CollectionRow,
         pend: CollectionRow,
     ) -> Result<()> {
-        if let Ok(key_id) = self.key_names.entry(relation_key.as_bytes()) {
+        if let Ok(key_id) = self.key_names.row_or_insert(relation_key.as_bytes()) {
             if let Some(row) = self.fragment.pop()? {
                 self.rows.key.update(row, key_id)?;
                 self.rows.depend.update(row, depend)?;
@@ -115,7 +115,7 @@ impl RelationIndex {
     pub fn pends(&self, key: Option<&str>, depend: &CollectionRow) -> Vec<CollectionRow> {
         let mut ret: Vec<CollectionRow> = Vec::new();
         if let Some(key) = key {
-            if let Some(key) = self.key_names.find_row(key.as_bytes()) {
+            if let Some(key) = self.key_names.row(key.as_bytes()) {
                 for i in self
                     .rows
                     .depend
@@ -150,7 +150,7 @@ impl RelationIndex {
     pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<SessionDepend> {
         let mut ret: Vec<SessionDepend> = Vec::new();
         if let Some(key_name) = key {
-            if let Some(key) = self.key_names.find_row(key_name.as_bytes()) {
+            if let Some(key) = self.key_names.row(key_name.as_bytes()) {
                 for i in self
                     .rows
                     .pend

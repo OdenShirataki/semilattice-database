@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
     path::Path,
 };
-use versatile_data::{Activity, FieldData, IdxFile};
+use versatile_data::{Activity, IdxBinary, IdxFile};
 
 use crate::{Collection, CollectionRow, Condition};
 
@@ -105,7 +105,7 @@ pub struct SessionData {
     pub(super) term_begin: IdxFile<u64>,
     pub(super) term_end: IdxFile<u64>,
     pub(super) uuid: IdxFile<u128>,
-    pub(super) fields: HashMap<String, FieldData>,
+    pub(super) fields: HashMap<String, IdxBinary>,
     pub(super) relation: SessionRelation,
 }
 
@@ -307,7 +307,7 @@ impl Session {
             let path = p.path();
             if path.is_dir() {
                 if let Some(fname) = p.file_name().to_str() {
-                    let field = FieldData::new(path)?;
+                    let field = IdxBinary::new(path)?;
                     fields.insert(fname.to_owned(), field);
                 }
             }
@@ -426,11 +426,7 @@ impl Session {
         let mut r = vec![];
         if let Some(ref session_data) = self.session_data {
             if let Some(key_name) = key {
-                if let Some(key_id) = session_data
-                    .relation
-                    .key_names
-                    .find_row(key_name.as_bytes())
-                {
+                if let Some(key_id) = session_data.relation.key_names.row(key_name.as_bytes()) {
                     for relation_row in session_data
                         .relation
                         .rows

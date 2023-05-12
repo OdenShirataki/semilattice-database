@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use file_mmap::FileMmap;
+use crate::FileMmap;
 
 pub struct SequenceNumber {
     filemmap: FileMmap,

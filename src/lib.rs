@@ -5,14 +5,14 @@ use std::{
     time::{self, UNIX_EPOCH},
 };
 
-pub use idx_binary::IdxBinary;
+use anyhow::Result;
 pub use versatile_data::{
-    anyhow, natord, Activity, IdxFile, KeyValue, Order, OrderKey, RowSet, Term, Uuid,
+    self, anyhow, natord, Activity, FileMmap, IdxBinary, IdxFile, KeyValue, Order, OrderKey,
+    RowSet, Term, Uuid,
 };
-
 use versatile_data::{Data, Operation};
 
-use anyhow::Result;
+use binary_set::BinarySet;
 
 use session::{search::SessionSearch, SessionInfo};
 
@@ -23,9 +23,9 @@ mod relation;
 pub use relation::{Depend, RelationIndex};
 
 mod session;
-use session::TemporaryDataEntity;
 pub use session::{
     search as session_search, Depends, Pend, Record, Session, SessionCollectionRow, SessionDepend,
+    TemporaryDataEntity,
 };
 
 pub mod search;
@@ -90,7 +90,7 @@ impl Database {
     pub fn root_dir(&self) -> &Path {
         &self.root_dir
     }
-    fn session_dir(&self, session_name: &str) -> PathBuf {
+    pub fn session_dir(&self, session_name: &str) -> PathBuf {
         let mut dir = self.sessions_dir.clone();
         dir.push(session_name);
         dir
@@ -106,25 +106,7 @@ impl Database {
         }
         Session::new(self, session_name, expire_interval_sec)
     }
-    /*
-    pub fn session_history(&self, session: &str) {
-        if let Ok(sess) = self.session(session, None) {
-            if let Some(ref session_data) = sess.session_data {
-                for i in session_data.sequence.iter() {
-                    let sequence = i.row();
-                    if let (Some(collection_id), Some(row)) = (
-                        session_data.collection_id.value(sequence),
-                        session_data.row.value(sequence),
-                    ) {
-                        if let Some(collection) = self.collection(collection_id) {
-                            println!("{} : {}@{}", sequence, row, collection.name());
-                        }
-                    }
-                }
-            }
-        }
-    }
-     */
+
     pub fn sessions(&self) -> io::Result<Vec<SessionInfo>> {
         let mut sessions = Vec::new();
         if self.sessions_dir.exists() {

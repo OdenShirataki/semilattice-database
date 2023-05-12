@@ -3,7 +3,7 @@ use std::{
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
-use versatile_data::{Activity, FieldData, KeyValue, Term};
+use versatile_data::{Activity, IdxBinary, KeyValue, Term};
 
 use crate::{
     anyhow::Result,
@@ -62,7 +62,7 @@ pub fn update_row(
             dir.push(key);
             std::fs::create_dir_all(&dir)?;
             if dir.exists() {
-                let field = FieldData::new(&dir)?;
+                let field = IdxBinary::new(dir)?;
                 session_data
                     .fields
                     .entry(String::from(key))
