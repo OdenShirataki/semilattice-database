@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[test]
 fn test4() {
-    use semilattice_database::prelude::*;
+    use semilattice_database::*;
 
     let dir = "./sl-test4/";
 

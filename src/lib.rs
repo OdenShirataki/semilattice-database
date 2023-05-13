@@ -35,8 +35,6 @@ mod commit;
 
 mod update;
 
-pub mod prelude;
-
 pub struct Database {
     root_dir: PathBuf,
     sessions_dir: PathBuf,

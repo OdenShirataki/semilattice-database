@@ -3,7 +3,7 @@
 ## Example
 
 ```rust
-use semilattice_database::prelude::*;
+use semilattice_database::*;
 
 let dir = "./sl-test/";
 
