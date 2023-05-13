@@ -44,7 +44,7 @@ pub fn commit(
                 } else {
                     let mut fields: Vec<KeyValue> = Vec::new();
                     for (key, field_data) in session_data.fields.iter() {
-                        if let Some(val) = field_data.get(session_row) {
+                        if let Some(val) = field_data.bytes(session_row) {
                             fields.push(KeyValue::new(key, val));
                         }
                     }

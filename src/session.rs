@@ -197,7 +197,7 @@ impl Session {
                                     .entry(SessionCollectionRow::new(*collection_id, temporary_row))
                                     .or_insert(HashMap::new());
                                 for (key, val) in &session_data.fields {
-                                    if let Some(v) = val.get(session_row) {
+                                    if let Some(v) = val.bytes(session_row) {
                                         row_fields.insert(key.to_string(), v.to_vec());
                                     }
                                 }
