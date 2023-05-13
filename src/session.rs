@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
     path::Path,
 };
-use versatile_data::{Activity, IdxBinary, IdxFile};
+use versatile_data::{Activity, Field, IdxFile};
 
 use crate::{Collection, CollectionRow, Condition};
 
@@ -105,7 +105,7 @@ pub struct SessionData {
     pub(super) term_begin: IdxFile<u64>,
     pub(super) term_end: IdxFile<u64>,
     pub(super) uuid: IdxFile<u128>,
-    pub(super) fields: HashMap<String, IdxBinary>,
+    pub(super) fields: HashMap<String, Field>,
     pub(super) relation: SessionRelation,
 }
 
@@ -307,7 +307,7 @@ impl Session {
             let path = p.path();
             if path.is_dir() {
                 if let Some(fname) = p.file_name().to_str() {
-                    let field = IdxBinary::new(path)?;
+                    let field = Field::new(path)?;
                     fields.insert(fname.to_owned(), field);
                 }
             }
