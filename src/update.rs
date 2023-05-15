@@ -7,10 +7,8 @@ use versatile_data::{Activity, Field, KeyValue, Term};
 
 use crate::{
     anyhow::Result,
-    session::{
-        SessionCollectionRow, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity,
-    },
-    CollectionRow, Database, Depends, Record, SessionDepend,
+    session::{SessionData, SessionOperation, TemporaryData, TemporaryDataEntity},
+    CollectionRow, Database, Depend, Depends, Record,
 };
 
 pub fn incidentally_depend(
@@ -20,16 +18,12 @@ pub fn incidentally_depend(
     depend_session_row: u32,
 ) {
     let row = *session_data.row.value(depend_session_row).unwrap();
-    let depend = SessionCollectionRow::new(
+    let depend = CollectionRow::new(
         *session_data
             .collection_id
             .value(depend_session_row)
             .unwrap(),
-        if row == 0 {
-            -(depend_session_row as i64)
-        } else {
-            row
-        },
+        if row == 0 { depend_session_row } else { row },
     );
     session_data
         .relation
@@ -40,7 +34,7 @@ pub fn update_row(
     session_dir: &Path,
     session_data: &mut SessionData,
     session_row: u32,
-    row: i64,
+    row: u32,
     activity: &Activity,
     term_begin: u64,
     term_end: u64,
@@ -76,14 +70,14 @@ pub fn update_row(
 }
 
 pub(super) fn update_recursive(
-    master_database: &Database,
+    main_database: &Database,
     session_data: &mut SessionData,
     temporary_data: &mut TemporaryData,
     session_dir: &Path,
     sequence_number: usize,
     records: &Vec<Record>,
     depend_by_pend: Option<(&str, u32)>,
-) -> Result<Vec<SessionCollectionRow>> {
+) -> Result<Vec<CollectionRow>> {
     let mut ret = vec![];
     for record in records {
         if let Ok(session_row) = session_data.sequence.insert(sequence_number) {
@@ -97,11 +91,8 @@ pub(super) fn update_recursive(
                     depends,
                     pends,
                 } => {
-                    let collection_id = *collection_id;
-                    let virtual_row = -(session_row as i64);
-
-                    ret.push(SessionCollectionRow::new(collection_id, virtual_row));
-
+                    let session_collection_id = -*collection_id;
+                    ret.push(CollectionRow::new(session_collection_id, session_row));
                     let term_begin = if let Term::Overwrite(term_begin) = term_begin {
                         *term_begin
                     } else {
@@ -116,7 +107,7 @@ pub(super) fn update_recursive(
 
                     session_data
                         .collection_id
-                        .update(session_row, collection_id)?;
+                        .update(session_row, session_collection_id)?;
                     session_data
                         .operation
                         .update(session_row, SessionOperation::New)?;
@@ -132,11 +123,11 @@ pub(super) fn update_recursive(
                         fields,
                     )?;
 
-                    let col = temporary_data
-                        .entry(collection_id)
+                    let temprary_collection = temporary_data
+                        .entry(session_collection_id)
                         .or_insert(HashMap::new());
-                    col.insert(
-                        virtual_row,
+                    temprary_collection.insert(
+                        session_row as i64,
                         TemporaryDataEntity {
                             activity: *activity,
                             term_begin,
@@ -153,8 +144,10 @@ pub(super) fn update_recursive(
                             depends: if let Depends::Overwrite(depends) = depends {
                                 let mut tmp = vec![];
                                 for (key, depend) in depends {
-                                    session_data.relation.insert(key, session_row, *depend);
-                                    tmp.push(SessionDepend::new(key, *depend));
+                                    session_data
+                                        .relation
+                                        .insert(key, session_row, depend.clone());
+                                    tmp.push(Depend::new(key, depend.clone()));
                                 }
                                 tmp
                             } else {
@@ -168,7 +161,7 @@ pub(super) fn update_recursive(
                     }
                     for pend in pends {
                         update_recursive(
-                            master_database,
+                            main_database,
                             session_data,
                             temporary_data,
                             session_dir,
@@ -179,8 +172,8 @@ pub(super) fn update_recursive(
                     }
                 }
                 Record::Update {
-                    collection_id,
-                    row, //-の場合はセッション新規データの更新
+                    collection_id, //Negative values ​​contain session rows
+                    row,
                     activity,
                     term_begin,
                     term_end,
@@ -188,19 +181,23 @@ pub(super) fn update_recursive(
                     depends,
                     pends,
                 } => {
-                    let collection_id = *collection_id;
-                    let row = *row;
+                    ret.push(CollectionRow::new(*collection_id, *row));
 
-                    ret.push(SessionCollectionRow::new(collection_id, row));
+                    let in_session = *collection_id < 0;
+                    let collection_id = if in_session {
+                        -*collection_id
+                    } else {
+                        *collection_id
+                    };
+                    let row = *row;
 
                     let term_begin = match term_begin {
                         Term::Overwrite(term_begin) => *term_begin,
                         Term::Default => {
                             let mut r = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-                            if row > 0 {
-                                if let Some(collection) = master_database.collection(collection_id)
-                                {
-                                    r = collection.term_begin(row as u32);
+                            if !in_session {
+                                if let Some(collection) = main_database.collection(collection_id) {
+                                    r = collection.term_begin(row);
                                 }
                             }
                             r
@@ -217,25 +214,34 @@ pub(super) fn update_recursive(
                         .or_insert(HashMap::new());
 
                     let uuid = {
-                        if let Some(collection) = master_database.collection(collection_id) {
-                            let uuid = collection.uuid(row as u32);
-                            if uuid == 0 {
-                                versatile_data::create_uuid()
-                            } else {
-                                uuid
-                            }
-                        } else {
-                            if let Some(uuid) = session_data.uuid.value(session_row) {
+                        if in_session {
+                            if let Some(uuid) = session_data.uuid.value(row) {
                                 *uuid
                             } else {
                                 versatile_data::create_uuid()
                             }
+                        } else {
+                            if let Some(collection) = main_database.collection(collection_id) {
+                                let uuid = collection.uuid(row);
+                                if uuid == 0 {
+                                    versatile_data::create_uuid()
+                                } else {
+                                    uuid
+                                }
+                            } else {
+                                unreachable!();
+                            }
                         }
                     };
 
-                    session_data
-                        .collection_id
-                        .update(session_row, collection_id)?;
+                    session_data.collection_id.update(
+                        session_row,
+                        if in_session {
+                            -collection_id
+                        } else {
+                            collection_id
+                        },
+                    )?;
                     session_data
                         .operation
                         .update(session_row, SessionOperation::Update)?;
@@ -254,44 +260,48 @@ pub(super) fn update_recursive(
                     let mut tmp_depends = vec![];
                     match depends {
                         Depends::Default => {
-                            if row > 0 {
-                                for i in master_database
+                            if in_session {
+                                session_data.relation.from_session_row(row, session_row)?;
+                            } else {
+                                for i in main_database
                                     .relation()
                                     .index_pend()
                                     .triee()
-                                    .iter_by(|v| {
-                                        v.cmp(&CollectionRow::new(collection_id, row as u32))
-                                    })
+                                    .iter_by(|v| v.cmp(&CollectionRow::new(collection_id, row)))
                                     .map(|x| x.row())
                                 {
-                                    if let Some(depend) =
-                                        master_database.relation().depend(i as u32)
-                                    {
+                                    if let Some(depend) = main_database.relation().depend(i) {
                                         let key =
-                                            unsafe { master_database.relation().key(i as u32) }
-                                                .unwrap();
-                                        let depend = SessionCollectionRow::new(
+                                            unsafe { main_database.relation().key(i) }.unwrap();
+                                        let depend = CollectionRow::new(
                                             depend.collection_id(),
-                                            depend.row() as i64,
+                                            depend.row(),
                                         );
-                                        session_data.relation.insert(key, session_row, depend);
-                                        tmp_depends.push(SessionDepend::new(key, depend));
+                                        session_data.relation.insert(
+                                            key,
+                                            session_row,
+                                            depend.clone(),
+                                        );
+                                        tmp_depends.push(Depend::new(key, depend));
                                     }
                                 }
-                            } else {
-                                session_data
-                                    .relation
-                                    .from_session_row((-row) as u32, session_row)?;
                             }
                         }
                         Depends::Overwrite(depends) => {
                             for (key, depend) in depends {
-                                session_data.relation.insert(key, session_row, *depend);
-                                tmp_depends.push(SessionDepend::new(key, *depend));
+                                session_data
+                                    .relation
+                                    .insert(key, session_row, depend.clone());
+                                tmp_depends.push(Depend::new(key, depend.clone()));
                             }
                         }
                     }
-                    col.entry(row).or_insert(TemporaryDataEntity {
+                    col.entry(if in_session {
+                        -(row as i64)
+                    } else {
+                        row as i64
+                    })
+                    .or_insert(TemporaryDataEntity {
                         activity: *activity,
                         term_begin,
                         term_end,
@@ -311,7 +321,7 @@ pub(super) fn update_recursive(
                     }
                     for pend in pends {
                         update_recursive(
-                            master_database,
+                            main_database,
                             session_data,
                             temporary_data,
                             session_dir,
@@ -325,7 +335,7 @@ pub(super) fn update_recursive(
                     session_data
                         .collection_id
                         .update(session_row, *collection_id)?;
-                    session_data.row.update(session_row, *row as i64)?;
+                    session_data.row.update(session_row, *row)?;
                     session_data
                         .operation
                         .update(session_row, SessionOperation::Delete)?;

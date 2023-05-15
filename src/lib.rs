@@ -23,10 +23,7 @@ mod relation;
 pub use relation::{Depend, RelationIndex};
 
 mod session;
-pub use session::{
-    search as session_search, Depends, Pend, Record, Session, SessionCollectionRow, SessionDepend,
-    TemporaryDataEntity,
-};
+pub use session::{search as session_search, Depends, Pend, Record, Session, TemporaryDataEntity};
 
 pub mod search;
 pub use search::{Condition, Search};
@@ -197,7 +194,7 @@ impl Database {
         &self,
         session: &mut Session,
         records: Vec<Record>,
-    ) -> Result<Vec<SessionCollectionRow>> {
+    ) -> Result<Vec<CollectionRow>> {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
         if let Some(ref mut session_data) = session.session_data {
@@ -327,7 +324,7 @@ impl Database {
             for row in rows {
                 commit::delete_recursive(self, &CollectionRow::new(collection_id, row))?;
                 if let Some(collection) = self.collection_mut(collection_id) {
-                    collection.update(&Operation::Delete { row: row as u32 })?;
+                    collection.update(&Operation::Delete { row })?;
                 }
             }
             self.collections_map.remove(name);
@@ -368,8 +365,8 @@ impl Database {
         pend_collection_id: i32,
         pend_row: i64,
         session: Option<&Session>,
-    ) -> Vec<SessionDepend> {
-        let mut r: Vec<SessionDepend> = vec![];
+    ) -> Vec<Depend> {
+        let mut r: Vec<Depend> = vec![];
         if pend_row > 0 {
             let depends = self.relation.depends(
                 key,

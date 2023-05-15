@@ -42,7 +42,7 @@ fn test4() {
                         fields: vec![KeyValue::new("name", "1".to_owned())],
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
-                            SessionCollectionRow::new(collection_widget, -1),
+                            CollectionRow::new(-collection_widget, 1),
                         )]),
                         pends: vec![],
                     }],
@@ -59,7 +59,7 @@ fn test4() {
                         fields: vec![KeyValue::new("name", "2".to_owned())],
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
-                            SessionCollectionRow::new(collection_widget, -1),
+                            CollectionRow::new(-collection_widget, 1),
                         )]),
                         pends: vec![],
                     }],
@@ -76,7 +76,7 @@ fn test4() {
                         fields: vec![KeyValue::new("name", "3".to_owned())],
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
-                            SessionCollectionRow::new(collection_widget, -1),
+                            CollectionRow::new(-collection_widget, 1),
                         )]),
                         pends: vec![],
                     }],
@@ -96,7 +96,7 @@ fn test4() {
                         fields: vec![KeyValue::new("name", "3-r".to_owned())],
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
-                            SessionCollectionRow::new(collection_widget, -1),
+                            CollectionRow::new(-collection_widget, 1),
                         )]),
                         pends: vec![],
                     }],
@@ -106,9 +106,9 @@ fn test4() {
         if let Ok(sess) = database.session("widget", None) {
             let search = sess
                 .begin_search(collection_field)
-                .search(semilattice_database::Condition::Depend(SessionDepend::new(
+                .search(semilattice_database::Condition::Depend(Depend::new(
                     "field",
-                    SessionCollectionRow::new(collection_widget, -1),
+                    CollectionRow::new(-collection_widget, 1),
                 )))
                 .search_activity(Activity::Active);
             for r in database.result_session(search, vec![]).unwrap() {

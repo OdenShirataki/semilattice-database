@@ -77,7 +77,7 @@ if let Ok(sess) = database.session("login", None) {
                 for row in database.result_session(search, vec![]).unwrap() {
                     println!(
                         "login id : {}",
-                        std::str::from_utf8(collection.field_bytes(row as u32, "id")).unwrap()
+                        std::str::from_utf8(collection.field_bytes(row, "id")).unwrap()
                     );
                 }
             }

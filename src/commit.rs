@@ -3,7 +3,7 @@ use versatile_data::{Activity, KeyValue, Operation, Term};
 
 use crate::{
     anyhow::Result,
-    session::{SessionCollectionRow, SessionData, SessionOperation},
+    session::{SessionData, SessionOperation},
     CollectionRow, Database,
 };
 
@@ -13,9 +13,8 @@ pub fn commit(
 ) -> Result<Vec<CollectionRow>> {
     let mut commit_rows = Vec::new();
 
-    let mut session_collection_row_map: HashMap<SessionCollectionRow, CollectionRow> =
-        HashMap::new();
-    let mut relation_temporary: HashMap<SessionCollectionRow, Vec<(String, SessionCollectionRow)>> =
+    let mut session_collection_row_map: HashMap<CollectionRow, CollectionRow> = HashMap::new();
+    let mut relation_temporary: HashMap<CollectionRow, Vec<(String, CollectionRow)>> =
         HashMap::new();
 
     for sequence in 1..=session_data.sequence_number.current() {
@@ -34,11 +33,14 @@ pub fn commit(
                 session_data.collection_id.value(session_row),
                 session_data.row.value(session_row),
             ) {
-                let row = if *row == 0 {
-                    -(session_row as i64)
+                let in_session = *collection_id < 0;
+
+                let main_collection_id = if in_session {
+                    -*collection_id
                 } else {
-                    *row
+                    *collection_id
                 };
+                let row = if *row == 0 { session_row } else { *row };
                 let fields = if *op == SessionOperation::Delete {
                     vec![]
                 } else {
@@ -50,9 +52,8 @@ pub fn commit(
                     }
                     fields
                 };
-
-                if let Some(collection) = main_database.collection_mut(*collection_id) {
-                    let session_collection_row = SessionCollectionRow::new(*collection_id, row);
+                if let Some(collection) = main_database.collection_mut(main_collection_id) {
+                    let session_collection_row = CollectionRow::new(*collection_id, row);
                     match op {
                         SessionOperation::New | SessionOperation::Update => {
                             let activity =
@@ -67,7 +68,7 @@ pub fn commit(
                             let term_end =
                                 Term::Overwrite(*session_data.term_end.value(session_row).unwrap());
                             let collection_row = CollectionRow::new(
-                                *collection_id,
+                                main_collection_id,
                                 if *op == SessionOperation::New {
                                     collection.update(&Operation::New {
                                         activity,
@@ -76,30 +77,25 @@ pub fn commit(
                                         fields,
                                     })?
                                 } else {
-                                    if row < 0 {
-                                        //update new data in session.
-                                        let master_collection_row = session_collection_row_map
+                                    //SessionOperation::Update
+                                    let row = if in_session {
+                                        let main_collection_row = session_collection_row_map
                                             .get(&session_collection_row)
                                             .unwrap();
-                                        collection.update(&Operation::Update {
-                                            row: master_collection_row.row(),
-                                            activity,
-                                            term_begin,
-                                            term_end,
-                                            fields,
-                                        })?
+                                        main_collection_row.row()
                                     } else {
-                                        collection.update(&Operation::Update {
-                                            row: row as u32,
-                                            activity,
-                                            term_begin,
-                                            term_end,
-                                            fields,
-                                        })?
-                                    }
+                                        row
+                                    };
+                                    collection.update(&Operation::Update {
+                                        row,
+                                        activity,
+                                        term_begin,
+                                        term_end,
+                                        fields,
+                                    })?
                                 },
                             );
-                            commit_rows.push(collection_row);
+                            commit_rows.push(collection_row.clone());
                             main_database
                                 .relation
                                 .delete_pends_by_collection_row(&collection_row)?; //Delete once and re-register later
@@ -122,27 +118,27 @@ pub fn commit(
                                         )
                                     };
                                     let tmp = relation_temporary
-                                        .entry(*depend)
+                                        .entry(depend.clone())
                                         .or_insert_with(|| Vec::new());
-                                    tmp.push((key_name.to_owned(), session_collection_row));
+                                    tmp.push((key_name.to_owned(), session_collection_row.clone()));
                                 }
                             }
                             session_collection_row_map
                                 .insert(session_collection_row, collection_row);
                         }
                         SessionOperation::Delete => {
-                            if row > 0 {
-                                delete_recursive(
-                                    main_database,
-                                    &CollectionRow::new(*collection_id, row as u32),
-                                )?;
-                            } else {
+                            if in_session {
                                 if let Some(registered) =
                                     session_collection_row_map.get(&session_collection_row)
                                 {
                                     delete_recursive(main_database, registered)?;
                                 }
                                 session_collection_row_map.remove(&session_collection_row);
+                            } else {
+                                delete_recursive(
+                                    main_database,
+                                    &CollectionRow::new(main_collection_id, row),
+                                )?;
                             }
                         }
                     }
@@ -151,38 +147,33 @@ pub fn commit(
         }
     }
     for (depend, pends) in relation_temporary {
-        if depend.row < 0 {
+        if depend.collection_id() < 0 {
             if let Some(depend) = session_collection_row_map.get(&depend) {
-                register_relations(main_database, *depend, pends, &session_collection_row_map)?;
+                register_relations(main_database, depend, pends, &session_collection_row_map)?;
             }
         } else {
-            register_relations(
-                main_database,
-                CollectionRow::new(depend.collection_id, depend.row as u32),
-                pends,
-                &session_collection_row_map,
-            )?;
+            register_relations(main_database, &depend, pends, &session_collection_row_map)?;
         }
     }
     Ok(commit_rows)
 }
 fn register_relations(
     main_database: &mut Database,
-    depend: CollectionRow,
-    pends: Vec<(String, SessionCollectionRow)>,
-    row_map: &HashMap<SessionCollectionRow, CollectionRow>,
+    depend: &CollectionRow,
+    pends: Vec<(String, CollectionRow)>,
+    row_map: &HashMap<CollectionRow, CollectionRow>,
 ) -> Result<()> {
     for (key_name, pend) in pends {
-        if pend.row > 0 {
-            main_database.relation.insert(
-                &key_name,
-                depend,
-                CollectionRow::new(pend.collection_id, pend.row as u32),
-            )?;
-        } else {
+        if pend.collection_id() < 0 {
             if let Some(pend) = row_map.get(&pend) {
-                main_database.relation.insert(&key_name, depend, *pend)?;
+                main_database
+                    .relation
+                    .insert(&key_name, depend.clone(), pend.clone())?;
             }
+        } else {
+            main_database
+                .relation
+                .insert(&key_name, depend.clone(), pend)?;
         }
     }
     Ok(())
@@ -199,7 +190,7 @@ pub(super) fn delete_recursive(database: &mut Database, target: &CollectionRow) 
     {
         let mut chain = None;
         if let Some(collection_row) = database.relation.index_pend().value(relation_row) {
-            chain = Some(*collection_row);
+            chain = Some(collection_row.clone());
         }
         database.relation.delete(relation_row)?;
         if let Some(collection_row) = chain {

@@ -1,8 +1,9 @@
 use serde::Serialize;
-use std::cmp::Ordering;
-use versatile_data::{Activity, Data, Operation};
-
-use crate::anyhow::Result;
+use std::{
+    cmp::Ordering,
+    ops::{Deref, DerefMut},
+};
+use versatile_data::Data;
 
 pub struct Collection {
     pub(crate) data: Data,
@@ -23,41 +24,22 @@ impl Collection {
     pub fn name(&self) -> &str {
         &self.name
     }
-    pub fn activity(&self, row: u32) -> Activity {
-        self.data.activity(row)
+}
+impl Deref for Collection {
+    type Target = Data;
+    fn deref(&self) -> &Self::Target {
+        &self.data
     }
-    pub fn serial(&self, row: u32) -> u32 {
-        self.data.serial(row)
-    }
-    pub fn uuid(&self, row: u32) -> u128 {
-        self.data.uuid(row)
-    }
-    pub fn uuid_string(&self, row: u32) -> String {
-        self.data.uuid_string(row)
-    }
-    pub fn last_updated(&self, row: u32) -> u64 {
-        self.data.last_updated(row)
-    }
-    pub fn term_begin(&self, row: u32) -> u64 {
-        self.data.term_begin(row)
-    }
-    pub fn term_end(&self, row: u32) -> u64 {
-        self.data.term_end(row)
-    }
-    pub fn field_bytes(&self, row: u32, field_name: &str) -> &[u8] {
-        self.data.field_bytes(row, field_name)
-    }
-    pub fn field_num(&self, row: u32, field_name: &str) -> f64 {
-        self.data.field_num(row, field_name)
-    }
-    pub fn update(&mut self, operation: &Operation) -> Result<u32> {
-        self.data.update(operation)
+}
+impl DerefMut for Collection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Hash)]
 pub struct CollectionRow {
-    collection_id: i32,
+    collection_id: i32, //Negative values ​​contain session rows
     row: u32,
 }
 impl PartialOrd for CollectionRow {

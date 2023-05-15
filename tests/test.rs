@@ -42,7 +42,7 @@ fn test() {
             .search_field("id", search::Field::Match(b"test".to_vec()))
             .search_field("password", search::Field::Match(b"test".to_vec()));
         for row in database.result_session(search, vec![]).unwrap() {
-            println!("session_search : {row}");
+            assert!(row >= 0);
             database
                 .update(
                     &mut sess,
@@ -54,7 +54,7 @@ fn test() {
                         fields: vec![],
                         depends: Depends::Overwrite(vec![(
                             "admin".to_owned(),
-                            SessionCollectionRow::new(collection_admin, row),
+                            CollectionRow::new(collection_admin, row as u32),
                         )]),
                         pends: vec![],
                     }],
@@ -192,9 +192,9 @@ fn test() {
                 std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
                 std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
             );
-            let search = database.search(history).depend(SessionDepend::new(
+            let search = database.search(history).depend(Depend::new(
                 "history",
-                SessionCollectionRow::new(collection_person, i as i64),
+                CollectionRow::new(collection_person, i),
             ));
             for h in database.result(search, &vec![]).unwrap() {
                 println!(

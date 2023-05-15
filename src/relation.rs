@@ -1,10 +1,10 @@
-use std::{io, path::Path};
+use std::{io, ops::Deref, path::Path};
 
 use versatile_data::{anyhow::Result, IdxFile, RowFragment};
 
-use crate::{collection::CollectionRow, session::SessionDepend, BinarySet, SessionCollectionRow};
+use crate::{collection::CollectionRow, BinarySet};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Depend {
     key: String,
     collection_row: CollectionRow,
@@ -19,7 +19,10 @@ impl Depend {
     pub fn key(&self) -> &str {
         &self.key
     }
-    pub fn collection_row(&self) -> &CollectionRow {
+}
+impl Deref for Depend {
+    type Target = CollectionRow;
+    fn deref(&self) -> &Self::Target {
         &self.collection_row
     }
 }
@@ -127,7 +130,7 @@ impl RelationIndex {
                         (self.rows.key.value(i), self.rows.pend.value(i))
                     {
                         if *key_row == key {
-                            ret.push(*collection_row);
+                            ret.push(collection_row.clone());
                         }
                     }
                 }
@@ -141,14 +144,14 @@ impl RelationIndex {
                 .map(|x| x.row())
             {
                 if let Some(collection_row) = self.rows.pend.value(i) {
-                    ret.push(*collection_row);
+                    ret.push(collection_row.clone());
                 }
             }
         }
         ret
     }
-    pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<SessionDepend> {
-        let mut ret: Vec<SessionDepend> = Vec::new();
+    pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {
+        let mut ret: Vec<Depend> = Vec::new();
         if let Some(key_name) = key {
             if let Some(key) = self.key_names.row(key_name.as_bytes()) {
                 for i in self
@@ -162,13 +165,7 @@ impl RelationIndex {
                         (self.rows.key.value(i), self.rows.depend.value(i))
                     {
                         if *key_row == key {
-                            ret.push(SessionDepend::new(
-                                key_name,
-                                SessionCollectionRow::new(
-                                    collection_row.collection_id(),
-                                    collection_row.row() as i64,
-                                ),
-                            ));
+                            ret.push(Depend::new(key_name, collection_row.clone()));
                         }
                     }
                 }
@@ -184,12 +181,9 @@ impl RelationIndex {
                 if let (Some(key), Some(collection_row)) =
                     (self.rows.key.value(i), self.rows.pend.value(i))
                 {
-                    ret.push(SessionDepend::new(
+                    ret.push(Depend::new(
                         unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(*key)) },
-                        SessionCollectionRow::new(
-                            collection_row.collection_id(),
-                            collection_row.row() as i64,
-                        ),
+                        collection_row.clone(),
                     ));
                 }
             }

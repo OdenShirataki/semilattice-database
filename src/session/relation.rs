@@ -3,38 +3,12 @@ use std::path::Path;
 use binary_set::BinarySet;
 use versatile_data::{anyhow::Result, IdxFile};
 
-use super::SessionCollectionRow;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SessionDepend {
-    key: String,
-    collection_row: SessionCollectionRow,
-}
-impl SessionDepend {
-    pub fn new(key: &str, collection_row: SessionCollectionRow) -> Self {
-        Self {
-            key: key.to_owned(),
-            collection_row,
-        }
-    }
-    pub fn collection_row(&self) -> &SessionCollectionRow {
-        &self.collection_row
-    }
-    pub fn collection_id(&self) -> i32 {
-        self.collection_row.collection_id()
-    }
-    pub fn row(&self) -> i64 {
-        self.collection_row.row()
-    }
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-}
+use super::{CollectionRow, Depend};
 
 pub struct SessionRelationRows {
     pub(crate) key: IdxFile<u32>,
     pub(crate) session_row: IdxFile<u32>,
-    pub(crate) depend: IdxFile<SessionCollectionRow>,
+    pub(crate) depend: IdxFile<CollectionRow>,
 }
 pub struct SessionRelation {
     pub(crate) key_names: BinarySet,
@@ -69,7 +43,7 @@ impl SessionRelation {
             },
         })
     }
-    pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: SessionCollectionRow) {
+    pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
         if let Ok(key_id) = self.key_names.row_or_insert(relation_key.as_bytes()) {
             self.rows.key.insert(key_id).unwrap();
             self.rows.session_row.insert(session_row).unwrap();
@@ -80,7 +54,7 @@ impl SessionRelation {
         &mut self,
         session_row: u32,
         new_session_row: u32,
-    ) -> Result<Vec<SessionDepend>> {
+    ) -> Result<Vec<Depend>> {
         let mut ret = vec![];
         for session_relation_row in self
             .rows
@@ -95,12 +69,12 @@ impl SessionRelation {
                 self.rows.depend.value(session_relation_row),
             ) {
                 let key = *key;
-                let depend = *depend;
+                let depend = depend.clone();
                 self.rows.key.insert(key)?;
                 self.rows.session_row.insert(new_session_row)?;
-                self.rows.depend.insert(depend)?;
+                self.rows.depend.insert(depend.clone())?;
                 if let Ok(key_name) = std::str::from_utf8(unsafe { self.key_names.bytes(key) }) {
-                    ret.push(SessionDepend::new(key_name, depend))
+                    ret.push(Depend::new(key_name, depend.clone()))
                 }
             }
         }

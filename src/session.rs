@@ -5,7 +5,7 @@ use std::{
 };
 use versatile_data::{Activity, Field, IdxFile};
 
-use crate::{Collection, CollectionRow, Condition};
+use crate::{Collection, CollectionRow, Condition, Depend};
 
 use super::Database;
 
@@ -18,7 +18,6 @@ use sequence_number::SequenceNumber;
 use serde::Serialize;
 
 mod relation;
-pub use relation::SessionDepend;
 use relation::SessionRelation;
 
 pub mod search;
@@ -38,31 +37,6 @@ pub struct SessionInfo {
     pub(super) expire: i64,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Hash, Debug)]
-pub struct SessionCollectionRow {
-    pub(crate) collection_id: i32,
-    pub(crate) row: i64, //-の場合はセッションの行が入る
-}
-impl SessionCollectionRow {
-    pub fn new(collection_id: i32, row: i64) -> Self {
-        Self { collection_id, row }
-    }
-    pub fn collection_id(&self) -> i32 {
-        self.collection_id
-    }
-    pub fn row(&self) -> i64 {
-        self.row
-    }
-}
-impl From<CollectionRow> for SessionCollectionRow {
-    fn from(item: CollectionRow) -> Self {
-        SessionCollectionRow {
-            collection_id: item.collection_id(),
-            row: item.row() as i64,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct TemporaryDataEntity {
     pub(super) activity: Activity,
@@ -71,7 +45,7 @@ pub struct TemporaryDataEntity {
     pub(super) uuid: u128,
     pub(super) operation: SessionOperation,
     pub(super) fields: HashMap<String, Vec<u8>>,
-    pub(super) depends: Vec<SessionDepend>,
+    pub(super) depends: Vec<Depend>,
 }
 impl TemporaryDataEntity {
     pub fn activity(&self) -> Activity {
@@ -99,7 +73,7 @@ pub struct SessionData {
     pub(super) sequence_number: SequenceNumber,
     pub(super) sequence: IdxFile<usize>,
     pub(super) collection_id: IdxFile<i32>,
-    pub(super) row: IdxFile<i64>,
+    pub(super) row: IdxFile<u32>,
     pub(super) operation: IdxFile<SessionOperation>,
     pub(super) activity: IdxFile<u8>,
     pub(super) term_begin: IdxFile<u64>,
@@ -159,7 +133,7 @@ impl Session {
         let mut temporary_data = HashMap::new();
         let current = session_data.sequence_number.current();
         if current > 0 {
-            let mut fields_overlaps: HashMap<SessionCollectionRow, HashMap<String, Vec<u8>>> =
+            let mut fields_overlaps: HashMap<CollectionRow, HashMap<String, Vec<u8>>> =
                 HashMap::new();
             for sequence in 1..=current {
                 for session_row in session_data
@@ -169,109 +143,101 @@ impl Session {
                     .map(|x| x.row())
                 {
                     if let Some(collection_id) = session_data.collection_id.value(session_row) {
-                        if *collection_id > 0 {
-                            let col = temporary_data
-                                .entry(*collection_id)
+                        let in_session = *collection_id < 0;
+                        let main_collection_id = if in_session {
+                            -*collection_id
+                        } else {
+                            *collection_id
+                        };
+                        let temprary_collection = temporary_data
+                            .entry(main_collection_id)
+                            .or_insert(HashMap::new());
+                        let row = *session_data.row.value(session_row).unwrap();
+
+                        let temporary_row = if row == 0 {
+                            -(session_row as i64)
+                        } else {
+                            row as i64
+                        };
+                        let operation = session_data.operation.value(session_row).unwrap().clone();
+                        if operation == SessionOperation::Delete {
+                            temprary_collection.insert(
+                                temporary_row,
+                                TemporaryDataEntity {
+                                    activity: Activity::Inactive,
+                                    term_begin: 0,
+                                    term_end: 0,
+                                    uuid: 0,
+                                    operation,
+                                    fields: HashMap::new(),
+                                    depends: vec![],
+                                },
+                            );
+                        } else {
+                            let row_fields = fields_overlaps
+                                .entry(if row == 0 {
+                                    CollectionRow::new(-main_collection_id, (-temporary_row) as u32)
+                                } else {
+                                    CollectionRow::new(main_collection_id, temporary_row as u32)
+                                })
                                 .or_insert(HashMap::new());
-                            let row = *session_data.row.value(session_row).unwrap();
-
-                            let temporary_row = if row == 0 { -(session_row as i64) } else { row };
-
-                            let operation =
-                                session_data.operation.value(session_row).unwrap().clone();
-                            if operation == SessionOperation::Delete {
-                                col.insert(
-                                    temporary_row,
-                                    TemporaryDataEntity {
-                                        activity: Activity::Inactive,
-                                        term_begin: 0,
-                                        term_end: 0,
-                                        uuid: 0,
-                                        operation,
-                                        fields: HashMap::new(),
-                                        depends: vec![],
-                                    },
-                                );
-                            } else {
-                                let row_fields = fields_overlaps
-                                    .entry(SessionCollectionRow::new(*collection_id, temporary_row))
-                                    .or_insert(HashMap::new());
-                                for (key, val) in &session_data.fields {
-                                    if let Some(v) = val.bytes(session_row) {
-                                        row_fields.insert(key.to_string(), v.to_vec());
-                                    }
+                            for (key, val) in &session_data.fields {
+                                if let Some(v) = val.bytes(session_row) {
+                                    row_fields.insert(key.to_string(), v.to_vec());
                                 }
-                                col.insert(
-                                    temporary_row,
-                                    TemporaryDataEntity {
-                                        activity: if *session_data
-                                            .activity
-                                            .value(session_row)
-                                            .unwrap()
-                                            == 1
-                                        {
-                                            Activity::Active
-                                        } else {
-                                            Activity::Inactive
-                                        },
-                                        term_begin: *session_data
-                                            .term_begin
-                                            .value(session_row)
-                                            .unwrap(),
-                                        term_end: *session_data
-                                            .term_end
-                                            .value(session_row)
-                                            .unwrap(),
-                                        uuid: if let Some(uuid) =
-                                            session_data.uuid.value(session_row)
-                                        {
-                                            *uuid
-                                        } else {
-                                            0
-                                        },
-                                        operation,
-                                        fields: row_fields.clone(),
-                                        depends: {
-                                            let mut depends = vec![];
-                                            for relation_row in session_data
-                                                .relation
-                                                .rows
-                                                .session_row
-                                                .triee()
-                                                .iter_by(|v| v.cmp(&session_row))
-                                                .map(|x| x.row())
-                                            {
-                                                if let (Some(key), Some(depend)) = (
-                                                    session_data
-                                                        .relation
-                                                        .rows
-                                                        .key
-                                                        .value(relation_row),
-                                                    session_data
-                                                        .relation
-                                                        .rows
-                                                        .depend
-                                                        .value(relation_row),
-                                                ) {
-                                                    if let Ok(key_name) =
-                                                        std::str::from_utf8(unsafe {
-                                                            session_data
-                                                                .relation
-                                                                .key_names
-                                                                .bytes(*key)
-                                                        })
-                                                    {
-                                                        depends.push(SessionDepend::new(
-                                                            key_name, *depend,
-                                                        ));
-                                                    }
-                                                }
-                                            }
-                                            depends
-                                        },
-                                    },
-                                );
                             }
+                            temprary_collection.insert(
+                                temporary_row,
+                                TemporaryDataEntity {
+                                    activity: if *session_data.activity.value(session_row).unwrap()
+                                        == 1
+                                    {
+                                        Activity::Active
+                                    } else {
+                                        Activity::Inactive
+                                    },
+                                    term_begin: *session_data
+                                        .term_begin
+                                        .value(session_row)
+                                        .unwrap(),
+                                    term_end: *session_data.term_end.value(session_row).unwrap(),
+                                    uuid: if let Some(uuid) = session_data.uuid.value(session_row) {
+                                        *uuid
+                                    } else {
+                                        0
+                                    },
+                                    operation,
+                                    fields: row_fields.clone(),
+                                    depends: {
+                                        let mut depends = vec![];
+                                        for relation_row in session_data
+                                            .relation
+                                            .rows
+                                            .session_row
+                                            .triee()
+                                            .iter_by(|v| v.cmp(&session_row))
+                                            .map(|x| x.row())
+                                        {
+                                            if let (Some(key), Some(depend)) = (
+                                                session_data.relation.rows.key.value(relation_row),
+                                                session_data
+                                                    .relation
+                                                    .rows
+                                                    .depend
+                                                    .value(relation_row),
+                                            ) {
+                                                let key_name = unsafe {
+                                                    std::str::from_utf8_unchecked(
+                                                        session_data.relation.key_names.bytes(*key),
+                                                    )
+                                                };
+                                                depends.push(Depend::new(key_name, depend.clone()));
+                                            }
+                                        }
+                                        depends
+                                    },
+                                },
+                            );
                         }
                     }
                 }
@@ -382,16 +348,16 @@ impl Session {
         row: i64,
         key: &str,
     ) -> &[u8] {
-        if let Some(tmp_col) = self.temporary_data.get(&collection_id) {
-            if let Some(tmp_row) = tmp_col.get(&row) {
+        if let Some(temporary_collection) = self.temporary_data.get(&collection_id) {
+            if let Some(tmp_row) = temporary_collection.get(&row) {
                 if let Some(val) = tmp_row.fields.get(key) {
                     return val;
                 }
             }
         }
         if row > 0 {
-            if let Some(col) = database.collection(collection_id) {
-                return col.field_bytes(row as u32, key);
+            if let Some(collection) = database.collection(collection_id) {
+                return collection.field_bytes(row as u32, key);
             }
         }
         b""
@@ -403,9 +369,9 @@ impl Session {
         row: i64,
         key: &str,
     ) -> &[u8] {
-        if let Some(tmp_col) = self.temporary_data.get(&collection.id()) {
-            if let Some(tmp_row) = tmp_col.get(&row) {
-                if let Some(val) = tmp_row.fields.get(key) {
+        if let Some(temprary_collection) = self.temporary_data.get(&collection.id()) {
+            if let Some(temprary_row) = temprary_collection.get(&row) {
+                if let Some(val) = temprary_row.fields.get(key) {
                     return val;
                 }
             }
@@ -422,7 +388,7 @@ impl Session {
         self.temporary_data.get(&collection_id)
     }
 
-    pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<SessionDepend>> {
+    pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<Depend>> {
         let mut r = vec![];
         if let Some(ref session_data) = self.session_data {
             if let Some(key_name) = key {
@@ -440,7 +406,7 @@ impl Session {
                             session_data.relation.rows.depend.value(relation_row),
                         ) {
                             if *key == key_id {
-                                r.push(SessionDepend::new(key_name, *depend));
+                                r.push(Depend::new(key_name, depend.clone()));
                             }
                         }
                     }
@@ -459,13 +425,13 @@ impl Session {
                         session_data.relation.rows.key.value(relation_row),
                         session_data.relation.rows.depend.value(relation_row),
                     ) {
-                        r.push(SessionDepend::new(
+                        r.push(Depend::new(
                             unsafe {
                                 std::str::from_utf8_unchecked(
                                     session_data.relation.key_names.bytes(*key),
                                 )
                             },
-                            *depend,
+                            depend.clone(),
                         ));
                     }
                 }

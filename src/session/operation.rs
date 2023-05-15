@@ -1,6 +1,6 @@
 use versatile_data::{Activity, KeyValue, Term};
 
-use super::SessionCollectionRow;
+use super::CollectionRow;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SessionOperation {
@@ -12,7 +12,7 @@ pub enum SessionOperation {
 #[derive(Debug)]
 pub enum Depends {
     Default,
-    Overwrite(Vec<(String, SessionCollectionRow)>),
+    Overwrite(Vec<(String, CollectionRow)>),
 }
 
 #[derive(Debug)]
@@ -48,7 +48,7 @@ pub enum Record {
     },
     Update {
         collection_id: i32,
-        row: i64,
+        row: u32,
         activity: Activity,
         term_begin: Term,
         term_end: Term,
@@ -58,6 +58,6 @@ pub enum Record {
     },
     Delete {
         collection_id: i32,
-        row: i64,
+        row: u32,
     },
 }
