@@ -138,7 +138,6 @@ impl Session {
             for sequence in 1..=current {
                 for session_row in session_data
                     .sequence
-                    .triee()
                     .iter_by(|v| v.cmp(&sequence))
                     .map(|x| x.row())
                 {
@@ -214,7 +213,6 @@ impl Session {
                                             .relation
                                             .rows
                                             .session_row
-                                            .triee()
                                             .iter_by(|v| v.cmp(&session_row))
                                             .map(|x| x.row())
                                         {
@@ -397,7 +395,6 @@ impl Session {
                         .relation
                         .rows
                         .session_row
-                        .triee()
                         .iter_by(|v| v.cmp(&pend_row))
                         .map(|x| x.row())
                     {
@@ -417,7 +414,6 @@ impl Session {
                     .relation
                     .rows
                     .session_row
-                    .triee()
                     .iter_by(|v| v.cmp(&pend_row))
                     .map(|x| x.row())
                 {

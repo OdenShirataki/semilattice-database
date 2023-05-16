@@ -204,7 +204,6 @@ impl Database {
                 for row in ((current + 1)..=max).rev() {
                     for session_row in session_data
                         .sequence
-                        .triee()
                         .iter_by(|v| v.cmp(&row))
                         .map(|x| x.row())
                         .collect::<Vec<u32>>()

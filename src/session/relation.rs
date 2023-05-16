@@ -59,7 +59,6 @@ impl SessionRelation {
         for session_relation_row in self
             .rows
             .session_row
-            .triee()
             .iter_by(|v| v.cmp(&session_row))
             .map(|x| x.row())
             .collect::<Vec<u32>>()
@@ -84,7 +83,6 @@ impl SessionRelation {
         for relation_row in self
             .rows
             .session_row
-            .triee()
             .iter_by(|v| v.cmp(&session_row))
             .map(|x| x.row())
             .collect::<Vec<u32>>()

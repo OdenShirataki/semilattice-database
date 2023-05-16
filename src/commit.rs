@@ -20,7 +20,6 @@ pub fn commit(
     for sequence in 1..=session_data.sequence_number.current() {
         for session_row in session_data
             .sequence
-            .triee()
             .iter_by(|v| v.cmp(&sequence))
             .map(|r| r.row())
             .collect::<Vec<u32>>()
@@ -104,7 +103,6 @@ pub fn commit(
                                 .relation
                                 .rows
                                 .session_row
-                                .triee()
                                 .iter_by(|v| v.cmp(&session_row))
                                 .map(|x| x.row())
                             {
@@ -183,7 +181,6 @@ pub(super) fn delete_recursive(database: &mut Database, target: &CollectionRow) 
     for relation_row in database
         .relation
         .index_depend()
-        .triee()
         .iter_by(|v| v.cmp(&target))
         .map(|x| x.row())
         .collect::<Vec<u32>>()
@@ -206,7 +203,6 @@ pub(super) fn delete_recursive(database: &mut Database, target: &CollectionRow) 
     for relation_row in database
         .relation
         .index_pend()
-        .triee()
         .iter_by(|v| v.cmp(&target))
         .map(|x| x.row())
         .collect::<Vec<u32>>()

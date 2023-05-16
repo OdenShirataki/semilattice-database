@@ -266,7 +266,6 @@ pub(super) fn update_recursive(
                                 for i in main_database
                                     .relation()
                                     .index_pend()
-                                    .triee()
                                     .iter_by(|v| v.cmp(&CollectionRow::new(collection_id, row)))
                                     .map(|x| x.row())
                                 {

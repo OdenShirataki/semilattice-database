@@ -106,7 +106,6 @@ impl RelationIndex {
         for row in self
             .rows
             .pend
-            .triee()
             .iter_by(|v| v.cmp(collection_row))
             .map(|x| x.row())
             .collect::<Vec<u32>>()
@@ -122,7 +121,6 @@ impl RelationIndex {
                 for i in self
                     .rows
                     .depend
-                    .triee()
                     .iter_by(|v| v.cmp(depend))
                     .map(|x| x.row())
                 {
@@ -139,7 +137,6 @@ impl RelationIndex {
             for i in self
                 .rows
                 .depend
-                .triee()
                 .iter_by(|v| v.cmp(depend))
                 .map(|x| x.row())
             {
@@ -157,7 +154,6 @@ impl RelationIndex {
                 for i in self
                     .rows
                     .pend
-                    .triee()
                     .iter_by(|v| v.cmp(pend))
                     .map(|x| x.row())
                 {
@@ -174,7 +170,6 @@ impl RelationIndex {
             for i in self
                 .rows
                 .pend
-                .triee()
                 .iter_by(|v| v.cmp(pend))
                 .map(|x| x.row())
             {
