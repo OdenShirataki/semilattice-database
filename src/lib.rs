@@ -23,7 +23,6 @@ pub mod search;
 pub use search::{Condition, Search};
 
 pub struct Database {
-    root_dir: PathBuf,
     collections_dir: PathBuf,
     collections_map: HashMap<String, i32>,
     collections: BTreeMap<i32, Collection>,
@@ -60,17 +59,16 @@ impl Database {
         }
 
         Ok(Self {
-            root_dir: dir.to_path_buf(),
             collections_dir,
             collections,
             collections_map,
             relation: RelationIndex::new(dir)?,
         })
     }
-    pub fn root_dir(&self) -> &Path {
-        &self.root_dir
-    }
 
+    pub fn relation(&self) -> &RelationIndex {
+        &self.relation
+    }
     pub fn relation_mut(&mut self) -> &mut RelationIndex {
         &mut self.relation
     }
@@ -221,9 +219,6 @@ impl Database {
         Ok(())
     }
 
-    pub fn relation(&self) -> &RelationIndex {
-        &self.relation
-    }
     pub fn search(&self, colletion: &Collection) -> Search {
         Search::new(colletion)
     }
