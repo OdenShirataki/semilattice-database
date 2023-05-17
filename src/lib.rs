@@ -1,20 +1,17 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    io::{self, Read},
+    io,
     path::{Path, PathBuf},
-    time::{self, UNIX_EPOCH},
 };
 
 use anyhow::Result;
+use versatile_data::Data;
 pub use versatile_data::{
-    self, anyhow, natord, Activity, FileMmap, IdxBinary, IdxFile, KeyValue, Order, OrderKey,
-    RowSet, Term, Uuid,
+    anyhow, create_uuid, natord, uuid_string, Activity, Field, FileMmap, IdxBinary, IdxFile,
+    KeyValue, Operation, Order, OrderKey, RowSet, Term, Uuid,
 };
-use versatile_data::{Data, Operation};
 
-use binary_set::BinarySet;
-
-use session::{search::SessionSearch, SessionInfo};
+pub use binary_set::BinarySet;
 
 mod collection;
 pub use collection::{Collection, CollectionRow};
@@ -22,19 +19,11 @@ pub use collection::{Collection, CollectionRow};
 mod relation;
 pub use relation::{Depend, RelationIndex};
 
-mod session;
-pub use session::{search as session_search, Depends, Pend, Record, Session, TemporaryDataEntity};
-
 pub mod search;
 pub use search::{Condition, Search};
 
-mod commit;
-
-mod update;
-
 pub struct Database {
     root_dir: PathBuf,
-    sessions_dir: PathBuf,
     collections_dir: PathBuf,
     collections_map: HashMap<String, i32>,
     collections: BTreeMap<i32, Collection>,
@@ -70,12 +59,8 @@ impl Database {
             }
         }
 
-        let mut sessions_dir = dir.to_path_buf();
-        sessions_dir.push("sessions");
-
         Ok(Self {
             root_dir: dir.to_path_buf(),
-            sessions_dir,
             collections_dir,
             collections,
             collections_map,
@@ -85,161 +70,11 @@ impl Database {
     pub fn root_dir(&self) -> &Path {
         &self.root_dir
     }
-    pub fn session_dir(&self, session_name: &str) -> PathBuf {
-        let mut dir = self.sessions_dir.clone();
-        dir.push(session_name);
-        dir
-    }
-    pub fn session(
-        &self,
-        session_name: &str,
-        expire_interval_sec: Option<i64>,
-    ) -> io::Result<Session> {
-        let session_dir = self.session_dir(session_name);
-        if !session_dir.exists() {
-            std::fs::create_dir_all(&session_dir)?;
-        }
-        Session::new(self, session_name, expire_interval_sec)
+
+    pub fn relation_mut(&mut self) -> &mut RelationIndex {
+        &mut self.relation
     }
 
-    pub fn sessions(&self) -> io::Result<Vec<SessionInfo>> {
-        let mut sessions = Vec::new();
-        if self.sessions_dir.exists() {
-            let dir = self.sessions_dir.read_dir()?;
-            for d in dir.into_iter() {
-                let d = d?;
-                if d.file_type()?.is_dir() {
-                    if let Some(fname) = d.file_name().to_str() {
-                        let mut access_at = 0;
-                        let mut expire = 0;
-
-                        let mut expire_file = d.path().to_path_buf();
-                        expire_file.push("expire");
-                        if expire_file.exists() {
-                            if let Ok(md) = expire_file.metadata() {
-                                if let Ok(m) = md.modified() {
-                                    access_at = m.duration_since(UNIX_EPOCH).unwrap().as_secs();
-                                    let mut file = std::fs::File::open(expire_file)?;
-                                    let mut buf = [0u8; 8];
-                                    file.read(&mut buf)?;
-                                    expire = i64::from_be_bytes(buf);
-                                }
-                            }
-                        }
-                        sessions.push(SessionInfo {
-                            name: fname.to_owned(),
-                            access_at: access_at,
-                            expire: expire,
-                        });
-                    }
-                }
-            }
-        }
-        Ok(sessions)
-    }
-    pub fn session_gc(&self, default_expire_interval_sec: i64) -> io::Result<()> {
-        for session in self.sessions()? {
-            let expire = if session.expire < 0 {
-                default_expire_interval_sec
-            } else {
-                session.expire
-            };
-            if session.access_at
-                < (time::SystemTime::now() - time::Duration::new(expire as u64, 0))
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-            {
-                let mut path = self.sessions_dir.clone();
-                path.push(session.name);
-                std::fs::remove_dir_all(&path)?;
-            }
-        }
-        Ok(())
-    }
-    pub fn commit(&mut self, session: &mut Session) -> Result<Vec<CollectionRow>> {
-        if let Some(ref mut data) = session.session_data {
-            let r = commit::commit(self, data)?;
-            self.session_clear(session)?;
-            Ok(r)
-        } else {
-            Ok(vec![])
-        }
-    }
-    pub fn session_clear(&self, session: &mut Session) -> io::Result<()> {
-        let session_dir = self.session_dir(session.name());
-        session.session_data = None;
-        if session_dir.exists() {
-            std::fs::remove_dir_all(&session_dir)?;
-        }
-        Ok(())
-    }
-    pub fn session_restart(
-        &self,
-        session: &mut Session,
-        expire_interval_sec: Option<i64>,
-    ) -> io::Result<()> {
-        self.session_clear(session)?;
-
-        let session_dir = self.session_dir(session.name());
-        std::fs::create_dir_all(&session_dir)?;
-        let session_data = Session::new_data(&session_dir, expire_interval_sec)?;
-        let temporary_data = Session::init_temporary_data(&session_data)?;
-        session.session_data = Some(session_data);
-        session.temporary_data = temporary_data;
-
-        Ok(())
-    }
-    pub fn update(
-        &self,
-        session: &mut Session,
-        records: Vec<Record>,
-    ) -> Result<Vec<CollectionRow>> {
-        let mut ret = vec![];
-        let session_dir = self.session_dir(session.name());
-        if let Some(ref mut session_data) = session.session_data {
-            let current = session_data.sequence_number.current();
-            let max = session_data.sequence_number.max();
-            if current < max {
-                for row in ((current + 1)..=max).rev() {
-                    for session_row in session_data
-                        .sequence
-                        .iter_by(|v| v.cmp(&row))
-                        .map(|x| x.row())
-                        .collect::<Vec<u32>>()
-                    {
-                        session_data.collection_id.delete(session_row)?;
-                        session_data.row.delete(session_row)?;
-                        session_data.operation.delete(session_row)?;
-                        session_data.activity.delete(session_row)?;
-                        session_data.term_begin.delete(session_row)?;
-                        session_data.term_end.delete(session_row)?;
-                        session_data.uuid.delete(session_row)?;
-
-                        for (_field_name, field_data) in session_data.fields.iter_mut() {
-                            field_data.delete(session_row)?;
-                        }
-
-                        session_data.relation.delete(session_row)?;
-
-                        session_data.sequence.delete(session_row)?;
-                    }
-                }
-            }
-
-            let sequence = session_data.sequence_number.next();
-            ret.append(&mut update::update_recursive(
-                self,
-                session_data,
-                &mut session.temporary_data,
-                &session_dir,
-                sequence,
-                &records,
-                None,
-            )?);
-        }
-        Ok(ret)
-    }
     fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
         let mut max_id = 0;
         if self.collections_dir.exists() {
@@ -306,6 +141,55 @@ impl Database {
         }
     }
 
+    pub fn register_relation(
+        &mut self,
+        key_name: &str,
+        depend: &CollectionRow,
+        pend: CollectionRow,
+    ) -> Result<()> {
+        self.relation.insert(key_name, depend.clone(), pend)
+    }
+    pub fn register_relations(
+        &mut self,
+        depend: &CollectionRow,
+        pends: Vec<(String, CollectionRow)>,
+    ) -> Result<()> {
+        for (key_name, pend) in pends {
+            self.register_relation(&key_name, depend, pend)?;
+        }
+        Ok(())
+    }
+
+    pub fn delete_recursive(&mut self, target: &CollectionRow) -> Result<()> {
+        let pends = self
+            .relation
+            .index_depend()
+            .iter_by(|v| v.cmp(&target))
+            .map(|x| x.row())
+            .collect::<Vec<u32>>();
+
+        for relation_row in &pends {
+            let relation_row = *relation_row;
+            let mut chain = None;
+            if let Some(collection_row) = self.relation.index_pend().value(relation_row) {
+                chain = Some(collection_row.clone());
+            }
+            self.relation.delete(relation_row)?;
+            if let Some(collection_row) = chain {
+                let collection_id = collection_row.collection_id();
+                let row = collection_row.row();
+                self.delete_recursive(&CollectionRow::new(collection_id, row))?;
+            }
+        }
+        if let Some(collection) = self.collection_mut(target.collection_id()) {
+            collection.update(&Operation::Delete { row: target.row() })?;
+        }
+        for relation_row in &pends {
+            self.relation.delete(*relation_row)?;
+        }
+
+        Ok(())
+    }
     pub fn delete_collection(&mut self, name: &str) -> Result<()> {
         let collection_id = if let Some(collection_id) = self.collections_map.get(name) {
             *collection_id
@@ -321,7 +205,7 @@ impl Database {
                 rows
             };
             for row in rows {
-                commit::delete_recursive(self, &CollectionRow::new(collection_id, row))?;
+                self.delete_recursive(&CollectionRow::new(collection_id, row))?;
                 if let Some(collection) = self.collection_mut(collection_id) {
                     collection.update(&Operation::Delete { row })?;
                 }
@@ -350,36 +234,20 @@ impl Database {
     ) -> Result<Vec<u32>, std::sync::mpsc::SendError<RowSet>> {
         search.result(self, orders)
     }
-    pub fn result_session(
-        &self,
-        search: SessionSearch,
-        orders: Vec<Order>,
-    ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
-        search.result(self, orders)
-    }
 
     pub fn depends(
         &self,
         key: Option<&str>,
         pend_collection_id: i32,
-        pend_row: i64,
-        session: Option<&Session>,
+        pend_row: u32,
     ) -> Vec<Depend> {
         let mut r: Vec<Depend> = vec![];
-        if pend_row > 0 {
-            let depends = self.relation.depends(
-                key,
-                &CollectionRow::new(pend_collection_id, pend_row as u32),
-            );
-            for i in depends {
-                r.push(i.into());
-            }
-        } else {
-            if let Some(session) = session {
-                if let Some(session_depends) = session.depends(key, (-pend_row) as u32) {
-                    r = session_depends;
-                }
-            }
+        let depends = self.relation.depends(
+            key,
+            &CollectionRow::new(pend_collection_id, pend_row as u32),
+        );
+        for i in depends {
+            r.push(i.into());
         }
         r
     }

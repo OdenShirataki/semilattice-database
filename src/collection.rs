@@ -39,7 +39,7 @@ impl DerefMut for Collection {
 
 #[derive(Clone, Debug, Serialize, Hash)]
 pub struct CollectionRow {
-    collection_id: i32, //Negative values ​​contain session rows
+    collection_id: i32,
     row: u32,
 }
 impl PartialOrd for CollectionRow {
