@@ -173,10 +173,8 @@ impl Database {
                 chain = Some(collection_row.clone());
             }
             self.relation.delete(relation_row)?;
-            if let Some(collection_row) = chain {
-                let collection_id = collection_row.collection_id();
-                let row = collection_row.row();
-                self.delete_recursive(&CollectionRow::new(collection_id, row))?;
+            if let Some(ref collection_row) = chain {
+                self.delete_recursive(collection_row)?;
             }
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {

@@ -9,7 +9,7 @@ use versatile_data::{
     Activity, Condition as VersatileDataCondition, Order, RowSet, Search as VersatileDataSearch,
 };
 
-use crate::{Collection, CollectionRow, Database, Depend, RelationIndex};
+use crate::{Collection, Database, Depend, RelationIndex};
 
 #[derive(Clone, Debug)]
 pub enum Condition {
@@ -108,25 +108,18 @@ impl Search {
                 )?;
             }
             Condition::Depend(depend) => {
-                let depend_row = depend.row();
-                //TODO: Verification Required this if
-                if depend_row > 0 {
-                    let rel = relation.pends(
-                        Some(depend.key()),
-                        &CollectionRow::new(depend.collection_id(), depend_row),
-                    );
-                    let collection_id = collection.id();
-                    spawn(move || {
-                        let mut tmp = RowSet::default();
-                        for r in rel {
-                            if r.collection_id() == collection_id {
-                                tmp.insert(r.row());
-                            }
+                let rel = relation.pends(Some(depend.key()), depend);
+                let collection_id = collection.id();
+                spawn(move || {
+                    let mut tmp = RowSet::default();
+                    for r in rel {
+                        if r.collection_id() == collection_id {
+                            tmp.insert(r.row());
                         }
-                        let tx = tx.clone();
-                        tx.send(tmp).unwrap();
-                    });
-                }
+                    }
+                    let tx = tx.clone();
+                    tx.send(tmp).unwrap();
+                });
             }
             Condition::Narrow(conditions) => {
                 let (tx_inner, rx) = channel();
