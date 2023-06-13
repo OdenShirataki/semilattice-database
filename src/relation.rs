@@ -1,5 +1,6 @@
 use std::{io, ops::Deref, path::Path};
 
+use serde::{ser::SerializeStruct, Serialize};
 use versatile_data::{anyhow::Result, IdxFile, RowFragment};
 
 use crate::{collection::CollectionRow, BinarySet};
@@ -24,6 +25,18 @@ impl Deref for Depend {
     type Target = CollectionRow;
     fn deref(&self) -> &Self::Target {
         &self.collection_row
+    }
+}
+impl Serialize for Depend {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_struct("Depend", 3)?;
+        state.serialize_field("key", &self.key)?;
+        state.serialize_field("collection_id", &self.collection_row.collection_id())?;
+        state.serialize_field("row", &self.collection_row.row())?;
+        state.end()
     }
 }
 
@@ -118,12 +131,7 @@ impl RelationIndex {
         let mut ret: Vec<CollectionRow> = Vec::new();
         if let Some(key) = key {
             if let Some(key) = self.key_names.row(key.as_bytes()) {
-                for i in self
-                    .rows
-                    .depend
-                    .iter_by(|v| v.cmp(depend))
-                    .map(|x| x.row())
-                {
+                for i in self.rows.depend.iter_by(|v| v.cmp(depend)).map(|x| x.row()) {
                     if let (Some(key_row), Some(collection_row)) =
                         (self.rows.key.value(i), self.rows.pend.value(i))
                     {
@@ -134,12 +142,7 @@ impl RelationIndex {
                 }
             }
         } else {
-            for i in self
-                .rows
-                .depend
-                .iter_by(|v| v.cmp(depend))
-                .map(|x| x.row())
-            {
+            for i in self.rows.depend.iter_by(|v| v.cmp(depend)).map(|x| x.row()) {
                 if let Some(collection_row) = self.rows.pend.value(i) {
                     ret.push(collection_row.clone());
                 }
@@ -151,12 +154,7 @@ impl RelationIndex {
         let mut ret: Vec<Depend> = Vec::new();
         if let Some(key_name) = key {
             if let Some(key) = self.key_names.row(key_name.as_bytes()) {
-                for i in self
-                    .rows
-                    .pend
-                    .iter_by(|v| v.cmp(pend))
-                    .map(|x| x.row())
-                {
+                for i in self.rows.pend.iter_by(|v| v.cmp(pend)).map(|x| x.row()) {
                     if let (Some(key_row), Some(collection_row)) =
                         (self.rows.key.value(i), self.rows.depend.value(i))
                     {
@@ -167,12 +165,7 @@ impl RelationIndex {
                 }
             }
         } else {
-            for i in self
-                .rows
-                .pend
-                .iter_by(|v| v.cmp(pend))
-                .map(|x| x.row())
-            {
+            for i in self.rows.pend.iter_by(|v| v.cmp(pend)).map(|x| x.row()) {
                 if let (Some(key), Some(collection_row)) =
                     (self.rows.key.value(i), self.rows.pend.value(i))
                 {
