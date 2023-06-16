@@ -1,28 +1,16 @@
+mod condition;
+
+pub use self::condition::Condition;
+pub use versatile_data::search::{Field, Number, Term};
+
 use std::{
-    sync::mpsc::{channel, SendError, Sender},
-    thread::spawn,
+    sync::mpsc::{channel, SendError},
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub use versatile_data::search::{Field, Number, Term};
-use versatile_data::{
-    Activity, Condition as VersatileDataCondition, Order, RowSet, Search as VersatileDataSearch,
-};
+use versatile_data::{Activity, Order, RowSet};
 
-use crate::{Collection, Database, Depend, RelationIndex};
-
-#[derive(Clone, Debug)]
-pub enum Condition {
-    Activity(Activity),
-    Term(Term),
-    Row(Number),
-    Uuid(Vec<u128>),
-    LastUpdated(Number),
-    Field(String, Field),
-    Narrow(Vec<Condition>),
-    Wide(Vec<Condition>),
-    Depend(Depend),
-}
+use crate::{Collection, Database};
 
 #[derive(Debug)]
 pub struct Search {
@@ -50,117 +38,8 @@ impl Search {
         self.conditions.push(Condition::Activity(Activity::Active));
         self
     }
-    pub fn depend(mut self, condition: Depend) -> Self {
-        self.conditions.push(Condition::Depend(condition));
-        self
-    }
-    pub fn field(self, field_name: impl Into<String>, condition: Field) -> Self {
-        self.search(Condition::Field(field_name.into(), condition))
-    }
 
-    fn exec_cond(
-        collection: &Collection,
-        relation: &RelationIndex,
-        condition: &Condition,
-        tx: Sender<RowSet>,
-    ) -> Result<(), SendError<RowSet>> {
-        match condition {
-            Condition::Activity(c) => {
-                VersatileDataSearch::search_exec_cond(
-                    &collection.data,
-                    &VersatileDataCondition::Activity(*c),
-                    tx,
-                )?;
-            }
-            Condition::Term(c) => {
-                VersatileDataSearch::search_exec_cond(
-                    &collection.data,
-                    &VersatileDataCondition::Term(c.clone()),
-                    tx,
-                )?;
-            }
-            Condition::Row(c) => {
-                VersatileDataSearch::search_exec_cond(
-                    &collection.data,
-                    &VersatileDataCondition::Row(c.clone()),
-                    tx,
-                )?;
-            }
-            Condition::Uuid(c) => {
-                VersatileDataSearch::search_exec_cond(
-                    &collection.data,
-                    &VersatileDataCondition::Uuid(c.clone()),
-                    tx,
-                )?;
-            }
-            Condition::LastUpdated(c) => {
-                VersatileDataSearch::search_exec_cond(
-                    &collection.data,
-                    &VersatileDataCondition::LastUpdated(c.clone()),
-                    tx,
-                )?;
-            }
-            Condition::Field(key, condition) => {
-                VersatileDataSearch::search_exec_cond(
-                    &collection.data,
-                    &VersatileDataCondition::Field(key.to_owned(), condition.clone()),
-                    tx,
-                )?;
-            }
-            Condition::Depend(depend) => {
-                let rel = relation.pends(Some(depend.key()), depend);
-                let collection_id = collection.id();
-                spawn(move || {
-                    let mut tmp = RowSet::default();
-                    for r in rel {
-                        if r.collection_id() == collection_id {
-                            tmp.insert(r.row());
-                        }
-                    }
-                    let tx = tx.clone();
-                    tx.send(tmp).unwrap();
-                });
-            }
-            Condition::Narrow(conditions) => {
-                let (tx_inner, rx) = channel();
-                for c in conditions {
-                    let tx_inner = tx_inner.clone();
-                    Self::exec_cond(collection, relation, c, tx_inner)?;
-                }
-                drop(tx_inner);
-                spawn(move || {
-                    let mut is_1st = true;
-                    let mut tmp = RowSet::default();
-                    for mut rs in rx {
-                        if is_1st {
-                            tmp = rs;
-                            is_1st = false;
-                        } else {
-                            tmp = tmp.intersection(&mut rs).map(|&x| x).collect();
-                        }
-                    }
-                    tx.send(tmp).unwrap();
-                });
-            }
-            Condition::Wide(conditions) => {
-                let (tx_inner, rx) = channel();
-                for c in conditions {
-                    let tx_inner = tx_inner.clone();
-                    Self::exec_cond(collection, relation, c, tx_inner)?;
-                }
-                drop(tx_inner);
-                spawn(move || {
-                    let mut tmp = RowSet::default();
-                    for ref mut rs in rx {
-                        tmp.append(rs);
-                    }
-                    tx.send(tmp).unwrap();
-                });
-            }
-        }
-        Ok(())
-    }
-    pub(super) fn result(
+    pub(crate) fn result(
         &self,
         database: &Database,
         orders: &[Order],
@@ -170,7 +49,7 @@ impl Search {
             if self.conditions.len() > 0 {
                 let (tx, rx) = channel();
                 for c in &self.conditions {
-                    Self::exec_cond(collection, &database.relation, c, tx.clone())?;
+                    c.result(collection, &database.relation, tx.clone())?;
                 }
                 drop(tx);
                 let mut fst = true;

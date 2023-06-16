@@ -1,3 +1,17 @@
+pub mod search;
+
+mod collection;
+mod relation;
+
+pub use binary_set::BinarySet;
+pub use collection::{Collection, CollectionRow};
+pub use relation::{Depend, RelationIndex};
+pub use search::{Condition, Search};
+pub use versatile_data::{
+    anyhow, create_uuid, natord, uuid_string, Activity, Field, FileMmap, IdxBinary, IdxFile,
+    KeyValue, Operation, Order, OrderKey, RowSet, Term, Uuid,
+};
+
 use std::{
     collections::{BTreeMap, HashMap},
     io,
@@ -6,21 +20,6 @@ use std::{
 
 use anyhow::Result;
 use versatile_data::Data;
-pub use versatile_data::{
-    anyhow, create_uuid, natord, uuid_string, Activity, Field, FileMmap, IdxBinary, IdxFile,
-    KeyValue, Operation, Order, OrderKey, RowSet, Term, Uuid,
-};
-
-pub use binary_set::BinarySet;
-
-mod collection;
-pub use collection::{Collection, CollectionRow};
-
-mod relation;
-pub use relation::{Depend, RelationIndex};
-
-pub mod search;
-pub use search::{Condition, Search};
 
 pub struct Database {
     collections_dir: PathBuf,

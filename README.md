@@ -76,10 +76,12 @@ if let (Ok(collection_person_id), Ok(collection_history_id)) = (
                     std::str::from_utf8(person.field_bytes(row, "name")).unwrap(),
                     std::str::from_utf8(person.field_bytes(row, "birthday")).unwrap()
                 );
-                let search = database.search(history).depend(Depend::new(
-                    "history",
-                    CollectionRow::new(collection_person_id, row),
-                ));
+                let search = database
+                    .search(history)
+                    .search(Condition::Depend(Depend::new(
+                        "history",
+                        CollectionRow::new(collection_person_id, row),
+                    )));
                 for h in database.result(search, &vec![]).unwrap() {
                     println!(
                         " {} : {}",
