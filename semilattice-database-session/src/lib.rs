@@ -3,8 +3,8 @@ mod session;
 mod update;
 
 pub use semilattice_database::{
-    anyhow, search, Activity, CollectionRow, Condition, Depend, KeyValue, Order, OrderKey, Term,
-    Uuid,
+    anyhow, search, Activity, Collection, CollectionRow, Condition, Depend, KeyValue, Order,
+    OrderKey, Term, Uuid,
 };
 pub use session::{Depends, Pend, Record, Session};
 
@@ -16,9 +16,7 @@ use std::{
 };
 
 use anyhow::Result;
-use semilattice_database::{
-    natord, BinarySet, Collection, Database, Field, FileMmap, IdxFile, RowSet,
-};
+use semilattice_database::{natord, BinarySet, Database, Field, FileMmap, IdxFile, RowSet};
 use session::{search::SessionSearch, SessionInfo};
 
 pub struct SessionDatabase {
