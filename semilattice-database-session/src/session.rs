@@ -96,7 +96,7 @@ impl Session {
             temporary_data,
         })
     }
-    pub fn name(&mut self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
     pub fn set_sequence_cursor(&mut self, current: usize) {
