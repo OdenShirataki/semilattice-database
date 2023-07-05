@@ -145,12 +145,15 @@ impl SessionDatabase {
     }
 
     pub fn update(
-        &self,
+        &mut self,
         session: &mut Session,
         records: Vec<Record>,
     ) -> Result<Vec<CollectionRow>> {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
+        if let None = session.session_data {
+            self.session_restart(session, None)?;
+        }
         if let Some(ref mut session_data) = session.session_data {
             let current = session_data.sequence_number.current();
             let max = session_data.sequence_number.max();
