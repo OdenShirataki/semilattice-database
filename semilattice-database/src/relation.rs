@@ -167,7 +167,7 @@ impl RelationIndex {
         } else {
             for i in self.rows.pend.iter_by(|v| v.cmp(pend)).map(|x| x.row()) {
                 if let (Some(key), Some(collection_row)) =
-                    (self.rows.key.value(i), self.rows.pend.value(i))
+                    (self.rows.key.value(i), self.rows.depend.value(i))
                 {
                     ret.push(Depend::new(
                         unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(*key)) },
