@@ -124,6 +124,7 @@ impl SessionDatabase {
         if session_dir.exists() {
             std::fs::remove_dir_all(&session_dir)?;
         }
+        session.temporary_data.clear();
         Ok(())
     }
 
@@ -133,7 +134,14 @@ impl SessionDatabase {
         expire_interval_sec: Option<i64>,
     ) -> io::Result<()> {
         self.session_clear(session)?;
+        self.init_session(session, expire_interval_sec)
+    }
 
+    fn init_session(
+        &self,
+        session: &mut Session,
+        expire_interval_sec: Option<i64>,
+    ) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());
         std::fs::create_dir_all(&session_dir)?;
         let session_data = Session::new_data(&session_dir, expire_interval_sec)?;
@@ -145,14 +153,14 @@ impl SessionDatabase {
     }
 
     pub fn update(
-        &mut self,
+        &self,
         session: &mut Session,
         records: Vec<Record>,
     ) -> Result<Vec<CollectionRow>> {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
         if let None = session.session_data {
-            self.session_restart(session, None)?;
+            self.init_session(session, None)?;
         }
         if let Some(ref mut session_data) = session.session_data {
             let current = session_data.sequence_number.current();
