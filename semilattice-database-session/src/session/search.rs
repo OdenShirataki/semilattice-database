@@ -91,28 +91,28 @@ impl<'a> SessionSearch<'a> {
                 if let Some(field_tmp) = ent.fields.get(key) {
                     match cond {
                         search::Field::Match(v) => {
-                            if field_tmp != v {
+                            if field_tmp != v.as_ref() {
                                 is_match = false;
                             }
                         }
                         search::Field::Range(min, max) => {
-                            if min > field_tmp || max < field_tmp {
+                            if min.as_ref() > field_tmp || max.as_ref() < field_tmp {
                                 is_match = false;
                             }
                         }
                         search::Field::Min(min) => {
-                            if min > field_tmp {
+                            if min.as_ref() > field_tmp {
                                 is_match = false;
                             }
                         }
                         search::Field::Max(max) => {
-                            if max < field_tmp {
+                            if max.as_ref() < field_tmp {
                                 is_match = false;
                             }
                         }
                         search::Field::Forward(v) => {
                             if let Ok(str) = std::str::from_utf8(field_tmp) {
-                                if !str.starts_with(v) {
+                                if !str.starts_with(v.as_ref()) {
                                     is_match = false;
                                 }
                             } else {
@@ -121,7 +121,7 @@ impl<'a> SessionSearch<'a> {
                         }
                         search::Field::Partial(v) => {
                             if let Ok(str) = std::str::from_utf8(field_tmp) {
-                                if !str.contains(v) {
+                                if !str.contains(v.as_ref()) {
                                     is_match = false;
                                 }
                             } else {
@@ -130,7 +130,7 @@ impl<'a> SessionSearch<'a> {
                         }
                         search::Field::Backward(v) => {
                             if let Ok(str) = std::str::from_utf8(field_tmp) {
-                                if !str.ends_with(v) {
+                                if !str.ends_with(v.as_ref()) {
                                     is_match = false;
                                 }
                             } else {
