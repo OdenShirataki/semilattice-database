@@ -137,6 +137,33 @@ impl<'a> SessionSearch<'a> {
                                 is_match = false;
                             }
                         }
+                        search::Field::ValueForward(v) => {
+                            if let Ok(str) = std::str::from_utf8(field_tmp) {
+                                if !v.starts_with(str) {
+                                    is_match = false;
+                                }
+                            } else {
+                                is_match = false;
+                            }
+                        }
+                        search::Field::ValueBackward(v) => {
+                            if let Ok(str) = std::str::from_utf8(field_tmp) {
+                                if !v.ends_with(str) {
+                                    is_match = false;
+                                }
+                            } else {
+                                is_match = false;
+                            }
+                        }
+                        search::Field::ValuePartial(v) => {
+                            if let Ok(str) = std::str::from_utf8(field_tmp) {
+                                if !v.contains(str) {
+                                    is_match = false;
+                                }
+                            } else {
+                                is_match = false;
+                            }
+                        }
                     }
                 } else {
                     is_match = false;
