@@ -158,31 +158,29 @@ impl Database {
     }
 
     pub fn delete_recursive(&mut self, target: &CollectionRow) -> Result<()> {
-        let pends = self
+        for relation_row in self
             .relation
             .index_depend()
             .iter_by(|v| v.cmp(&target))
             .map(|x| x.row())
-            .collect::<Vec<u32>>();
-
-        for relation_row in &pends {
-            let relation_row = *relation_row;
-            let mut chain = None;
+            .collect::<Vec<u32>>()
+        {
             if let Some(collection_row) = self.relation.index_pend().value(relation_row) {
-                chain = Some(collection_row.clone());
+                self.delete_recursive(&collection_row.clone())?;
             }
+        }
+        for relation_row in self
+            .relation
+            .index_pend()
+            .iter_by(|v| v.cmp(&target))
+            .map(|x| x.row())
+            .collect::<Vec<u32>>()
+        {
             self.relation.delete(relation_row)?;
-            if let Some(ref collection_row) = chain {
-                self.delete_recursive(collection_row)?;
-            }
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {
             collection.update(&Operation::Delete { row: target.row() })?;
         }
-        for relation_row in &pends {
-            self.relation.delete(*relation_row)?;
-        }
-
         Ok(())
     }
     pub fn delete_collection(&mut self, name: &str) -> Result<()> {
