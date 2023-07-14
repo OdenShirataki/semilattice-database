@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.64.1"
+version = "0.65.0"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -16,5 +16,5 @@ license = "MIT/Apache-2.0"
 [dependencies]
 serde = "1"
 
-versatile-data = { version = "0.74" , path = "../../versatile-data" }
-binary_set = { version = "0.1" , path = "../../binary_set" }
+versatile-data = { version = "0.75" , path = "../../versatile-data" }
+binary_set = { version = "0.2" , path = "../../binary_set" }
