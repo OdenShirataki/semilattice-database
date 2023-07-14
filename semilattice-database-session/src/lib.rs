@@ -118,11 +118,24 @@ impl SessionDatabase {
         dir.push(session_name);
         dir
     }
+    fn delete_dir(dir: PathBuf) {
+        for d in dir.read_dir().unwrap() {
+            let d = d.unwrap();
+            if d.file_type().unwrap().is_dir() {
+                let dir = d.path();
+                Self::delete_dir(dir);
+            } else {
+                let file = d.path();
+                std::fs::remove_file(file).unwrap();
+            }
+        }
+        let _ = std::fs::remove_dir_all(dir);
+    }
     pub fn session_clear(&self, session: &mut Session) -> io::Result<()> {
         let session_dir = self.session_dir(session.name());
         session.session_data = None;
         if session_dir.exists() {
-            std::fs::remove_dir_all(&session_dir)?;
+            Self::delete_dir(session_dir);
         }
         session.temporary_data.clear();
         Ok(())
