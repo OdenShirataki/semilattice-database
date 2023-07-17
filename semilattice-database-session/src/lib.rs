@@ -3,8 +3,8 @@ mod session;
 mod update;
 
 pub use semilattice_database::{
-    anyhow, search, Activity, Collection, CollectionRow, Condition, Depend, KeyValue, Order,
-    OrderKey, Term, Uuid,
+    anyhow, search, Activity, Collection, CollectionRow, Condition, Depend, KeyValue, Operation,
+    Order, OrderKey, Term, Uuid,
 };
 pub use session::{Depends, Pend, Record, Session};
 
