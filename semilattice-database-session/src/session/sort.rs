@@ -1,10 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap};
 
 use super::TemporaryDataEntity;
-use crate::{
-    natord, Order, OrderKey,
-    Collection,
-};
+use crate::{human_sort, Collection, Order, OrderKey};
 
 fn serial(collection: &Collection, a: i64, b: i64) -> (u32, u32) {
     let a = if a < 0 {
@@ -135,7 +132,7 @@ pub fn sort(
                         }
                     }
                     OrderKey::Field(field_name) => {
-                        let ord = natord::compare(
+                        let ord = human_sort::compare(
                             field(temporary_collection, collection, *a, &field_name),
                             field(temporary_collection, collection, *b, &field_name),
                         );
@@ -177,7 +174,7 @@ pub fn sort(
                         }
                     }
                     OrderKey::Field(field_name) => {
-                        let ord = natord::compare(
+                        let ord = human_sort::compare(
                             field(temporary_collection, collection, *b, &field_name),
                             field(temporary_collection, collection, *a, &field_name),
                         );

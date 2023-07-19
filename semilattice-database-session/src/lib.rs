@@ -16,7 +16,7 @@ use std::{
 };
 
 use anyhow::Result;
-use semilattice_database::{natord, BinarySet, Database, Field, FileMmap, IdxFile, RowSet};
+use semilattice_database::{human_sort, BinarySet, Database, Field, FileMmap, IdxFile, RowSet};
 use session::{search::SessionSearch, SessionInfo};
 
 pub struct SessionDatabase {
