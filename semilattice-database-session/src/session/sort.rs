@@ -70,8 +70,8 @@ fn field<'a>(
     collection: &'a Collection,
     row: i64,
     field_name: &str,
-) -> &'a str {
-    let s = std::str::from_utf8(if row < 0 {
+) -> &'a [u8] {
+    if row < 0 {
         if let Some(v) = temporary_collection
             .get(&row)
             .unwrap()
@@ -84,11 +84,6 @@ fn field<'a>(
         }
     } else {
         collection.field_bytes(row as u32, field_name)
-    });
-    if let Ok(s) = s {
-        s
-    } else {
-        ""
     }
 }
 
@@ -133,8 +128,8 @@ pub fn sort(
                     }
                     OrderKey::Field(field_name) => {
                         let ord = idx_binary::compare(
-                            field(temporary_collection, collection, *a, &field_name).as_bytes(),
-                            field(temporary_collection, collection, *b, &field_name).as_bytes(),
+                            field(temporary_collection, collection, *a, &field_name),
+                            field(temporary_collection, collection, *b, &field_name),
                         );
                         if ord != Ordering::Equal {
                             return ord;
@@ -175,8 +170,8 @@ pub fn sort(
                     }
                     OrderKey::Field(field_name) => {
                         let ord = idx_binary::compare(
-                            field(temporary_collection, collection, *b, &field_name).as_bytes(),
-                            field(temporary_collection, collection, *a, &field_name).as_bytes(),
+                            field(temporary_collection, collection, *b, &field_name),
+                            field(temporary_collection, collection, *a, &field_name),
                         );
                         if ord != Ordering::Equal {
                             return ord;
