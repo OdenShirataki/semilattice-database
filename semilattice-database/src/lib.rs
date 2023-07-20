@@ -8,7 +8,7 @@ pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Search};
 pub use versatile_data::{
-    anyhow, create_uuid, human_sort, uuid_string, Activity, Field, FileMmap, IdxBinary, IdxFile,
+    anyhow, create_uuid, idx_binary, uuid_string, Activity, Field, FileMmap, IdxBinary, IdxFile,
     KeyValue, Operation, Order, OrderKey, RowSet, Term, Uuid,
 };
 

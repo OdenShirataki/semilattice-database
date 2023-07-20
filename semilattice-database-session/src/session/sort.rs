@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap};
 
 use super::TemporaryDataEntity;
-use crate::{human_sort, Collection, Order, OrderKey};
+use crate::{idx_binary, Collection, Order, OrderKey};
 
 fn serial(collection: &Collection, a: i64, b: i64) -> (u32, u32) {
     let a = if a < 0 {
@@ -132,9 +132,9 @@ pub fn sort(
                         }
                     }
                     OrderKey::Field(field_name) => {
-                        let ord = human_sort::compare(
-                            field(temporary_collection, collection, *a, &field_name),
-                            field(temporary_collection, collection, *b, &field_name),
+                        let ord = idx_binary::compare(
+                            field(temporary_collection, collection, *a, &field_name).as_bytes(),
+                            field(temporary_collection, collection, *b, &field_name).as_bytes(),
                         );
                         if ord != Ordering::Equal {
                             return ord;
@@ -174,9 +174,9 @@ pub fn sort(
                         }
                     }
                     OrderKey::Field(field_name) => {
-                        let ord = human_sort::compare(
-                            field(temporary_collection, collection, *b, &field_name),
-                            field(temporary_collection, collection, *a, &field_name),
+                        let ord = idx_binary::compare(
+                            field(temporary_collection, collection, *b, &field_name).as_bytes(),
+                            field(temporary_collection, collection, *a, &field_name).as_bytes(),
                         );
                         if ord != Ordering::Equal {
                             return ord;
