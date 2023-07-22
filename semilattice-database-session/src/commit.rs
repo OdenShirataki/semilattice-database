@@ -104,7 +104,9 @@ impl SessionDatabase {
                                     },
                                 );
                                 commit_rows.push(collection_row.clone());
-                                self.relation_mut()
+                                self.relation()
+                                    .write()
+                                    .unwrap()
                                     .delete_pends_by_collection_row(&collection_row)?; //Delete once and re-register later
 
                                 for relation_row in session_data

@@ -203,14 +203,21 @@ impl SessionDatabase {
                                 } else {
                                     for i in self
                                         .relation()
+                                        .read()
+                                        .unwrap()
                                         .index_pend()
                                         .iter_by(|v| v.cmp(&CollectionRow::new(collection_id, row)))
                                         .map(|x| x.row())
                                     {
-                                        if let Some(depend) = self.relation().depend(i) {
-                                            let key = unsafe { self.relation().key(i) }.unwrap();
+                                        if let Some(depend) =
+                                            self.relation().read().unwrap().depend(i)
+                                        {
+                                            let key =
+                                                unsafe { self.relation().read().unwrap().key(i) }
+                                                    .unwrap()
+                                                    .to_owned();
                                             session_data.relation.insert(
-                                                key,
+                                                &key,
                                                 session_row,
                                                 depend.clone(),
                                             );

@@ -235,7 +235,7 @@ impl SessionDatabase {
     ) -> Vec<Depend> {
         let mut r: Vec<Depend> = vec![];
         if pend_collection_id > 0 {
-            let depends = self.relation().depends(
+            let depends = self.relation().read().unwrap().depends(
                 key,
                 &CollectionRow::new(pend_collection_id, pend_row as u32),
             );

@@ -16,6 +16,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     io,
     path::{Path, PathBuf},
+    sync::{Arc, RwLock},
 };
 
 use anyhow::Result;
@@ -25,7 +26,7 @@ pub struct Database {
     collections_dir: PathBuf,
     collections_map: HashMap<String, i32>,
     collections: BTreeMap<i32, Collection>,
-    relation: RelationIndex,
+    relation: Arc<RwLock<RelationIndex>>,
 }
 impl Database {
     pub fn new<P: AsRef<Path>>(dir: P) -> io::Result<Self> {
@@ -61,15 +62,12 @@ impl Database {
             collections_dir,
             collections,
             collections_map,
-            relation: RelationIndex::new(dir)?,
+            relation: Arc::new(RwLock::new(RelationIndex::new(dir)?)),
         })
     }
 
-    pub fn relation(&self) -> &RelationIndex {
-        &self.relation
-    }
-    pub fn relation_mut(&mut self) -> &mut RelationIndex {
-        &mut self.relation
+    pub fn relation(&self) -> Arc<RwLock<RelationIndex>> {
+        self.relation.clone()
     }
 
     fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
@@ -144,7 +142,10 @@ impl Database {
         depend: &CollectionRow,
         pend: CollectionRow,
     ) -> Result<()> {
-        self.relation.insert(key_name, depend.clone(), pend)
+        self.relation
+            .write()
+            .unwrap()
+            .insert(key_name, depend.clone(), pend)
     }
     pub fn register_relations(
         &mut self,
@@ -158,25 +159,36 @@ impl Database {
     }
 
     pub fn delete_recursive(&mut self, target: &CollectionRow) -> Result<()> {
-        for relation_row in self
+        let rows = self
             .relation
+            .read()
+            .unwrap()
             .index_depend()
             .iter_by(|v| v.cmp(&target))
             .map(|x| x.row())
-            .collect::<Vec<u32>>()
-        {
-            if let Some(collection_row) = self.relation.index_pend().value(relation_row) {
-                self.delete_recursive(&collection_row.clone())?;
+            .collect::<Vec<u32>>();
+        for relation_row in rows {
+            let collection_row = self
+                .relation
+                .read()
+                .unwrap()
+                .index_pend()
+                .value(relation_row)
+                .and_then(|v| Some(v.clone()));
+            if let Some(collection_row) = collection_row {
+                self.delete_recursive(&collection_row)?;
             }
         }
-        for relation_row in self
+        let rows = self
             .relation
+            .read()
+            .unwrap()
             .index_pend()
             .iter_by(|v| v.cmp(&target))
             .map(|x| x.row())
-            .collect::<Vec<u32>>()
-        {
-            self.relation.delete(relation_row)?;
+            .collect::<Vec<u32>>();
+        for relation_row in rows {
+            self.relation.write().unwrap().delete(relation_row)?;
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {
             collection.update(&Operation::Delete { row: target.row() })?;
@@ -232,7 +244,7 @@ impl Database {
         pend_row: u32,
     ) -> Vec<Depend> {
         let mut r: Vec<Depend> = vec![];
-        let depends = self.relation.depends(
+        let depends = self.relation.read().unwrap().depends(
             key,
             &CollectionRow::new(pend_collection_id, pend_row as u32),
         );

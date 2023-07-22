@@ -1,5 +1,8 @@
 use std::{
-    sync::mpsc::{channel, SendError, Sender},
+    sync::{
+        mpsc::{channel, SendError, Sender},
+        Arc, RwLock,
+    },
     thread::spawn,
 };
 
@@ -26,7 +29,7 @@ impl Condition {
     pub(crate) fn result(
         &self,
         collection: &Collection,
-        relation: &RelationIndex,
+        relation: &Arc<RwLock<RelationIndex>>,
         tx: Sender<RowSet>,
     ) -> Result<(), SendError<RowSet>> {
         match self {
@@ -73,9 +76,11 @@ impl Condition {
                 )?;
             }
             Self::Depend(depend) => {
-                let rel = relation.pends(Some(depend.key()), depend);
                 let collection_id = collection.id();
+                let relation = Arc::clone(relation);
+                let depend = depend.clone();
                 spawn(move || {
+                    let rel = relation.read().unwrap().pends(Some(depend.key()), &depend);
                     let mut tmp = RowSet::default();
                     for r in rel {
                         if r.collection_id() == collection_id {
