@@ -1,5 +1,6 @@
 use std::{
     collections::BTreeSet,
+    ops::Deref,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -187,9 +188,13 @@ impl<'a> SessionSearch<'a> {
                     }
                 }
             }
-            Condition::Depend(condition) => {
+            Condition::Depend(key, collection_row) => {
                 for depend in &ent.depends {
-                    is_match = *condition == *depend;
+                    is_match = if let Some(key) = key {
+                        key == depend.key()
+                    } else {
+                        true
+                    } && collection_row == depend.deref();
                     if is_match {
                         break;
                     }

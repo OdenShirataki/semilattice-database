@@ -127,7 +127,7 @@ impl RelationIndex {
         }
         Ok(())
     }
-    pub fn pends(&self, key: Option<&str>, depend: &CollectionRow) -> Vec<CollectionRow> {
+    pub fn pends(&self, key: Option<String>, depend: &CollectionRow) -> Vec<CollectionRow> {
         let mut ret: Vec<CollectionRow> = Vec::new();
         if let Some(key) = key {
             if let Some(key) = self.key_names.row(key.as_bytes()) {

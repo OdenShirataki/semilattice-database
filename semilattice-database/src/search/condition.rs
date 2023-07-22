@@ -11,7 +11,7 @@ use versatile_data::{
     Activity, Condition as VersatileDataCondition, RowSet, Search as VersatileDataSearch,
 };
 
-use crate::{Collection, Depend, RelationIndex};
+use crate::{Collection, CollectionRow, RelationIndex};
 
 #[derive(Clone, Debug)]
 pub enum Condition {
@@ -23,7 +23,7 @@ pub enum Condition {
     Field(String, Field),
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
-    Depend(Depend),
+    Depend(Option<String>, CollectionRow),
 }
 impl Condition {
     pub(crate) fn result(
@@ -75,12 +75,13 @@ impl Condition {
                     tx,
                 )?;
             }
-            Self::Depend(depend) => {
+            Self::Depend(key, collection_row) => {
                 let collection_id = collection.id();
                 let relation = Arc::clone(relation);
-                let depend = depend.clone();
+                let key = key.clone();
+                let collection_row = collection_row.clone();
                 spawn(move || {
-                    let rel = relation.read().unwrap().pends(Some(depend.key()), &depend);
+                    let rel = relation.read().unwrap().pends(key, &collection_row);
                     let mut tmp = RowSet::default();
                     for r in rel {
                         if r.collection_id() == collection_id {

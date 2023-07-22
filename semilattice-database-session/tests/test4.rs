@@ -108,10 +108,10 @@ fn test4() {
         if let Ok(sess) = database.session("widget", None) {
             let search = sess
                 .begin_search(collection_field)
-                .search(semilattice_database::Condition::Depend(Depend::new(
-                    "field",
+                .search(semilattice_database::Condition::Depend(
+                    Some("field".to_owned()),
                     CollectionRow::new(-collection_widget, 1),
-                )))
+                ))
                 .search_activity(Activity::Active);
             for r in database.result_session(search, vec![]).unwrap() {
                 println!(

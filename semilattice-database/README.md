@@ -78,10 +78,10 @@ if let (Ok(collection_person_id), Ok(collection_history_id)) = (
                 );
                 let search = database
                     .search(history)
-                    .search(Condition::Depend(Depend::new(
-                        "history",
+                    .search(Condition::Depend(
+                        Some("history".to_owned()),
                         CollectionRow::new(collection_person_id, row),
-                    )));
+                    ));
                 for h in database.result(search, &vec![]).unwrap() {
                     println!(
                         " {} : {}",
