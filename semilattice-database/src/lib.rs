@@ -53,13 +53,7 @@ impl Database {
                         if let Some(pos) = fname.find("_") {
                             if let Ok(collection_id) = (&fname[..pos]).parse::<i32>() {
                                 let name = &fname[(pos + 1)..];
-                                let data = Collection::new(
-                                    Data::new(d.path(), db.collection_setting(name))?,
-                                    collection_id,
-                                    name,
-                                );
-                                db.collections_map.insert(name.to_string(), collection_id);
-                                db.collections.insert(collection_id, data);
+                                db.create_collection(collection_id, name, d.path())?;
                             }
                         }
                     }
@@ -70,61 +64,10 @@ impl Database {
         Ok(db)
     }
 
-    pub fn collection_setting(&self, collection: &str) -> DataOption {
-        if let Some(option) = self.collection_settings.get(collection) {
-            option.clone()
-        } else {
-            DataOption::default()
-        }
-    }
     pub fn relation(&self) -> Arc<RwLock<RelationIndex>> {
         self.relation.clone()
     }
 
-    fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
-        let mut max_id = 0;
-        if self.collections_dir.exists() {
-            for d in self.collections_dir.read_dir()? {
-                let d = d?;
-                if d.file_type()?.is_dir() {
-                    if let Some(fname) = d.file_name().to_str() {
-                        let s: Vec<&str> = fname.split("_").collect();
-                        if s.len() > 1 {
-                            if let Ok(i) = s[0].parse() {
-                                max_id = std::cmp::max(max_id, i);
-                            }
-                            if s[1] == name {
-                                let data = Collection::new(
-                                    Data::new(d.path(), self.collection_setting(name))?,
-                                    max_id,
-                                    name,
-                                );
-                                self.collections_map.insert(name.to_string(), max_id);
-                                self.collections.insert(max_id, data);
-                                return Ok(max_id);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        let collection_id = max_id + 1;
-        let data = Collection::new(
-            Data::new(
-                {
-                    let mut collecion_dir = self.collections_dir.clone();
-                    collecion_dir.push(&(collection_id.to_string() + "_" + name));
-                    collecion_dir
-                },
-                self.collection_setting(name),
-            )?,
-            collection_id,
-            name,
-        );
-        self.collections_map.insert(name.to_string(), collection_id);
-        self.collections.insert(collection_id, data);
-        Ok(collection_id)
-    }
     pub fn collections(&self) -> Vec<String> {
         let mut r = Vec::new();
         for (_, collection) in self.collections.iter() {
@@ -270,5 +213,52 @@ impl Database {
             r.push(i.into());
         }
         r
+    }
+
+    fn create_collection(&mut self, id: i32, name: &str, dir: PathBuf) -> io::Result<()> {
+        let collection = Collection::new(
+            Data::new(
+                dir,
+                if let Some(option) = self.collection_settings.get(name) {
+                    option.clone()
+                } else {
+                    DataOption::default()
+                },
+            )?,
+            id,
+            name,
+        );
+        self.collections_map.insert(name.to_string(), id);
+        self.collections.insert(id, collection);
+        Ok(())
+    }
+    fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
+        let mut max_id = 0;
+        if self.collections_dir.exists() {
+            for d in self.collections_dir.read_dir()? {
+                let d = d?;
+                if d.file_type()?.is_dir() {
+                    if let Some(fname) = d.file_name().to_str() {
+                        let s: Vec<&str> = fname.split("_").collect();
+                        if s.len() > 1 {
+                            if let Ok(i) = s[0].parse() {
+                                max_id = std::cmp::max(max_id, i);
+                            }
+                            if s[1] == name {
+                                self.create_collection(max_id, name, d.path())?;
+                                return Ok(max_id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let collection_id = max_id + 1;
+        self.create_collection(collection_id, name, {
+            let mut collecion_dir = self.collections_dir.clone();
+            collecion_dir.push(&(collection_id.to_string() + "_" + name));
+            collecion_dir
+        })?;
+        Ok(collection_id)
     }
 }
