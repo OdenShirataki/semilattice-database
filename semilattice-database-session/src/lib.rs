@@ -3,15 +3,15 @@ mod session;
 mod update;
 
 pub use semilattice_database::{
-    anyhow, search, Activity, Collection, CollectionRow, Condition, Depend, KeyValue, Operation,
-    Order, OrderKey, Term, Uuid,
+    anyhow, search, Activity, Collection, CollectionRow, Condition, DataOption, Depend, KeyValue,
+    Operation, Order, OrderKey, Term, Uuid,
 };
 pub use session::{Depends, Pend, Record, Session};
 
 use std::{
     collections::HashMap,
     io::{self, Read},
-    path::{Path, PathBuf},
+    path::PathBuf,
     time::{self, UNIX_EPOCH},
 };
 
@@ -36,9 +36,11 @@ impl std::ops::DerefMut for SessionDatabase {
 }
 
 impl SessionDatabase {
-    pub fn new<P: AsRef<Path>>(dir: P) -> io::Result<Self> {
-        let dir = dir.as_ref();
-        let database = Database::new(dir)?;
+    pub fn new(
+        dir: PathBuf,
+        collection_settings: Option<HashMap<String, DataOption>>,
+    ) -> io::Result<Self> {
+        let database = Database::new(dir.clone(), collection_settings)?;
         let mut sessions_dir = dir.to_path_buf();
         sessions_dir.push("sessions");
         Ok(Self {

@@ -13,7 +13,7 @@ if std::path::Path::new(dir).exists() {
 } else {
     std::fs::create_dir_all(dir).unwrap();
 }
-let mut database = SessionDatabase::new(dir).unwrap();
+let mut database = SessionDatabase::new(dir, None).unwrap();
 
 let collection_admin = database.collection_id_or_create("admin").unwrap();
 

@@ -1,4 +1,4 @@
-use semilattice_database::{Activity, KeyValue, Operation, Term};
+use semilattice_database::{Activity, KeyValue, Operation, Record, Term};
 use std::collections::HashMap;
 
 use crate::{
@@ -78,12 +78,12 @@ impl SessionDatabase {
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
                                     if *op == SessionOperation::New {
-                                        collection.update(&Operation::New {
+                                        collection.update(&Operation::New(Record {
                                             activity,
                                             term_begin,
                                             term_end,
                                             fields,
-                                        })?
+                                        }))?
                                     } else {
                                         //SessionOperation::Update
                                         let row = if in_session {
@@ -96,10 +96,12 @@ impl SessionDatabase {
                                         };
                                         collection.update(&Operation::Update {
                                             row,
-                                            activity,
-                                            term_begin,
-                                            term_end,
-                                            fields,
+                                            record: Record {
+                                                activity,
+                                                term_begin,
+                                                term_end,
+                                                fields,
+                                            },
                                         })?
                                     },
                                 );

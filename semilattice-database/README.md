@@ -13,7 +13,7 @@ if std::path::Path::new(dir).exists() {
 } else {
     std::fs::create_dir_all(dir).unwrap();
 }
-let mut database = Database::new(dir).unwrap();
+let mut database = Database::new(dir, None).unwrap();
 
 if let (Ok(collection_person_id), Ok(collection_history_id)) = (
     database.collection_id_or_create("person"),

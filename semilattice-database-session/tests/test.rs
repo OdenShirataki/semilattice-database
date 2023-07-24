@@ -13,7 +13,7 @@ fn test() {
     } else {
         std::fs::create_dir_all(dir).unwrap();
     }
-    let mut database = SessionDatabase::new(dir).unwrap();
+    let mut database = SessionDatabase::new(dir.into(),None).unwrap();
 
     let collection_admin = database.collection_id_or_create("admin").unwrap();
 
@@ -200,12 +200,10 @@ fn test() {
                 std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
                 std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
             );
-            let search = database
-                .search(history)
-                .search(Condition::Depend(
-                    Some("history".to_owned()),
-                    CollectionRow::new(collection_person, i),
-                ));
+            let search = database.search(history).search(Condition::Depend(
+                Some("history".to_owned()),
+                CollectionRow::new(collection_person, i),
+            ));
             for h in database.result(search, &vec![]).unwrap() {
                 println!(
                     " {} : {}",

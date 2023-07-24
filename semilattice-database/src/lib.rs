@@ -8,14 +8,14 @@ pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Search};
 pub use versatile_data::{
-    anyhow, create_uuid, idx_binary, uuid_string, Activity, Field, FileMmap, IdxBinary, IdxFile,
-    KeyValue, Operation, Order, OrderKey, RowSet, Term, Uuid,
+    anyhow, create_uuid, idx_binary, uuid_string, Activity, DataOption, Field, FileMmap, IdxBinary,
+    IdxFile, KeyValue, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
 };
 
 use std::{
     collections::{BTreeMap, HashMap},
     io,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{Arc, RwLock},
 };
 
@@ -27,19 +27,25 @@ pub struct Database {
     collections_map: HashMap<String, i32>,
     collections: BTreeMap<i32, Collection>,
     relation: Arc<RwLock<RelationIndex>>,
+    collection_settings: HashMap<String, DataOption>,
 }
 impl Database {
-    pub fn new<P: AsRef<Path>>(dir: P) -> io::Result<Self> {
-        let dir = dir.as_ref();
-
+    pub fn new(
+        dir: PathBuf,
+        collection_settings: Option<HashMap<String, DataOption>>,
+    ) -> io::Result<Self> {
         let mut collections_dir = dir.to_path_buf();
         collections_dir.push("collection");
 
-        let mut collections_map = HashMap::new();
-        let mut collections = BTreeMap::new();
-
-        if collections_dir.exists() {
-            let dir = collections_dir.read_dir()?;
+        let mut db = Self {
+            collections_dir,
+            collections: BTreeMap::new(),
+            collections_map: HashMap::new(),
+            relation: Arc::new(RwLock::new(RelationIndex::new(&dir)?)),
+            collection_settings: collection_settings.unwrap_or(HashMap::new()),
+        };
+        if db.collections_dir.exists() {
+            let dir = db.collections_dir.read_dir()?;
             for d in dir.into_iter() {
                 let d = d?;
                 if d.file_type()?.is_dir() {
@@ -47,10 +53,13 @@ impl Database {
                         if let Some(pos) = fname.find("_") {
                             if let Ok(collection_id) = (&fname[..pos]).parse::<i32>() {
                                 let name = &fname[(pos + 1)..];
-                                let data =
-                                    Collection::new(Data::new(d.path())?, collection_id, name);
-                                collections_map.insert(name.to_string(), collection_id);
-                                collections.insert(collection_id, data);
+                                let data = Collection::new(
+                                    Data::new(d.path(), db.collection_setting(name))?,
+                                    collection_id,
+                                    name,
+                                );
+                                db.collections_map.insert(name.to_string(), collection_id);
+                                db.collections.insert(collection_id, data);
                             }
                         }
                     }
@@ -58,14 +67,16 @@ impl Database {
             }
         }
 
-        Ok(Self {
-            collections_dir,
-            collections,
-            collections_map,
-            relation: Arc::new(RwLock::new(RelationIndex::new(dir)?)),
-        })
+        Ok(db)
     }
 
+    pub fn collection_setting(&self, collection: &str) -> DataOption {
+        if let Some(option) = self.collection_settings.get(collection) {
+            option.clone()
+        } else {
+            DataOption::default()
+        }
+    }
     pub fn relation(&self) -> Arc<RwLock<RelationIndex>> {
         self.relation.clone()
     }
@@ -83,7 +94,11 @@ impl Database {
                                 max_id = std::cmp::max(max_id, i);
                             }
                             if s[1] == name {
-                                let data = Collection::new(Data::new(d.path())?, max_id, name);
+                                let data = Collection::new(
+                                    Data::new(d.path(), self.collection_setting(name))?,
+                                    max_id,
+                                    name,
+                                );
                                 self.collections_map.insert(name.to_string(), max_id);
                                 self.collections.insert(max_id, data);
                                 return Ok(max_id);
@@ -95,11 +110,14 @@ impl Database {
         }
         let collection_id = max_id + 1;
         let data = Collection::new(
-            Data::new({
-                let mut collecion_dir = self.collections_dir.clone();
-                collecion_dir.push(&(collection_id.to_string() + "_" + name));
-                collecion_dir
-            })?,
+            Data::new(
+                {
+                    let mut collecion_dir = self.collections_dir.clone();
+                    collecion_dir.push(&(collection_id.to_string() + "_" + name));
+                    collecion_dir
+                },
+                self.collection_setting(name),
+            )?,
             collection_id,
             name,
         );

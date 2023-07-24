@@ -11,7 +11,7 @@ fn test2() {
     std::fs::create_dir_all(dir).unwrap();
 
     {
-        let mut database = SessionDatabase::new(dir).unwrap();
+        let mut database = SessionDatabase::new(dir.into(),None).unwrap();
         let collection_bbs = database.collection_id_or_create("bbs").unwrap();
 
         if let Ok(mut sess) = database.session("bbs", None) {
@@ -39,7 +39,7 @@ fn test2() {
         }
     }
     {
-        let mut database = SessionDatabase::new(dir).unwrap();
+        let mut database = SessionDatabase::new(dir.into(),None).unwrap();
         let collection_bbs = database.collection_id_or_create("bbs").unwrap();
         if let Ok(mut sess) = database.session("bbs", None) {
             database
@@ -56,7 +56,7 @@ fn test2() {
         println!("OK1");
     }
     {
-        let mut database = SessionDatabase::new(dir).unwrap();
+        let mut database = SessionDatabase::new(dir.into(),None).unwrap();
         let collection_bbs = database.collection_id_or_create("bbs").unwrap();
         if let Ok(mut sess) = database.session("bbs", None) {
             database

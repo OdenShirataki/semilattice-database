@@ -11,7 +11,7 @@ fn test4() {
     std::fs::create_dir_all(dir).unwrap();
 
     {
-        let mut database = SessionDatabase::new(dir).unwrap();
+        let mut database = SessionDatabase::new(dir.into(),None).unwrap();
         let collection_widget = database.collection_id_or_create("widget").unwrap();
         let collection_field = database.collection_id_or_create("field").unwrap();
 
