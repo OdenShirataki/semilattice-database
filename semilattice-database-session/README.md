@@ -13,7 +13,7 @@ if std::path::Path::new(dir).exists() {
 } else {
     std::fs::create_dir_all(dir).unwrap();
 }
-let mut database = SessionDatabase::new(dir, None).unwrap();
+let mut database = SessionDatabase::new(dir.into(), None).unwrap();
 
 let collection_admin = database.collection_id_or_create("admin").unwrap();
 
@@ -21,15 +21,15 @@ if let Ok(mut sess) = database.session("creatre_account_1st", None) {
     database
         .update(
             &mut sess,
-            vec![Record::New {
+            vec![SessionRecord::New {
                 collection_id: collection_admin,
-                activity: Activity::Active,
-                term_begin: Term::Default,
-                term_end: Term::Default,
-                fields: vec![
-                    KeyValue::new("id", "test".to_owned()),
-                    KeyValue::new("password", "test".to_owned()),
-                ],
+                record: Record {
+                    fields: vec![
+                        KeyValue::new("id", "test".to_owned()),
+                        KeyValue::new("password", "test".to_owned()),
+                    ],
+                    ..Record::default()
+                },
                 depends: Depends::Overwrite(vec![]),
                 pends: vec![],
             }],
@@ -49,12 +49,12 @@ if let Ok(mut sess) = database.session("login", None) {
         database
             .update(
                 &mut sess,
-                vec![Record::New {
+                vec![SessionRecord::New {
                     collection_id: collection_login,
-                    activity: Activity::Active,
-                    term_begin: Term::Default,
-                    term_end: Term::Default,
-                    fields: vec![],
+                    record: Record {
+                        fields: vec![],
+                        ..Record::default()
+                    },
                     depends: Depends::Overwrite(vec![(
                         "admin".to_owned(),
                         CollectionRow::new(collection_admin, row as u32),
@@ -99,81 +99,81 @@ if let Ok(mut sess) = database.session("test", None) {
         .update(
             &mut sess,
             vec![
-                Record::New {
+                SessionRecord::New {
                     collection_id: collection_person,
-                    activity: Activity::Active,
-                    term_begin: Term::Default,
-                    term_end: Term::Default,
-                    fields: vec![
-                        KeyValue::new("name", "Joe"),
-                        KeyValue::new("birthday", "1972-08-02"),
-                    ],
+                    record: Record {
+                        fields: vec![
+                            KeyValue::new("name", "Joe"),
+                            KeyValue::new("birthday", "1972-08-02"),
+                        ],
+                        ..Record::default()
+                    },
                     depends: Depends::Overwrite(vec![]),
                     pends: vec![Pend::new(
                         "history",
                         vec![
-                            Record::New {
+                            SessionRecord::New {
                                 collection_id: collection_history,
-                                activity: Activity::Active,
-                                term_begin: Term::Default,
-                                term_end: Term::Default,
-                                fields: vec![
-                                    KeyValue::new("date", "1972-08-02"),
-                                    KeyValue::new("event", "Birth"),
-                                ],
+                                record: Record {
+                                    fields: vec![
+                                        KeyValue::new("date", "1972-08-02"),
+                                        KeyValue::new("event", "Birth"),
+                                    ],
+                                    ..Record::default()
+                                },
                                 depends: Depends::Default,
                                 pends: vec![],
                             },
-                            Record::New {
+                            SessionRecord::New {
                                 collection_id: collection_history,
-                                activity: Activity::Active,
-                                term_begin: Term::Default,
-                                term_end: Term::Default,
-                                fields: vec![
-                                    KeyValue::new("date", "1999-12-31"),
-                                    KeyValue::new("event", "Mariage"),
-                                ],
+                                record: Record {
+                                    fields: vec![
+                                        KeyValue::new("date", "1999-12-31"),
+                                        KeyValue::new("event", "Mariage"),
+                                    ],
+                                    ..Record::default()
+                                },
                                 depends: Depends::Default,
                                 pends: vec![],
                             },
                         ],
                     )],
                 },
-                Record::New {
+                SessionRecord::New {
                     collection_id: collection_person,
-                    activity: Activity::Active,
-                    term_begin: Term::Default,
-                    term_end: Term::Default,
-                    fields: vec![
-                        KeyValue::new("name", "Tom"),
-                        KeyValue::new("birthday", "2000-12-12"),
-                    ],
+                    record: Record {
+                        fields: vec![
+                            KeyValue::new("name", "Tom"),
+                            KeyValue::new("birthday", "2000-12-12"),
+                        ],
+                        ..Record::default()
+                    },
                     depends: Depends::Default,
                     pends: vec![Pend::new(
                         "history",
-                        vec![Record::New {
+                        vec![SessionRecord::New {
                             collection_id: collection_history,
-                            activity: Activity::Active,
-                            term_begin: Term::Default,
-                            term_end: Term::Default,
-                            fields: vec![
-                                KeyValue::new("date", "2000-12-12"),
-                                KeyValue::new("event", "Birth"),
-                            ],
+                            record: Record {
+                                fields: vec![
+                                    KeyValue::new("date", "2000-12-12"),
+                                    KeyValue::new("event", "Birth"),
+                                ],
+                                ..Record::default()
+                            },
                             depends: Depends::Default,
                             pends: vec![],
                         }],
                     )],
                 },
-                Record::New {
+                SessionRecord::New {
                     collection_id: collection_person,
-                    activity: Activity::Active,
-                    term_begin: Term::Default,
-                    term_end: Term::Default,
-                    fields: vec![
-                        KeyValue::new("name", "Billy"),
-                        KeyValue::new("birthday", "1982-03-03"),
-                    ],
+                    record: Record {
+                        fields: vec![
+                            KeyValue::new("name", "Billy"),
+                            KeyValue::new("birthday", "1982-03-03"),
+                        ],
+                        ..Record::default()
+                    },
                     depends: Depends::Default,
                     pends: vec![],
                 },
@@ -200,12 +200,10 @@ if let (Some(person), Some(history)) = (
             std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
             std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
         );
-        let search = database
-            .search(history)
-            .search(Condition::Depend(
-                Some("history".to_owned()),
-                CollectionRow::new(collection_person, i),
-            ));
+        let search = database.search(history).search(Condition::Depend(
+            Some("history".to_owned()),
+            CollectionRow::new(collection_person, i),
+        ));
         for h in database.result(search, &vec![]).unwrap() {
             println!(
                 " {} : {}",
@@ -219,13 +217,13 @@ if let Ok(mut sess) = database.session("test", None) {
     database
         .update(
             &mut sess,
-            vec![Record::Update {
+            vec![SessionRecord::Update {
                 collection_id: collection_person,
                 row: 1,
-                activity: Activity::Active,
-                term_begin: Term::Default,
-                term_end: Term::Default,
-                fields: vec![KeyValue::new("name", "Renamed Joe")],
+                record: Record {
+                    fields: vec![KeyValue::new("name", "Renamed Joe")],
+                    ..Record::default()
+                },
                 depends: Depends::Default,
                 pends: vec![],
             }],
@@ -246,5 +244,71 @@ if let Ok(mut sess) = database.session("test", None) {
         );
     }
     database.commit(&mut sess).unwrap();
+}
+let test1 = database.collection_id_or_create("test1").unwrap();
+let range = 1u32..=10;
+if let Ok(mut sess) = database.session("test", None) {
+    for i in range.clone() {
+        database
+            .update(
+                &mut sess,
+                vec![SessionRecord::New {
+                    collection_id: test1,
+                    record: Record {
+                        fields: vec![
+                            KeyValue::new("num", i.to_string()),
+                            KeyValue::new("num_by3", (i * 3).to_string()),
+                        ],
+                        ..Record::default()
+                    },
+                    depends: Depends::Overwrite(vec![]),
+                    pends: vec![],
+                }],
+            )
+            .unwrap();
+    }
+    database.commit(&mut sess).unwrap();
+}
+
+if let Ok(mut sess) = database.session("test", None) {
+    database
+        .update(
+            &mut sess,
+            vec![SessionRecord::Update {
+                collection_id: test1,
+                row: 3,
+                record: Record {
+                    fields: vec![],
+                    ..Record::default()
+                },
+                depends: Depends::Overwrite(vec![]),
+                pends: vec![],
+            }],
+        )
+        .unwrap();
+    database.commit(&mut sess).unwrap();
+}
+
+if let Some(t1) = database.collection(test1) {
+    let mut sum = 0.0;
+    for i in range.clone() {
+        sum += t1.field_num(i, "num");
+        println!(
+            "{},{},{},{},{},{},{},{}",
+            t1.serial(i),
+            if let Some(Activity::Active) = t1.activity(i) {
+                "Active"
+            } else {
+                "Inactive"
+            },
+            t1.uuid_string(i).unwrap_or("".to_string()),
+            t1.last_updated(i).unwrap_or(0),
+            t1.term_begin(i).unwrap_or(0),
+            t1.term_end(i).unwrap_or(0),
+            std::str::from_utf8(t1.field_bytes(i, "num")).unwrap(),
+            std::str::from_utf8(t1.field_bytes(i, "num_by3")).unwrap()
+        );
+    }
+    assert_eq!(sum, 55.0);
 }
 ```

@@ -7,7 +7,7 @@ use std::{
 use crate::{
     anyhow::Result,
     session::{Depends, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity},
-    CollectionRow, Depend, Record, SessionDatabase, Term,
+    CollectionRow, Depend, SessionDatabase, SessionRecord, Term,
 };
 
 impl SessionDatabase {
@@ -17,31 +17,28 @@ impl SessionDatabase {
         temporary_data: &mut TemporaryData,
         session_dir: &Path,
         sequence_number: usize,
-        records: &Vec<Record>,
+        records: &Vec<SessionRecord>,
         depend_by_pend: Option<(&str, u32)>,
     ) -> Result<Vec<CollectionRow>> {
         let mut ret = vec![];
         for record in records {
             if let Ok(session_row) = session_data.sequence.insert(sequence_number) {
                 match record {
-                    Record::New {
+                    SessionRecord::New {
                         collection_id,
-                        activity,
-                        term_begin,
-                        term_end,
-                        fields,
+                        record,
                         depends,
                         pends,
                     } => {
                         let session_collection_id = -*collection_id;
                         ret.push(CollectionRow::new(session_collection_id, session_row));
-                        let term_begin = if let Term::Overwrite(term_begin) = term_begin {
-                            *term_begin
+                        let term_begin = if let Term::Overwrite(term_begin) = record.term_begin {
+                            term_begin
                         } else {
                             SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()
                         };
-                        let term_end = if let Term::Overwrite(term_end) = term_end {
-                            *term_end
+                        let term_end = if let Term::Overwrite(term_end) = record.term_end {
+                            term_end
                         } else {
                             0
                         };
@@ -57,11 +54,11 @@ impl SessionDatabase {
                             session_dir,
                             session_row,
                             0,
-                            activity,
+                            &record.activity,
                             term_begin,
                             term_end,
                             uuid,
-                            fields,
+                            &record.fields,
                         )?;
 
                         let temprary_collection = temporary_data
@@ -70,14 +67,14 @@ impl SessionDatabase {
                         temprary_collection.insert(
                             -(session_row as i64),
                             TemporaryDataEntity {
-                                activity: *activity,
+                                activity: record.activity,
                                 term_begin,
                                 term_end,
                                 uuid,
                                 operation: SessionOperation::New,
                                 fields: {
                                     let mut tmp = HashMap::new();
-                                    for kv in fields {
+                                    for kv in &record.fields {
                                         tmp.insert(kv.key().to_string(), kv.value().to_vec());
                                     }
                                     tmp
@@ -113,13 +110,10 @@ impl SessionDatabase {
                             )?;
                         }
                     }
-                    Record::Update {
+                    SessionRecord::Update {
                         collection_id, //Negative values ​​contain session rows
                         row,
-                        activity,
-                        term_begin,
-                        term_end,
-                        fields,
+                        record,
                         depends,
                         pends,
                     } => {
@@ -134,21 +128,21 @@ impl SessionDatabase {
                             collection_id
                         };
 
-                        let term_begin = match term_begin {
-                            Term::Overwrite(term_begin) => *term_begin,
+                        let term_begin = match record.term_begin {
+                            Term::Overwrite(term_begin) => term_begin,
                             Term::Default => {
                                 let mut r = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
                                 if !in_session {
                                     if let Some(collection) = self.collection(master_collection_id)
                                     {
-                                        r = collection.term_begin(row);
+                                        r = collection.term_begin(row).unwrap_or(0);
                                     }
                                 }
                                 r
                             }
                         };
-                        let term_end = if let Term::Overwrite(term_end) = term_end {
-                            *term_end
+                        let term_end = if let Term::Overwrite(term_end) = record.term_end {
+                            term_end
                         } else {
                             0
                         };
@@ -166,7 +160,7 @@ impl SessionDatabase {
                                 }
                             } else {
                                 if let Some(collection) = self.collection(master_collection_id) {
-                                    let uuid = collection.uuid(row);
+                                    let uuid = collection.uuid(row).unwrap_or(0);
                                     if uuid == 0 {
                                         semilattice_database::create_uuid()
                                     } else {
@@ -188,11 +182,11 @@ impl SessionDatabase {
                             session_dir,
                             session_row,
                             row,
-                            activity,
+                            &record.activity,
                             term_begin,
                             term_end,
                             uuid,
-                            fields,
+                            &record.fields,
                         )?;
 
                         let mut tmp_depends = vec![];
@@ -242,14 +236,14 @@ impl SessionDatabase {
                                 row as i64
                             })
                             .or_insert(TemporaryDataEntity {
-                                activity: *activity,
+                                activity: record.activity,
                                 term_begin,
                                 term_end,
                                 uuid,
                                 operation: SessionOperation::Update,
                                 fields: {
                                     let mut tmp = HashMap::new();
-                                    for kv in fields {
+                                    for kv in &record.fields {
                                         tmp.insert(kv.key().into(), kv.value().into());
                                     }
                                     tmp
@@ -270,7 +264,7 @@ impl SessionDatabase {
                             )?;
                         }
                     }
-                    Record::Delete { collection_id, row } => {
+                    SessionRecord::Delete { collection_id, row } => {
                         session_data
                             .collection_id
                             .update(session_row, *collection_id)?;

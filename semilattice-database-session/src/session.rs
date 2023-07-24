@@ -17,7 +17,7 @@ use crate::{
 };
 
 pub use data::SessionData;
-pub use operation::{Depends, Pend, Record, SessionOperation};
+pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 
 use relation::SessionRelation;
 use search::SessionSearch;

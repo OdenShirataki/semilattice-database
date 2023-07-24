@@ -4,9 +4,9 @@ mod update;
 
 pub use semilattice_database::{
     anyhow, search, Activity, Collection, CollectionRow, Condition, DataOption, Depend, KeyValue,
-    Operation, Order, OrderKey, Term, Uuid,
+    Operation, Order, OrderKey, Record, Term, Uuid,
 };
-pub use session::{Depends, Pend, Record, Session};
+pub use session::{Depends, Pend, Session, SessionRecord};
 
 use std::{
     collections::HashMap,
@@ -170,7 +170,7 @@ impl SessionDatabase {
     pub fn update(
         &self,
         session: &mut Session,
-        records: Vec<Record>,
+        records: Vec<SessionRecord>,
     ) -> Result<Vec<CollectionRow>> {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());

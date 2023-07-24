@@ -1,4 +1,4 @@
-use crate::{Activity, CollectionRow, KeyValue, Term};
+use crate::{CollectionRow, Record};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SessionOperation {
@@ -16,10 +16,10 @@ pub enum Depends {
 #[derive(Debug)]
 pub struct Pend {
     key: String,
-    records: Vec<Record>,
+    records: Vec<SessionRecord>,
 }
 impl Pend {
-    pub fn new(key: impl Into<String>, records: Vec<Record>) -> Pend {
+    pub fn new(key: impl Into<String>, records: Vec<SessionRecord>) -> Pend {
         Pend {
             key: key.into(),
             records,
@@ -28,29 +28,23 @@ impl Pend {
     pub fn key(&self) -> &str {
         &self.key
     }
-    pub fn records(&self) -> &Vec<Record> {
+    pub fn records(&self) -> &Vec<SessionRecord> {
         &self.records
     }
 }
 
 #[derive(Debug)]
-pub enum Record {
+pub enum SessionRecord {
     New {
         collection_id: i32,
-        activity: Activity,
-        term_begin: Term,
-        term_end: Term,
-        fields: Vec<KeyValue>,
+        record: Record,
         depends: Depends,
         pends: Vec<Pend>,
     },
     Update {
         collection_id: i32,
         row: u32,
-        activity: Activity,
-        term_begin: Term,
-        term_end: Term,
-        fields: Vec<KeyValue>,
+        record: Record,
         depends: Depends,
         pends: Vec<Pend>,
     },

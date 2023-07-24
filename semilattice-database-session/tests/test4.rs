@@ -11,7 +11,7 @@ fn test4() {
     std::fs::create_dir_all(dir).unwrap();
 
     {
-        let mut database = SessionDatabase::new(dir.into(),None).unwrap();
+        let mut database = SessionDatabase::new(dir.into(), None).unwrap();
         let collection_widget = database.collection_id_or_create("widget").unwrap();
         let collection_field = database.collection_id_or_create("field").unwrap();
 
@@ -19,12 +19,12 @@ fn test4() {
             database
                 .update(
                     &mut sess,
-                    vec![Record::New {
+                    vec![SessionRecord::New {
                         collection_id: collection_widget,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "test".to_owned())],
+                        record: Record {
+                            fields: vec![KeyValue::new("name", "test".to_owned())],
+                            ..Record::default()
+                        },
                         depends: Depends::Overwrite(vec![]),
                         pends: vec![],
                     }],
@@ -35,12 +35,12 @@ fn test4() {
             database
                 .update(
                     &mut sess,
-                    vec![Record::New {
+                    vec![SessionRecord::New {
                         collection_id: collection_field,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "1".to_owned())],
+                        record: Record {
+                            fields: vec![KeyValue::new("name", "1".to_owned())],
+                            ..Record::default()
+                        },
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
                             CollectionRow::new(-collection_widget, 1),
@@ -52,12 +52,12 @@ fn test4() {
             database
                 .update(
                     &mut sess,
-                    vec![Record::New {
+                    vec![SessionRecord::New {
                         collection_id: collection_field,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "2".to_owned())],
+                        record: Record {
+                            fields: vec![KeyValue::new("name", "2".to_owned())],
+                            ..Record::default()
+                        },
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
                             CollectionRow::new(-collection_widget, 1),
@@ -69,12 +69,12 @@ fn test4() {
             database
                 .update(
                     &mut sess,
-                    vec![Record::New {
+                    vec![SessionRecord::New {
                         collection_id: collection_field,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "3".to_owned())],
+                        record: Record {
+                            fields: vec![KeyValue::new("name", "3".to_owned())],
+                            ..Record::default()
+                        },
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
                             CollectionRow::new(-collection_widget, 1),
@@ -89,12 +89,12 @@ fn test4() {
             database
                 .update(
                     &mut sess,
-                    vec![Record::New {
+                    vec![SessionRecord::New {
                         collection_id: collection_field,
-                        activity: Activity::Active,
-                        term_begin: Term::Default,
-                        term_end: Term::Default,
-                        fields: vec![KeyValue::new("name", "3-r".to_owned())],
+                        record: Record {
+                            fields: vec![KeyValue::new("name", "3-r".to_owned())],
+                            ..Record::default()
+                        },
                         depends: Depends::Overwrite(vec![(
                             "field".to_owned(),
                             CollectionRow::new(-collection_widget, 1),

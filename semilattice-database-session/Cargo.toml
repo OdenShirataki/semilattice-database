@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database-session"
-version = "0.13.0"
+version = "0.14.0"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -15,4 +15,4 @@ license = "MIT/Apache-2.0"
 
 [dependencies]
 serde = "1"
-semilattice-database = { version = "0.71" , path = "../semilattice-database" }
+semilattice-database = { version = "0.72" , path = "../semilattice-database" }

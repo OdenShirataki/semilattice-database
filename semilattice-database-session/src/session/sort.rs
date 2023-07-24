@@ -25,12 +25,12 @@ fn term_begin(
     let a = if a < 0 {
         temporary_collection.get(&a).unwrap().term_begin()
     } else {
-        collection.term_begin(a as u32)
+        collection.term_begin(a as u32).unwrap_or(0)
     };
     let b = if b < 0 {
         temporary_collection.get(&b).unwrap().term_begin()
     } else {
-        collection.term_begin(b as u32)
+        collection.term_begin(b as u32).unwrap_or(0)
     };
     (a, b)
 }
@@ -43,12 +43,12 @@ fn term_end(
     let a = if a < 0 {
         temporary_collection.get(&a).unwrap().term_end()
     } else {
-        collection.term_end(a as u32)
+        collection.term_end(a as u32).unwrap_or(0)
     };
     let b = if b < 0 {
         temporary_collection.get(&b).unwrap().term_end()
     } else {
-        collection.term_end(b as u32)
+        collection.term_end(b as u32).unwrap_or(0)
     };
     (a, b)
 }
@@ -56,12 +56,12 @@ fn last_updated(collection: &Collection, a: i64, b: i64) -> (u64, u64) {
     let a = if a < 0 {
         0
     } else {
-        collection.last_updated(a as u32)
+        collection.last_updated(a as u32).unwrap_or(0)
     };
     let b = if b < 0 {
         0
     } else {
-        collection.last_updated(b as u32)
+        collection.last_updated(b as u32).unwrap_or(0)
     };
     (a, b)
 }
