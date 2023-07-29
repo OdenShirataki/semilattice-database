@@ -12,15 +12,14 @@ use std::{
     path::Path,
 };
 
-use crate::{
-    Activity, Collection, CollectionRow, Condition, Depend, Field, IdxFile, SessionDatabase,
-};
+use crate::{Activity, Collection, CollectionRow, Depend, Field, IdxFile, SessionDatabase};
 
 pub use data::SessionData;
 pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 
 use relation::SessionRelation;
 use search::SessionSearch;
+use semilattice_database::Search;
 use sequence::SequenceNumber;
 use serde::Serialize;
 
@@ -203,12 +202,12 @@ impl Session {
     pub fn begin_search(&self, collection_id: i32) -> SessionSearch {
         SessionSearch::new(self, collection_id)
     }
-    pub fn search(&self, collection_id: i32, condtions: &Vec<Condition>) -> SessionSearch {
-        let mut search = SessionSearch::new(self, collection_id);
-        for c in condtions {
-            search = search.search(c.clone());
+    pub fn search(&self, search: &Search) -> SessionSearch {
+        let mut session_search = SessionSearch::new(self, search.collection_id());
+        for c in search.conditions() {
+            session_search = session_search.search(c.clone());
         }
-        search
+        session_search
     }
 
     pub fn field_bytes<'a>(

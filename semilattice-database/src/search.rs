@@ -12,17 +12,29 @@ use versatile_data::{Activity, Order, RowSet};
 
 use crate::{Collection, Database};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Search {
     collection_id: i32,
     conditions: Vec<Condition>,
 }
 impl Search {
-    pub fn new(collection: &Collection) -> Self {
+    pub fn begin(collection: &Collection) -> Self {
         Self {
             collection_id: collection.id(),
             conditions: Vec::new(),
         }
+    }
+    pub fn new(collection_id: i32, conditions: Vec<Condition>) -> Self {
+        Self {
+            collection_id,
+            conditions,
+        }
+    }
+    pub fn collection_id(&self) -> i32 {
+        self.collection_id
+    }
+    pub fn conditions(&self) -> &Vec<Condition> {
+        &self.conditions
     }
     pub fn search(mut self, condition: Condition) -> Self {
         self.conditions.push(condition);

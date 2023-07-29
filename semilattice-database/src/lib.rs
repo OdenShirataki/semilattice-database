@@ -188,11 +188,11 @@ impl Database {
     }
 
     pub fn search(&self, colletion: &Collection) -> Search {
-        Search::new(colletion)
+        Search::begin(colletion)
     }
     pub fn result(
         &self,
-        search: Search,
+        search: &Search,
         orders: &[Order],
     ) -> Result<Vec<u32>, std::sync::mpsc::SendError<RowSet>> {
         search.result(self, orders)

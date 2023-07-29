@@ -190,7 +190,7 @@ fn test() {
         let search = database.search(person);
         let person_rows = database
             .result(
-                search,
+                &search,
                 &vec![Order::Asc(OrderKey::Field("birthday".to_owned()))],
             )
             .unwrap();
@@ -204,7 +204,7 @@ fn test() {
                 Some("history".to_owned()),
                 CollectionRow::new(collection_person, i),
             ));
-            for h in database.result(search, &vec![]).unwrap() {
+            for h in database.result(&search, &vec![]).unwrap() {
                 println!(
                     " {} : {}",
                     std::str::from_utf8(history.field_bytes(h, "date")).unwrap(),

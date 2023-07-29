@@ -13,6 +13,13 @@ use versatile_data::{
 
 use crate::{Collection, CollectionRow, RelationIndex};
 
+/*
+#[derive(Clone, Debug)]
+pub struct SearchVirtual {
+    name: String,
+    search: super::Search,
+} */
+
 #[derive(Clone, Debug)]
 pub enum Condition {
     Activity(Activity),
@@ -24,6 +31,7 @@ pub enum Condition {
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
     Depend(Option<String>, CollectionRow),
+    //Virtual(SearchVirtual),
 }
 impl Condition {
     pub(crate) fn result(
@@ -128,6 +136,7 @@ impl Condition {
                     tx.send(tmp).unwrap();
                 });
             }
+            //Self::Virtual(v) => {}
         }
         Ok(())
     }

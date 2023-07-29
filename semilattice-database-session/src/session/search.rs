@@ -201,6 +201,7 @@ impl<'a> SessionSearch<'a> {
                 }
             }
             Condition::LastUpdated(_) => {}
+            //Condition::Virtual(v) => {}
         }
         is_match
     }
@@ -225,7 +226,7 @@ impl<'a> SessionSearch<'a> {
             for c in &self.conditions {
                 search = search.search(c.clone());
             }
-            let r = database.result(search, &orders)?;
+            let r = database.result(&search, &orders)?;
             if let Some(tmp) = self.session.temporary_data.get(&self.collection_id) {
                 let mut tmp_rows: BTreeSet<i64> = BTreeSet::new();
                 for row in r {
