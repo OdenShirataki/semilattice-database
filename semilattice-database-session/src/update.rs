@@ -208,7 +208,6 @@ impl SessionDatabase {
                                         {
                                             let key =
                                                 unsafe { self.relation().read().unwrap().key(i) }
-                                                    .unwrap()
                                                     .to_owned();
                                             session_data.relation.insert(
                                                 &key,

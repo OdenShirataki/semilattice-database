@@ -71,9 +71,10 @@ impl SessionRelation {
                 self.rows.key.insert(key)?;
                 self.rows.session_row.insert(new_session_row)?;
                 self.rows.depend.insert(depend.clone())?;
-                if let Ok(key_name) = std::str::from_utf8(unsafe { self.key_names.bytes(key) }) {
-                    ret.push(Depend::new(key_name, depend.clone()))
-                }
+                ret.push(Depend::new(
+                    unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(key)) },
+                    depend.clone(),
+                ));
             }
         }
         Ok(ret)

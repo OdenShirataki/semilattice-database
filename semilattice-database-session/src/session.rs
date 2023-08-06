@@ -10,6 +10,7 @@ use std::{
     collections::HashMap,
     io::{self, Write},
     path::Path,
+    sync::{Arc, RwLock},
 };
 
 use crate::{Activity, Collection, CollectionRow, Depend, Field, IdxFile, SessionDatabase};
@@ -200,14 +201,14 @@ impl Session {
     }
 
     pub fn begin_search(&self, collection_id: i32) -> SessionSearch {
-        SessionSearch::new(self, collection_id)
+        self.search(&Arc::new(RwLock::new(Search::new(
+            collection_id,
+            vec![],
+            HashMap::new(),
+        ))))
     }
-    pub fn search(&self, search: &Search) -> SessionSearch {
-        let mut session_search = SessionSearch::new(self, search.collection_id());
-        for c in search.conditions() {
-            session_search = session_search.search(c.clone());
-        }
-        session_search
+    pub fn search(&self, search: &Arc<RwLock<Search>>) -> SessionSearch {
+        SessionSearch::new(self, Arc::clone(search))
     }
 
     pub fn field_bytes<'a>(

@@ -3,8 +3,8 @@ mod session;
 mod update;
 
 pub use semilattice_database::{
-    anyhow, search, Activity, Collection, CollectionRow, Condition, DataOption, Depend, KeyValue,
-    Operation, Order, OrderKey, Record, Term, Uuid,
+    anyhow, search, Activity, Collection, CollectionRow, Condition, CustomSort, DataOption, Depend,
+    KeyValue, Operation, Order, OrderKey, Record, Term, Uuid,
 };
 pub use session::{Depends, Pend, Session, SessionRecord};
 
@@ -17,7 +17,7 @@ use std::{
 
 use anyhow::Result;
 use semilattice_database::{idx_binary, BinarySet, Database, Field, FileMmap, IdxFile, RowSet};
-use session::{search::SessionSearch, SessionInfo};
+use session::SessionInfo;
 
 pub struct SessionDatabase {
     database: Database,
@@ -218,14 +218,6 @@ impl SessionDatabase {
             )?);
         }
         Ok(ret)
-    }
-
-    pub fn result_session(
-        &self,
-        search: SessionSearch,
-        orders: Vec<Order>,
-    ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
-        search.result(self, orders)
     }
 
     pub fn depends_with_session(

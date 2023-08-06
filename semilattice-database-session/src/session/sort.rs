@@ -87,9 +87,10 @@ fn field<'a>(
     }
 }
 
+//TODO : Supports session data for OrderKey::Custom
 pub fn sort(
     rows: &mut Vec<i64>,
-    orders: Vec<Order>,
+    orders: &Vec<Order>,
     collection: &Collection,
     temporary_collection: &HashMap<i64, TemporaryDataEntity>,
 ) {
@@ -135,6 +136,16 @@ pub fn sort(
                             return ord;
                         }
                     }
+                    OrderKey::Custom(custom_order) => {
+                        let a = *a;
+                        let b = *b;
+                        if a > 0 && b > 0 {
+                            let ord = custom_order.compare(a as u32, b as u32);
+                            if ord != Ordering::Equal {
+                                return ord;
+                            }
+                        }
+                    }
                 },
                 Order::Desc(order_key) => match order_key {
                     OrderKey::Serial => {
@@ -175,6 +186,16 @@ pub fn sort(
                         );
                         if ord != Ordering::Equal {
                             return ord;
+                        }
+                    }
+                    OrderKey::Custom(custom_order) => {
+                        let a = *a;
+                        let b = *b;
+                        if a > 0 && b > 0 {
+                            let ord = custom_order.compare(b as u32, b as u32);
+                            if ord != Ordering::Equal {
+                                return ord;
+                            }
                         }
                     }
                 },
