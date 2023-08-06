@@ -13,13 +13,6 @@ use versatile_data::{
 
 use crate::{Collection, CollectionRow, RelationIndex};
 
-/*
-#[derive(Clone, Debug)]
-pub struct SearchVirtual {
-    name: String,
-    search: super::Search,
-} */
-
 #[derive(Clone, Debug)]
 pub enum Condition {
     Activity(Activity),
@@ -31,7 +24,6 @@ pub enum Condition {
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
     Depend(Option<String>, CollectionRow),
-    //Virtual(SearchVirtual),
 }
 impl Condition {
     pub(crate) fn result(
@@ -89,7 +81,7 @@ impl Condition {
                 let key = key.clone();
                 let collection_row = collection_row.clone();
                 spawn(move || {
-                    let rel = relation.read().unwrap().pends(key, &collection_row);
+                    let rel = relation.read().unwrap().pends(&key, &collection_row);
                     let mut tmp = RowSet::default();
                     for r in rel {
                         if r.collection_id() == collection_id {
@@ -136,7 +128,6 @@ impl Condition {
                     tx.send(tmp).unwrap();
                 });
             }
-            //Self::Virtual(v) => {}
         }
         Ok(())
     }
