@@ -1,8 +1,6 @@
-use std::{collections::HashMap, io, path::Path};
+use std::{collections::HashMap, path::Path};
 
 use semilattice_database::{Activity, CollectionRow, Depend, Field, IdxFile, KeyValue};
-
-use crate::anyhow::Result;
 
 use super::{
     relation::SessionRelation, sequence::SequenceNumber, SessionOperation, TemporaryData,
@@ -34,12 +32,12 @@ impl SessionData {
         term_end: u64,
         uuid: u128,
         fields: &Vec<KeyValue>,
-    ) -> Result<()> {
-        self.row.update(session_row, row)?;
-        self.activity.update(session_row, *activity as u8)?;
-        self.term_begin.update(session_row, term_begin)?;
-        self.term_end.update(session_row, term_end)?;
-        self.uuid.update(session_row, uuid)?;
+    ) {
+        self.row.update(session_row, row);
+        self.activity.update(session_row, *activity as u8);
+        self.term_begin.update(session_row, term_begin);
+        self.term_end.update(session_row, term_end);
+        self.uuid.update(session_row, uuid);
         for kv in fields {
             let key = kv.key();
             let field = if self.fields.contains_key(key) {
@@ -48,16 +46,15 @@ impl SessionData {
                 let mut dir = session_dir.to_path_buf();
                 dir.push("fields");
                 dir.push(key);
-                std::fs::create_dir_all(&dir)?;
+                std::fs::create_dir_all(&dir).unwrap();
                 if dir.exists() {
-                    let field = Field::new(dir)?;
+                    let field = Field::new(dir);
                     self.fields.entry(String::from(key)).or_insert(field);
                 }
                 self.fields.get_mut(key).unwrap()
             };
-            field.update(session_row, kv.value())?;
+            field.update(session_row, kv.value());
         }
-        Ok(())
     }
 
     pub fn incidentally_depend(
@@ -74,7 +71,7 @@ impl SessionData {
         self.relation.insert(relation_key, pend_session_row, depend);
     }
 
-    pub(crate) fn init_temporary_data(&self) -> io::Result<TemporaryData> {
+    pub(crate) fn init_temporary_data(&self) -> TemporaryData {
         let mut temporary_data = HashMap::new();
         let current = self.sequence_number.current();
         if current > 0 {
@@ -178,6 +175,6 @@ impl SessionData {
                 }
             }
         }
-        Ok(temporary_data)
+        temporary_data
     }
 }

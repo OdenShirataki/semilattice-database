@@ -8,7 +8,6 @@ use std::{
 };
 
 use serde::{ser::SerializeStruct, Serialize};
-use versatile_data::anyhow::Result;
 
 use crate::{collection::CollectionRow, Database};
 
@@ -57,7 +56,7 @@ impl Database {
         key_name: &str,
         depend: &CollectionRow,
         pend: CollectionRow,
-    ) -> Result<()> {
+    ) {
         self.relation
             .write()
             .unwrap()
@@ -67,11 +66,10 @@ impl Database {
         &mut self,
         depend: &CollectionRow,
         pends: Vec<(String, CollectionRow)>,
-    ) -> Result<()> {
+    ) {
         for (key_name, pend) in pends {
-            self.register_relation(&key_name, depend, pend)?;
+            self.register_relation(&key_name, depend, pend);
         }
-        Ok(())
     }
 
     pub fn depends(

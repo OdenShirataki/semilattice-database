@@ -3,12 +3,11 @@ mod row;
 pub use row::CollectionRow;
 
 use std::{
-    io,
     ops::{Deref, DerefMut},
     path::PathBuf,
 };
 
-use versatile_data::{anyhow::Result, Data, DataOption, Operation};
+use versatile_data::{Data, DataOption, Operation};
 
 use crate::Database;
 
@@ -66,15 +65,15 @@ impl Database {
             None
         }
     }
-    pub fn collection_id_or_create(&mut self, name: &str) -> io::Result<i32> {
+    pub fn collection_id_or_create(&mut self, name: &str) -> i32 {
         if self.collections_map.contains_key(name) {
-            Ok(*self.collections_map.get(name).unwrap())
+            *self.collections_map.get(name).unwrap()
         } else {
             self.collection_by_name_or_create(name)
         }
     }
 
-    pub fn delete_collection(&mut self, name: &str) -> Result<()> {
+    pub fn delete_collection(&mut self, name: &str) {
         let collection_id = if let Some(collection_id) = self.collections_map.get(name) {
             *collection_id
         } else {
@@ -89,9 +88,9 @@ impl Database {
                 rows
             };
             for row in rows {
-                self.delete_recursive(&CollectionRow::new(collection_id, row))?;
+                self.delete_recursive(&CollectionRow::new(collection_id, row));
                 if let Some(collection) = self.collection_mut(collection_id) {
-                    collection.update(&Operation::Delete { row })?;
+                    collection.update(&Operation::Delete { row });
                 }
             }
             self.collections_map.remove(name);
@@ -99,18 +98,11 @@ impl Database {
 
             let mut dir = self.collections_dir.clone();
             dir.push(collection_id.to_string() + "_" + name);
-            std::fs::remove_dir_all(&dir)?;
+            std::fs::remove_dir_all(&dir).unwrap();
         }
-
-        Ok(())
     }
 
-    pub(super) fn create_collection(
-        &mut self,
-        id: i32,
-        name: &str,
-        dir: PathBuf,
-    ) -> io::Result<()> {
+    pub(super) fn create_collection(&mut self, id: i32, name: &str, dir: PathBuf) {
         let collection = Collection::new(
             Data::new(
                 dir,
@@ -119,20 +111,19 @@ impl Database {
                 } else {
                     DataOption::default()
                 },
-            )?,
+            ),
             id,
             name,
         );
         self.collections_map.insert(name.to_string(), id);
         self.collections.insert(id, collection);
-        Ok(())
     }
-    fn collection_by_name_or_create(&mut self, name: &str) -> io::Result<i32> {
+    fn collection_by_name_or_create(&mut self, name: &str) -> i32 {
         let mut max_id = 0;
         if self.collections_dir.exists() {
-            for d in self.collections_dir.read_dir()? {
-                let d = d?;
-                if d.file_type()?.is_dir() {
+            for d in self.collections_dir.read_dir().unwrap() {
+                let d = d.unwrap();
+                if d.file_type().unwrap().is_dir() {
                     if let Some(fname) = d.file_name().to_str() {
                         let s: Vec<&str> = fname.split("_").collect();
                         if s.len() > 1 {
@@ -140,8 +131,8 @@ impl Database {
                                 max_id = std::cmp::max(max_id, i);
                             }
                             if s[1] == name {
-                                self.create_collection(max_id, name, d.path())?;
-                                return Ok(max_id);
+                                self.create_collection(max_id, name, d.path());
+                                return max_id;
                             }
                         }
                     }
@@ -153,7 +144,7 @@ impl Database {
             let mut collecion_dir = self.collections_dir.clone();
             collecion_dir.push(&(collection_id.to_string() + "_" + name));
             collecion_dir
-        })?;
-        Ok(collection_id)
+        });
+        collection_id
     }
 }

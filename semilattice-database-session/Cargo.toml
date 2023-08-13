@@ -15,4 +15,4 @@ license = "MIT/Apache-2.0"
 
 [dependencies]
 serde = "1"
-semilattice-database = { version = "0.74" , path = "../semilattice-database" }
+semilattice-database = { version = "0.75" , path = "../semilattice-database" }

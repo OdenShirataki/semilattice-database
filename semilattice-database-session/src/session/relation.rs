@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{anyhow::Result, BinarySet, IdxFile};
+use crate::{BinarySet, IdxFile};
 
 use super::{CollectionRow, Depend};
 
@@ -14,11 +14,11 @@ pub struct SessionRelation {
     pub(crate) rows: SessionRelationRows,
 }
 impl SessionRelation {
-    pub fn new<P: AsRef<Path>>(session_dir: P) -> std::io::Result<Self> {
+    pub fn new<P: AsRef<Path>>(session_dir: P) -> Self {
         let mut relation_dir = session_dir.as_ref().to_path_buf();
         relation_dir.push("relation");
         if !relation_dir.exists() {
-            std::fs::create_dir_all(&relation_dir)?;
+            std::fs::create_dir_all(&relation_dir).unwrap();
         }
 
         let mut path_key_name = relation_dir.clone();
@@ -33,27 +33,22 @@ impl SessionRelation {
         let mut path_depend = relation_dir.clone();
         path_depend.push("depend.i");
 
-        Ok(Self {
-            key_names: BinarySet::new(path_key_name)?,
+        Self {
+            key_names: BinarySet::new(path_key_name),
             rows: SessionRelationRows {
-                key: IdxFile::new(path_key)?,
-                session_row: IdxFile::new(path_session_row)?,
-                depend: IdxFile::new(path_depend)?,
+                key: IdxFile::new(path_key),
+                session_row: IdxFile::new(path_session_row),
+                depend: IdxFile::new(path_depend),
             },
-        })
-    }
-    pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
-        if let Ok(key_id) = self.key_names.row_or_insert(relation_key.as_bytes()) {
-            self.rows.key.insert(key_id).unwrap();
-            self.rows.session_row.insert(session_row).unwrap();
-            self.rows.depend.insert(depend).unwrap();
         }
     }
-    pub fn from_session_row(
-        &mut self,
-        session_row: u32,
-        new_session_row: u32,
-    ) -> Result<Vec<Depend>> {
+    pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
+        let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
+        self.rows.key.insert(key_id);
+        self.rows.session_row.insert(session_row);
+        self.rows.depend.insert(depend);
+    }
+    pub fn from_session_row(&mut self, session_row: u32, new_session_row: u32) -> Vec<Depend> {
         let mut ret = vec![];
         for session_relation_row in self
             .rows
@@ -68,18 +63,18 @@ impl SessionRelation {
             ) {
                 let key = *key;
                 let depend = depend.clone();
-                self.rows.key.insert(key)?;
-                self.rows.session_row.insert(new_session_row)?;
-                self.rows.depend.insert(depend.clone())?;
+                self.rows.key.insert(key);
+                self.rows.session_row.insert(new_session_row);
+                self.rows.depend.insert(depend.clone());
                 ret.push(Depend::new(
                     unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(key)) },
                     depend.clone(),
                 ));
             }
         }
-        Ok(ret)
+        ret
     }
-    pub fn delete(&mut self, session_row: u32) -> std::io::Result<()> {
+    pub fn delete(&mut self, session_row: u32) {
         for relation_row in self
             .rows
             .session_row
@@ -87,10 +82,9 @@ impl SessionRelation {
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
-            self.rows.session_row.delete(relation_row)?;
-            self.rows.key.delete(relation_row)?;
-            self.rows.depend.delete(relation_row)?;
+            self.rows.session_row.delete(relation_row);
+            self.rows.key.delete(relation_row);
+            self.rows.depend.delete(relation_row);
         }
-        Ok(())
     }
 }

@@ -2,23 +2,22 @@ use semilattice_database::{Activity, KeyValue, Operation, Record, Term};
 use std::collections::HashMap;
 
 use crate::{
-    anyhow::Result,
     session::{SessionData, SessionOperation},
     CollectionRow, Session, SessionDatabase,
 };
 
 impl SessionDatabase {
-    pub fn commit(&mut self, session: &mut Session) -> Result<Vec<CollectionRow>> {
+    pub fn commit(&mut self, session: &mut Session) -> Vec<CollectionRow> {
         if let Some(ref mut data) = session.session_data {
-            let r = self.commit_inner(data)?;
-            self.session_clear(session)?;
-            Ok(r)
+            let r = self.commit_inner(data);
+            self.session_clear(session);
+            r
         } else {
-            Ok(vec![])
+            vec![]
         }
     }
 
-    fn commit_inner(&mut self, session_data: &SessionData) -> Result<Vec<CollectionRow>> {
+    fn commit_inner(&mut self, session_data: &SessionData) -> Vec<CollectionRow> {
         let mut commit_rows = Vec::new();
 
         let mut session_collection_row_map: HashMap<CollectionRow, CollectionRow> = HashMap::new();
@@ -83,7 +82,7 @@ impl SessionDatabase {
                                             term_begin,
                                             term_end,
                                             fields,
-                                        }))?
+                                        }))
                                     } else {
                                         //SessionOperation::Update
                                         let row = if in_session {
@@ -102,14 +101,14 @@ impl SessionDatabase {
                                                 term_end,
                                                 fields,
                                             },
-                                        })?
+                                        })
                                     },
                                 );
                                 commit_rows.push(collection_row.clone());
                                 self.relation()
                                     .write()
                                     .unwrap()
-                                    .delete_pends_by_collection_row(&collection_row)?; //Delete once and re-register later
+                                    .delete_pends_by_collection_row(&collection_row); //Delete once and re-register later
 
                                 for relation_row in session_data
                                     .relation
@@ -144,13 +143,13 @@ impl SessionDatabase {
                                     if let Some(registered) =
                                         session_collection_row_map.get(&session_collection_row)
                                     {
-                                        self.delete_recursive(registered)?;
+                                        self.delete_recursive(registered);
                                     }
                                 } else {
                                     self.delete_recursive(&CollectionRow::new(
                                         main_collection_id,
                                         row,
-                                    ))?;
+                                    ));
                                 }
                                 session_collection_row_map.remove(&session_collection_row);
                             }
@@ -166,12 +165,12 @@ impl SessionDatabase {
                         depend,
                         pends,
                         &session_collection_row_map,
-                    )?;
+                    );
                 }
             } else {
-                self.register_relations_with_session(&depend, pends, &session_collection_row_map)?;
+                self.register_relations_with_session(&depend, pends, &session_collection_row_map);
             }
         }
-        Ok(commit_rows)
+        commit_rows
     }
 }

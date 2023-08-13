@@ -8,7 +8,7 @@ mod sort;
 
 use std::{
     collections::HashMap,
-    io::{self, Write},
+    io::Write,
     path::Path,
     sync::{Arc, RwLock},
 };
@@ -78,7 +78,7 @@ impl Session {
         main_database: &SessionDatabase,
         name: impl Into<String>,
         expire_interval_sec: Option<i64>,
-    ) -> io::Result<Self> {
+    ) -> Self {
         let mut name: String = name.into();
         assert!(name != "");
         if name == "" {
@@ -86,15 +86,15 @@ impl Session {
         }
         let session_dir = main_database.session_dir(&name);
         if !session_dir.exists() {
-            std::fs::create_dir_all(&session_dir)?;
+            std::fs::create_dir_all(&session_dir).unwrap();
         }
-        let session_data = Self::new_data(&session_dir, expire_interval_sec)?;
-        let temporary_data = session_data.init_temporary_data()?;
-        Ok(Self {
+        let session_data = Self::new_data(&session_dir, expire_interval_sec);
+        let temporary_data = session_data.init_temporary_data();
+        Self {
             name,
             session_data: Some(session_data),
             temporary_data,
-        })
+        }
     }
     pub fn name(&self) -> &str {
         &self.name
@@ -115,89 +115,87 @@ impl Session {
         }
     }
 
-    pub fn new_data(
-        session_dir: &Path,
-        expire_interval_sec: Option<i64>,
-    ) -> io::Result<SessionData> {
+    pub fn new_data(session_dir: &Path, expire_interval_sec: Option<i64>) -> SessionData {
         let mut access = session_dir.to_path_buf();
         access.push("expire");
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
-            .open(access)?;
+            .open(access)
+            .unwrap();
         let expire = if let Some(expire) = expire_interval_sec {
             expire
         } else {
             -1
         };
-        file.write(&expire.to_be_bytes())?;
+        file.write(&expire.to_be_bytes()).unwrap();
 
         let mut fields = HashMap::new();
         let mut fields_dir = session_dir.to_path_buf();
         fields_dir.push("fields");
         if !fields_dir.exists() {
-            std::fs::create_dir_all(&fields_dir.to_owned())?;
+            std::fs::create_dir_all(&fields_dir.to_owned()).unwrap();
         }
-        for p in fields_dir.read_dir()? {
-            let p = p?;
+        for p in fields_dir.read_dir().unwrap() {
+            let p = p.unwrap();
             let path = p.path();
             if path.is_dir() {
                 if let Some(fname) = p.file_name().to_str() {
-                    let field = Field::new(path)?;
+                    let field = Field::new(path);
                     fields.insert(fname.to_owned(), field);
                 }
             }
         }
 
-        Ok(SessionData {
+        SessionData {
             sequence_number: SequenceNumber::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("sequence_number.i");
                 path
-            })?,
+            }),
             sequence: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("sequence.i");
                 path
-            })?,
+            }),
             collection_id: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("collection_id.i");
                 path
-            })?,
+            }),
             row: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("row.i");
                 path
-            })?,
+            }),
             operation: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("operation.i");
                 path
-            })?,
+            }),
             activity: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("activity.i");
                 path
-            })?,
+            }),
             term_begin: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("term_begin.i");
                 path
-            })?,
+            }),
             term_end: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("term_end.i");
                 path
-            })?,
+            }),
             uuid: IdxFile::new({
                 let mut path = session_dir.to_path_buf();
                 path.push("uuid.i");
                 path
-            })?,
+            }),
             fields,
-            relation: SessionRelation::new(session_dir)?,
-        })
+            relation: SessionRelation::new(session_dir),
+        }
     }
 
     pub fn begin_search(&self, collection_id: i32) -> SessionSearch {
