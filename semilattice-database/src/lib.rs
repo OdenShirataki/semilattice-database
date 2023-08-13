@@ -8,18 +8,15 @@ pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Join, JoinCondition, Search};
 pub use versatile_data::{
-    anyhow, create_uuid, idx_binary, uuid_string, Activity, CustomSort, DataOption, Field,
-    FileMmap, IdxBinary, IdxFile, KeyValue, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
+    create_uuid, idx_binary, uuid_string, Activity, CustomSort, DataOption, Field, FileMmap,
+    IdxBinary, IdxFile, KeyValue, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
 };
 
 use std::{
     collections::{BTreeMap, HashMap},
-    io,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
-
-use anyhow::Result;
 
 pub struct Database {
     collections_dir: PathBuf,
@@ -29,10 +26,7 @@ pub struct Database {
     collection_settings: HashMap<String, DataOption>,
 }
 impl Database {
-    pub fn new(
-        dir: PathBuf,
-        collection_settings: Option<HashMap<String, DataOption>>,
-    ) -> io::Result<Self> {
+    pub fn new(dir: PathBuf, collection_settings: Option<HashMap<String, DataOption>>) -> Self {
         let mut collections_dir = dir.to_path_buf();
         collections_dir.push("collection");
 
@@ -40,30 +34,29 @@ impl Database {
             collections_dir,
             collections: BTreeMap::new(),
             collections_map: HashMap::new(),
-            relation: Arc::new(RwLock::new(RelationIndex::new(&dir)?)),
+            relation: Arc::new(RwLock::new(RelationIndex::new(&dir))),
             collection_settings: collection_settings.unwrap_or(HashMap::new()),
         };
         if db.collections_dir.exists() {
-            let dir = db.collections_dir.read_dir()?;
+            let dir = db.collections_dir.read_dir().unwrap();
             for d in dir.into_iter() {
-                let d = d?;
-                if d.file_type()?.is_dir() {
+                let d = d.unwrap();
+                if d.file_type().unwrap().is_dir() {
                     if let Some(fname) = d.file_name().to_str() {
                         if let Some(pos) = fname.find("_") {
                             if let Ok(collection_id) = (&fname[..pos]).parse::<i32>() {
                                 let name = &fname[(pos + 1)..];
-                                db.create_collection(collection_id, name, d.path())?;
+                                db.create_collection(collection_id, name, d.path());
                             }
                         }
                     }
                 }
             }
         }
-
-        Ok(db)
+        db
     }
 
-    pub fn delete_recursive(&mut self, target: &CollectionRow) -> Result<()> {
+    pub fn delete_recursive(&mut self, target: &CollectionRow) {
         let rows = self
             .relation
             .read()
@@ -81,7 +74,7 @@ impl Database {
                 .value(relation_row)
                 .and_then(|v| Some(v.clone()));
             if let Some(collection_row) = collection_row {
-                self.delete_recursive(&collection_row)?;
+                self.delete_recursive(&collection_row);
             }
         }
         let rows = self
@@ -93,11 +86,10 @@ impl Database {
             .map(|x| x.row())
             .collect::<Vec<u32>>();
         for relation_row in rows {
-            self.relation.write().unwrap().delete(relation_row)?;
+            self.relation.write().unwrap().delete(relation_row);
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {
-            collection.update(&Operation::Delete { row: target.row() })?;
+            collection.update(&Operation::Delete { row: target.row() });
         }
-        Ok(())
     }
 }

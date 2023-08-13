@@ -6,13 +6,13 @@ pub struct SequenceNumber {
     filemmap: FileMmap,
 }
 impl SequenceNumber {
-    pub fn new(path: PathBuf) -> std::io::Result<Self> {
-        let mut filemmap = FileMmap::new(path)?;
+    pub fn new(path: PathBuf) -> Self {
+        let mut filemmap = FileMmap::new(path).unwrap();
         let init_size = std::mem::size_of::<usize>() as u64 * 2;
-        if filemmap.len()? == 0 {
-            filemmap.set_len(init_size)?;
+        if filemmap.len() == 0 {
+            filemmap.set_len(init_size).unwrap();
         }
-        Ok(Self { filemmap })
+        Self { filemmap }
     }
     pub fn next(&mut self) -> usize {
         let current = self.filemmap.as_ptr() as *mut usize;

@@ -1,7 +1,7 @@
-use std::{io, path::Path};
+use std::path::Path;
 
 use binary_set::BinarySet;
-use versatile_data::{anyhow::Result, IdxFile, RowFragment};
+use versatile_data::{IdxFile, RowFragment};
 
 use crate::{CollectionRow, Depend};
 
@@ -16,71 +16,61 @@ pub struct RelationIndex {
     rows: RelationIndexRows,
 }
 impl RelationIndex {
-    pub fn new(root_dir: &Path) -> io::Result<Self> {
+    pub fn new(root_dir: &Path) -> Self {
         let mut dir = root_dir.to_path_buf();
         dir.push("relation");
         if !dir.exists() {
-            std::fs::create_dir_all(&dir)?;
+            std::fs::create_dir_all(&dir).unwrap();
         }
-        Ok(Self {
+        Self {
             key_names: BinarySet::new({
                 let mut path = dir.clone();
                 path.push("key_name");
                 path
-            })?,
+            }),
             fragment: RowFragment::new({
                 let mut path = dir.clone();
                 path.push("fragment.f");
                 path
-            })?,
+            }),
             rows: RelationIndexRows {
                 key: IdxFile::new({
                     let mut path = dir.clone();
                     path.push("key.i");
                     path
-                })?,
+                }),
                 depend: IdxFile::new({
                     let mut path = dir.clone();
                     path.push("depend.i");
                     path
-                })?,
+                }),
                 pend: IdxFile::new({
                     let mut path = dir.clone();
                     path.push("pend.i");
                     path
-                })?,
+                }),
             },
-        })
-    }
-    pub fn insert(
-        &mut self,
-        relation_key: &str,
-        depend: CollectionRow,
-        pend: CollectionRow,
-    ) -> Result<()> {
-        if let Ok(key_id) = self.key_names.row_or_insert(relation_key.as_bytes()) {
-            if let Some(row) = self.fragment.pop()? {
-                self.rows.key.update(row, key_id)?;
-                self.rows.depend.update(row, depend)?;
-                self.rows.pend.update(row, pend)?;
-            } else {
-                self.rows.key.insert(key_id)?;
-                self.rows.depend.insert(depend)?;
-                self.rows.pend.insert(pend)?;
-            }
         }
-        Ok(())
     }
-    pub fn delete(&mut self, row: u32) -> io::Result<u64> {
-        self.rows.key.delete(row)?;
-        self.rows.depend.delete(row)?;
-        self.rows.pend.delete(row)?;
+    pub fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
+        let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
+        if let Some(row) = self.fragment.pop() {
+            self.rows.key.update(row, key_id);
+            self.rows.depend.update(row, depend);
+            self.rows.pend.update(row, pend);
+        } else {
+            self.rows.key.insert(key_id);
+            self.rows.depend.insert(depend);
+            self.rows.pend.insert(pend);
+        }
+    }
+    pub fn delete(&mut self, row: u32) -> u64 {
+        self.rows.key.delete(row);
+        self.rows.depend.delete(row);
+        self.rows.pend.delete(row);
         self.fragment.insert_blank(row)
     }
-    pub fn delete_pends_by_collection_row(
-        &mut self,
-        collection_row: &CollectionRow,
-    ) -> io::Result<()> {
+    pub fn delete_pends_by_collection_row(&mut self, collection_row: &CollectionRow) {
         for row in self
             .rows
             .pend
@@ -88,9 +78,8 @@ impl RelationIndex {
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
-            self.delete(row)?;
+            self.delete(row);
         }
-        Ok(())
     }
     pub fn pends(&self, key: &Option<String>, depend: &CollectionRow) -> Vec<CollectionRow> {
         let mut ret: Vec<CollectionRow> = Vec::new();
