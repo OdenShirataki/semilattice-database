@@ -146,27 +146,27 @@ impl SessionData {
                                     operation,
                                     fields: row_fields.clone(),
                                     depends: {
-                                        let mut depends = vec![];
-                                        for relation_row in self
-                                            .relation
+                                        self.relation
                                             .rows
                                             .session_row
                                             .iter_by(|v| v.cmp(&session_row))
                                             .map(|x| x.row())
-                                        {
-                                            if let (Some(key), Some(depend)) = (
-                                                self.relation.rows.key.value(relation_row),
-                                                self.relation.rows.depend.value(relation_row),
-                                            ) {
-                                                let key_name = unsafe {
-                                                    std::str::from_utf8_unchecked(
-                                                        self.relation.key_names.bytes(*key),
-                                                    )
-                                                };
-                                                depends.push(Depend::new(key_name, depend.clone()));
-                                            }
-                                        }
-                                        depends
+                                            .filter_map(|relation_row| {
+                                                if let (Some(key), Some(depend)) = (
+                                                    self.relation.rows.key.value(relation_row),
+                                                    self.relation.rows.depend.value(relation_row),
+                                                ) {
+                                                    let key_name = unsafe {
+                                                        std::str::from_utf8_unchecked(
+                                                            self.relation.key_names.bytes(*key),
+                                                        )
+                                                    };
+                                                    Some(Depend::new(key_name, depend.clone()))
+                                                } else {
+                                                    None
+                                                }
+                                            })
+                                            .collect()
                                     },
                                 },
                             );

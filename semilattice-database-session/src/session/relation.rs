@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use futures::executor::block_on;
+
 use crate::{BinarySet, IdxFile};
 
 use super::{CollectionRow, Depend};
@@ -43,10 +45,20 @@ impl SessionRelation {
         }
     }
     pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
-        let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
-        self.rows.key.insert(key_id);
-        self.rows.session_row.insert(session_row);
-        self.rows.depend.insert(depend);
+        block_on(async {
+            futures::join!(
+                async {
+                    let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
+                    self.rows.key.insert(key_id);
+                },
+                async {
+                    self.rows.session_row.insert(session_row);
+                },
+                async {
+                    self.rows.depend.insert(depend);
+                },
+            )
+        });
     }
     pub fn from_session_row(&mut self, session_row: u32, new_session_row: u32) -> Vec<Depend> {
         let mut ret = vec![];
@@ -63,13 +75,25 @@ impl SessionRelation {
             ) {
                 let key = *key;
                 let depend = depend.clone();
-                self.rows.key.insert(key);
-                self.rows.session_row.insert(new_session_row);
-                self.rows.depend.insert(depend.clone());
-                ret.push(Depend::new(
-                    unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(key)) },
-                    depend.clone(),
-                ));
+                block_on(async {
+                    futures::join!(
+                        async {
+                            self.rows.key.insert(key);
+                        },
+                        async {
+                            self.rows.session_row.insert(new_session_row);
+                        },
+                        async {
+                            self.rows.depend.insert(depend.clone());
+                        },
+                        async {
+                            ret.push(Depend::new(
+                                unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(key)) },
+                                depend.clone(),
+                            ));
+                        }
+                    );
+                });
             }
         }
         ret
@@ -82,9 +106,19 @@ impl SessionRelation {
             .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
-            self.rows.session_row.delete(relation_row);
-            self.rows.key.delete(relation_row);
-            self.rows.depend.delete(relation_row);
+            block_on(async {
+                futures::join!(
+                    async {
+                        self.rows.session_row.delete(relation_row);
+                    },
+                    async {
+                        self.rows.key.delete(relation_row);
+                    },
+                    async {
+                        self.rows.depend.delete(relation_row);
+                    },
+                )
+            });
         }
     }
 }

@@ -74,17 +74,19 @@ impl Condition {
             }
             Self::Depend(key, collection_row) => {
                 let collection_id = collection.id();
-                let key = key.clone();
-                let collection_row = collection_row.clone();
-
-                let rel = relation.read().unwrap().pends(&key, &collection_row);
-                let mut tmp = RowSet::default();
-                for r in rel {
-                    if r.collection_id() == collection_id {
-                        tmp.insert(r.row());
-                    }
-                }
-                tmp
+                relation
+                    .read()
+                    .unwrap()
+                    .pends(key, collection_row)
+                    .iter()
+                    .filter_map(|r| {
+                        if r.collection_id() == collection_id {
+                            Some(r.row())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<RowSet>()
             }
             Self::Narrow(conditions) => {
                 let mut fs = conditions

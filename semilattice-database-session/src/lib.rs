@@ -2,6 +2,7 @@ mod commit;
 mod session;
 mod update;
 
+use futures::executor::block_on;
 pub use semilattice_database::{
     search, Activity, Collection, CollectionRow, Condition, CustomSort, DataOption, Depend,
     KeyValue, Operation, Order, OrderKey, Record, Term, Uuid,
@@ -164,21 +165,41 @@ impl SessionDatabase {
                         .map(|x| x.row())
                         .collect::<Vec<u32>>()
                     {
-                        session_data.collection_id.delete(session_row);
-                        session_data.row.delete(session_row);
-                        session_data.operation.delete(session_row);
-                        session_data.activity.delete(session_row);
-                        session_data.term_begin.delete(session_row);
-                        session_data.term_end.delete(session_row);
-                        session_data.uuid.delete(session_row);
-
-                        for (_field_name, field_data) in session_data.fields.iter_mut() {
-                            field_data.delete(session_row);
-                        }
-
                         session_data.relation.delete(session_row);
-
-                        session_data.sequence.delete(session_row);
+                        block_on(async {
+                            futures::join!(
+                                async {
+                                    session_data.collection_id.delete(session_row);
+                                },
+                                async {
+                                    session_data.row.delete(session_row);
+                                },
+                                async {
+                                    session_data.operation.delete(session_row);
+                                },
+                                async {
+                                    session_data.activity.delete(session_row);
+                                },
+                                async {
+                                    session_data.term_begin.delete(session_row);
+                                },
+                                async {
+                                    session_data.term_end.delete(session_row);
+                                },
+                                async {
+                                    session_data.uuid.delete(session_row);
+                                },
+                                async {
+                                    for (_field_name, field_data) in session_data.fields.iter_mut()
+                                    {
+                                        field_data.delete(session_row);
+                                    }
+                                },
+                                async {
+                                    session_data.sequence.delete(session_row);
+                                }
+                            );
+                        });
                     }
                 }
             }

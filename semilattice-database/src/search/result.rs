@@ -46,12 +46,12 @@ impl Search {
     pub fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
         if let Some(collection) = database.collection(self.collection_id) {
             let rows = if self.conditions.len() > 0 {
-                let mut fs = self
-                    .conditions
-                    .iter()
-                    .map(|c| c.result(collection, &database.relation))
-                    .collect();
                 block_on(async {
+                    let mut fs = self
+                        .conditions
+                        .iter()
+                        .map(|c| c.result(collection, &database.relation))
+                        .collect();
                     let (ret, _index, remaining) = future::select_all(fs).await;
                     let mut rows = ret;
                     fs = remaining;
@@ -65,8 +65,10 @@ impl Search {
             } else {
                 collection.data.all()
             };
-            let mut join_result: HashMap<String, HashMap<u32, Vec<CollectionRow>>> = HashMap::new();
-            block_on(async {
+
+            let join_result = block_on(async {
+                let mut join_result: HashMap<String, HashMap<u32, Vec<CollectionRow>>> =
+                    HashMap::new();
                 let mut fs: Vec<_> = self
                     .join
                     .iter()
@@ -84,6 +86,7 @@ impl Search {
                     join_result.insert(ret.0, ret.1.await);
                     fs = remaining;
                 }
+                join_result
             });
             *self.result.write().unwrap() = Some(SearchResult {
                 collection_id: self.collection_id,

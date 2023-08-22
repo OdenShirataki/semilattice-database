@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use versatile_data::{Data, DataOption, Operation};
+use versatile_data::{Data, DataOption, Operation, RowSet};
 
 use crate::Database;
 
@@ -80,14 +80,11 @@ impl Database {
             0
         };
         if collection_id > 0 {
-            let rows = {
-                let mut rows = Default::default();
-                if let Some(collection) = self.collections.get(&collection_id) {
-                    rows = collection.data.all();
-                }
-                rows
-            };
-            for row in rows {
+            for row in if let Some(collection) = self.collections.get(&collection_id) {
+                collection.data.all()
+            } else {
+                RowSet::default()
+            } {
                 self.delete_recursive(&CollectionRow::new(collection_id, row));
                 if let Some(collection) = self.collection_mut(collection_id) {
                     collection.update(&Operation::Delete { row });

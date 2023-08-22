@@ -50,13 +50,17 @@ impl SessionDatabase {
                     let fields = if *op == SessionOperation::Delete {
                         vec![]
                     } else {
-                        let mut fields: Vec<KeyValue> = Vec::new();
-                        for (key, field_data) in session_data.fields.iter() {
-                            if let Some(val) = field_data.bytes(session_row) {
-                                fields.push(KeyValue::new(key, val));
-                            }
-                        }
-                        fields
+                        session_data
+                            .fields
+                            .iter()
+                            .filter_map(|(key, field_data)| {
+                                if let Some(val) = field_data.bytes(session_row) {
+                                    Some(KeyValue::new(key, val))
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect()
                     };
                     if let Some(collection) = self.collection_mut(main_collection_id) {
                         let session_collection_row = CollectionRow::new(*collection_id, row);
