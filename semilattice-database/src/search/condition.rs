@@ -1,10 +1,7 @@
-use std::{
-    sync::{
-        mpsc::{channel, SendError, Sender},
-        Arc, RwLock,
-    },
-    thread::spawn,
-};
+use std::sync::{Arc, RwLock};
+
+use async_recursion::async_recursion;
+use futures::future;
 
 use versatile_data::{
     search::{Field, Number, Term},
@@ -26,109 +23,97 @@ pub enum Condition {
     Depend(Option<String>, CollectionRow),
 }
 impl Condition {
-    pub(crate) fn result(
+    #[async_recursion]
+    pub(crate) async fn result(
         &self,
         collection: &Collection,
         relation: &Arc<RwLock<RelationIndex>>,
-        tx: Sender<RowSet>,
-    ) -> Result<(), SendError<RowSet>> {
+    ) -> RowSet {
         match self {
             Self::Activity(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Activity(*c),
-                    tx,
-                )?;
+                )
+                .await
             }
             Self::Term(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Term(c.clone()),
-                    tx,
-                )?;
+                )
+                .await
             }
             Self::Row(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Row(c.clone()),
-                    tx,
-                )?;
+                )
+                .await
             }
             Self::Uuid(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Uuid(c.clone()),
-                    tx,
-                )?;
+                )
+                .await
             }
             Self::LastUpdated(c) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::LastUpdated(c.clone()),
-                    tx,
-                )?;
+                )
+                .await
             }
             Self::Field(key, condition) => {
                 VersatileDataSearch::search_exec_cond(
                     &collection.data,
                     &VersatileDataCondition::Field(key.to_owned(), condition.clone()),
-                    tx,
-                )?;
+                )
+                .await
             }
             Self::Depend(key, collection_row) => {
                 let collection_id = collection.id();
-                let relation = Arc::clone(relation);
                 let key = key.clone();
                 let collection_row = collection_row.clone();
-                spawn(move || {
-                    let rel = relation.read().unwrap().pends(&key, &collection_row);
-                    let mut tmp = RowSet::default();
-                    for r in rel {
-                        if r.collection_id() == collection_id {
-                            tmp.insert(r.row());
-                        }
+
+                let rel = relation.read().unwrap().pends(&key, &collection_row);
+                let mut tmp = RowSet::default();
+                for r in rel {
+                    if r.collection_id() == collection_id {
+                        tmp.insert(r.row());
                     }
-                    let tx = tx.clone();
-                    tx.send(tmp).unwrap();
-                });
+                }
+                tmp
             }
             Self::Narrow(conditions) => {
-                let (tx_inner, rx) = channel();
-                for c in conditions {
-                    let tx_inner = tx_inner.clone();
-                    c.result(collection, relation, tx_inner)?;
+                let mut fs = conditions
+                    .iter()
+                    .map(|c| c.result(collection, relation))
+                    .collect();
+                let (ret, _index, remaining) = future::select_all(fs).await;
+                let mut rows = ret;
+                fs = remaining;
+                while !fs.is_empty() {
+                    let (ret, _index, remaining) = future::select_all(fs).await;
+                    rows = rows.intersection(&ret).map(|&x| x).collect();
+                    fs = remaining;
                 }
-                drop(tx_inner);
-                spawn(move || {
-                    let mut is_1st = true;
-                    let mut tmp = RowSet::default();
-                    for mut rs in rx {
-                        if is_1st {
-                            tmp = rs;
-                            is_1st = false;
-                        } else {
-                            tmp = tmp.intersection(&mut rs).map(|&x| x).collect();
-                        }
-                    }
-                    tx.send(tmp).unwrap();
-                });
+                rows
             }
             Self::Wide(conditions) => {
-                let (tx_inner, rx) = channel();
-                for c in conditions {
-                    let tx_inner = tx_inner.clone();
-                    c.result(collection, relation, tx_inner)?;
+                let mut fs: Vec<_> = conditions
+                    .iter()
+                    .map(|c| c.result(collection, relation))
+                    .collect();
+                let mut tmp = RowSet::default();
+                while !fs.is_empty() {
+                    let (ret, _index, remaining) = future::select_all(fs).await;
+                    tmp.extend(ret);
+                    fs = remaining;
                 }
-                drop(tx_inner);
-                spawn(move || {
-                    let mut tmp = RowSet::default();
-                    for ref mut rs in rx {
-                        tmp.append(rs);
-                    }
-                    tx.send(tmp).unwrap();
-                });
+                tmp
             }
         }
-        Ok(())
     }
 }

@@ -9,10 +9,9 @@ fn test() {
 
     if std::path::Path::new(dir).exists() {
         std::fs::remove_dir_all(dir).unwrap();
-        std::fs::create_dir_all(dir).unwrap();
-    } else {
-        std::fs::create_dir_all(dir).unwrap();
-    }
+    } 
+    std::fs::create_dir_all(dir).unwrap();
+
     let mut database = SessionDatabase::new(dir.into(), None);
 
     let collection_admin = database.collection_id_or_create("admin");
@@ -39,8 +38,8 @@ fn test() {
     let mut sess = database.session("login", None);
     let search = sess
         .begin_search(collection_admin)
-        .search_field("id", search::Field::Match(Arc::new(b"test".to_vec())))
-        .search_field("password", search::Field::Match(Arc::new(b"test".to_vec())));
+        .search_field("id", search::Field::Match(b"test".to_vec()))
+        .search_field("password", search::Field::Match(b"test".to_vec()));
     for row in search.result(&database, &vec![]).unwrap() {
         assert!(row >= 0);
         database.update(
@@ -175,7 +174,7 @@ fn test() {
         database.collection(collection_history),
     ) {
         let mut search = database.search(collection_person);
-        let result = search.result(&database).unwrap();
+        let result = search.result(&database);
         let person_rows = if let Some(r) = result.read().unwrap().as_ref() {
             r.sort(
                 &database,
@@ -195,7 +194,7 @@ fn test() {
                 Some("history".to_owned()),
                 CollectionRow::new(collection_person, i),
             ));
-            let result = search.result(&database).unwrap();
+            let result = search.result(&database);
             if let Some(result) = Arc::clone(&result).read().unwrap().as_ref() {
                 for h in result.rows() {
                     println!(

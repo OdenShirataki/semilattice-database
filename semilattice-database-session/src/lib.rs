@@ -184,7 +184,7 @@ impl SessionDatabase {
             }
 
             let sequence = session_data.sequence_number.next();
-            ret.append(&mut self.update_recursive(
+            ret.extend(self.update_recursive(
                 session_data,
                 &mut session.temporary_data,
                 &session_dir,

@@ -1,11 +1,9 @@
 use std::{
     collections::HashMap,
-    sync::{
-        mpsc::{channel, SendError},
-        Arc, RwLock,
-    },
+    sync::{Arc, RwLock},
 };
 
+use futures::{executor::block_on, future};
 use versatile_data::{Order, RowSet};
 
 use crate::{CollectionRow, Database, Search};
@@ -45,45 +43,54 @@ impl Search {
         Arc::clone(&self.result)
     }
 
-    pub fn result(
-        &mut self,
-        database: &Database,
-    ) -> Result<Arc<RwLock<Option<SearchResult>>>, SendError<RowSet>> {
+    pub fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
         if let Some(collection) = database.collection(self.collection_id) {
-            let mut rows = RowSet::default();
-            if self.conditions.len() > 0 {
-                let (tx, rx) = channel();
-                for c in &self.conditions {
-                    c.result(collection, &database.relation, tx.clone())?;
-                }
-                drop(tx);
-                let mut fst = true;
-                for rs in rx {
-                    if fst {
-                        rows = rs;
-                        fst = false;
-                    } else {
-                        rows = rows.intersection(&rs).map(|&x| x).collect()
+            let rows = if self.conditions.len() > 0 {
+                let mut fs = self
+                    .conditions
+                    .iter()
+                    .map(|c| c.result(collection, &database.relation))
+                    .collect();
+                block_on(async {
+                    let (ret, _index, remaining) = future::select_all(fs).await;
+                    let mut rows = ret;
+                    fs = remaining;
+                    while !fs.is_empty() {
+                        let (ret, _index, remaining) = future::select_all(fs).await;
+                        rows = rows.intersection(&ret).map(|&x| x).collect();
+                        fs = remaining;
                     }
-                }
+                    rows
+                })
             } else {
-                for row in collection.data.all() {
-                    rows.insert(row);
-                }
-            }
+                collection.data.all()
+            };
             let mut join_result: HashMap<String, HashMap<u32, Vec<CollectionRow>>> = HashMap::new();
-            for (name, join) in &self.join {
-                join_result.insert(
-                    name.clone(),
-                    join.result(database, self.collection_id, &rows),
-                );
-            }
+            block_on(async {
+                let mut fs: Vec<_> = self
+                    .join
+                    .iter()
+                    .map(|(name, join)| {
+                        Box::pin(async {
+                            (
+                                name.to_owned(),
+                                join.result(database, self.collection_id, &rows),
+                            )
+                        })
+                    })
+                    .collect();
+                while !fs.is_empty() {
+                    let (ret, _index, remaining) = future::select_all(fs).await;
+                    join_result.insert(ret.0, ret.1.await);
+                    fs = remaining;
+                }
+            });
             *self.result.write().unwrap() = Some(SearchResult {
                 collection_id: self.collection_id,
                 rows,
                 join: join_result,
             });
         }
-        Ok(Arc::clone(&self.result))
+        Arc::clone(&self.result)
     }
 }

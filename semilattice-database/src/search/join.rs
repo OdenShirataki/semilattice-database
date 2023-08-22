@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use futures::future;
 use versatile_data::RowSet;
 
 use crate::{CollectionRow, Database};
@@ -17,33 +18,35 @@ impl Join {
         }
     }
 
-    pub fn result_row(
+    fn result_row(
         &self,
         database: &Database,
         parent_collection_id: i32,
-        parent_row: u32,
+        parent_row: &u32,
     ) -> Vec<CollectionRow> {
+        let parent_row = *parent_row;
         let mut result = vec![];
         for condition in &self.conditions {
             match condition {
                 JoinCondition::Depend { key } => {
-                    let rel = database
-                        .relation
-                        .read()
-                        .unwrap()
-                        .pends(key, &CollectionRow::new(parent_collection_id, parent_row));
-                    for r in &rel {
-                        if r.collection_id() == self.collection_id {
-                            result.push(r.clone());
-                        }
-                    }
+                    result.extend(
+                        database
+                            .relation
+                            .read()
+                            .unwrap()
+                            .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
+                            .iter()
+                            .filter(|r| r.collection_id() == self.collection_id)
+                            .cloned()
+                            .collect::<Vec<_>>(),
+                    );
                 }
             }
         }
         result
     }
 
-    pub fn result(
+    pub async fn result(
         &self,
         database: &Database,
         parent_collection_id: i32,
@@ -51,14 +54,22 @@ impl Join {
     ) -> HashMap<u32, Vec<CollectionRow>> {
         let mut r = HashMap::new();
 
-        for parent_row in parent_rows {
-            let parent_row = *parent_row;
-            r.insert(
-                parent_row,
-                self.result_row(database, parent_collection_id, parent_row),
-            );
+        let mut fs: Vec<_> = parent_rows
+            .iter()
+            .map(|parent_row| {
+                Box::pin(async {
+                    (
+                        *parent_row,
+                        self.result_row(database, parent_collection_id, parent_row),
+                    )
+                })
+            })
+            .collect();
+        while !fs.is_empty() {
+            let (ret, _index, remaining) = future::select_all(fs).await;
+            r.insert(ret.0, ret.1);
+            fs = remaining;
         }
-
         r
     }
 }

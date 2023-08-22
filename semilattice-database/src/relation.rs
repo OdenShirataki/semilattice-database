@@ -57,10 +57,11 @@ impl Database {
         depend: &CollectionRow,
         pend: CollectionRow,
     ) {
+        let depend = depend.clone();
         self.relation
             .write()
             .unwrap()
-            .insert(key_name, depend.clone(), pend)
+            .insert(key_name, depend, pend)
     }
     pub fn register_relations(
         &mut self,
@@ -78,14 +79,15 @@ impl Database {
         pend_collection_id: i32,
         pend_row: u32,
     ) -> Vec<Depend> {
-        let mut r: Vec<Depend> = vec![];
-        let depends = self.relation.read().unwrap().depends(
-            key,
-            &CollectionRow::new(pend_collection_id, pend_row as u32),
-        );
-        for i in depends {
-            r.push(i.into());
-        }
-        r
+        self.relation
+            .read()
+            .unwrap()
+            .depends(
+                key,
+                &CollectionRow::new(pend_collection_id, pend_row as u32),
+            )
+            .iter()
+            .cloned()
+            .collect()
     }
 }

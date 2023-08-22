@@ -68,12 +68,12 @@ impl<'a> SessionSearch<'a> {
             Condition::Field(key, cond) => {
                 if let Some(field_tmp) = ent.fields.get(key) {
                     match cond {
-                        search::Field::Match(v) => field_tmp == v.as_ref(),
+                        search::Field::Match(v) => field_tmp == v,
                         search::Field::Range(min, max) => {
-                            min.as_ref() <= field_tmp && max.as_ref() >= field_tmp
+                            min <= field_tmp && max >= field_tmp
                         }
-                        search::Field::Min(min) => min.as_ref() <= field_tmp,
-                        search::Field::Max(max) => max.as_ref() >= field_tmp,
+                        search::Field::Min(min) => min <= field_tmp,
+                        search::Field::Max(max) => max >= field_tmp,
                         search::Field::Forward(v) => {
                             unsafe { std::str::from_utf8_unchecked(field_tmp) }
                                 .starts_with(v.as_ref())
@@ -152,7 +152,7 @@ impl<'a> SessionSearch<'a> {
     ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
         let collection_id = self.search.read().unwrap().collection_id();
         if let Some(collection) = database.collection(collection_id) {
-            let result = self.search.write().unwrap().result(database)?;
+            let result = self.search.write().unwrap().result(database);
             if let Some(tmp) = self.session.temporary_data.get(&collection_id) {
                 let mut tmp_rows: BTreeSet<i64> = BTreeSet::new();
                 if let Some(result) = result.read().unwrap().as_ref() {

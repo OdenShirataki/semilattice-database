@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use binary_set::BinarySet;
+use futures::executor::block_on;
 use versatile_data::{IdxFile, RowFragment};
 
 use crate::{CollectionRow, Depend};
@@ -55,19 +56,49 @@ impl RelationIndex {
     pub fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
         if let Some(row) = self.fragment.pop() {
-            self.rows.key.update(row, key_id);
-            self.rows.depend.update(row, depend);
-            self.rows.pend.update(row, pend);
+            block_on(async {
+                futures::join!(
+                    async {
+                        self.rows.key.update(row, key_id);
+                    },
+                    async {
+                        self.rows.depend.update(row, depend);
+                    },
+                    async {
+                        self.rows.pend.update(row, pend);
+                    },
+                )
+            });
         } else {
-            self.rows.key.insert(key_id);
-            self.rows.depend.insert(depend);
-            self.rows.pend.insert(pend);
+            block_on(async {
+                futures::join!(
+                    async {
+                        self.rows.key.insert(key_id);
+                    },
+                    async {
+                        self.rows.depend.insert(depend);
+                    },
+                    async {
+                        self.rows.pend.insert(pend);
+                    }
+                );
+            });
         }
     }
     pub fn delete(&mut self, row: u32) -> u64 {
-        self.rows.key.delete(row);
-        self.rows.depend.delete(row);
-        self.rows.pend.delete(row);
+        block_on(async {
+            futures::join!(
+                async {
+                    self.rows.key.delete(row);
+                },
+                async {
+                    self.rows.depend.delete(row);
+                },
+                async {
+                    self.rows.pend.delete(row);
+                },
+            );
+        });
         self.fragment.insert_blank(row)
     }
     pub fn delete_pends_by_collection_row(&mut self, collection_row: &CollectionRow) {
@@ -82,55 +113,81 @@ impl RelationIndex {
         }
     }
     pub fn pends(&self, key: &Option<String>, depend: &CollectionRow) -> Vec<CollectionRow> {
-        let mut ret: Vec<CollectionRow> = Vec::new();
         if let Some(key) = key {
             if let Some(key) = self.key_names.row(key.as_bytes()) {
-                for i in self.rows.depend.iter_by(|v| v.cmp(depend)).map(|x| x.row()) {
-                    if let (Some(key_row), Some(collection_row)) =
-                        (self.rows.key.value(i), self.rows.pend.value(i))
-                    {
-                        if *key_row == key {
-                            ret.push(collection_row.clone());
+                self.rows
+                    .depend
+                    .iter_by(|v| v.cmp(depend))
+                    .map(|x| x.row())
+                    .filter_map(|i| {
+                        if let (Some(key_row), Some(collection_row)) =
+                            (self.rows.key.value(i), self.rows.pend.value(i))
+                        {
+                            if *key_row == key {
+                                return Some(collection_row.clone());
+                            }
                         }
-                    }
-                }
+                        None
+                    })
+                    .collect()
+            } else {
+                vec![]
             }
         } else {
-            for i in self.rows.depend.iter_by(|v| v.cmp(depend)).map(|x| x.row()) {
-                if let Some(collection_row) = self.rows.pend.value(i) {
-                    ret.push(collection_row.clone());
-                }
-            }
+            self.rows
+                .depend
+                .iter_by(|v| v.cmp(depend))
+                .map(|x| x.row())
+                .filter_map(|i| {
+                    if let Some(collection_row) = self.rows.pend.value(i) {
+                        Some(collection_row.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect()
         }
-        ret
     }
     pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {
-        let mut ret: Vec<Depend> = Vec::new();
         if let Some(key_name) = key {
             if let Some(key) = self.key_names.row(key_name.as_bytes()) {
-                for i in self.rows.pend.iter_by(|v| v.cmp(pend)).map(|x| x.row()) {
-                    if let (Some(key_row), Some(collection_row)) =
-                        (self.rows.key.value(i), self.rows.depend.value(i))
-                    {
-                        if *key_row == key {
-                            ret.push(Depend::new(key_name, collection_row.clone()));
+                self.rows
+                    .pend
+                    .iter_by(|v| v.cmp(pend))
+                    .map(|x| x.row())
+                    .filter_map(|i| {
+                        if let (Some(key_row), Some(collection_row)) =
+                            (self.rows.key.value(i), self.rows.depend.value(i))
+                        {
+                            if *key_row == key {
+                                return Some(Depend::new(key_name, collection_row.clone()));
+                            }
                         }
-                    }
-                }
+                        None
+                    })
+                    .collect()
+            } else {
+                vec![]
             }
         } else {
-            for i in self.rows.pend.iter_by(|v| v.cmp(pend)).map(|x| x.row()) {
-                if let (Some(key), Some(collection_row)) =
-                    (self.rows.key.value(i), self.rows.depend.value(i))
-                {
-                    ret.push(Depend::new(
-                        unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(*key)) },
-                        collection_row.clone(),
-                    ));
-                }
-            }
+            self.rows
+                .pend
+                .iter_by(|v| v.cmp(pend))
+                .map(|x| x.row())
+                .filter_map(|i| {
+                    if let (Some(key), Some(collection_row)) =
+                        (self.rows.key.value(i), self.rows.depend.value(i))
+                    {
+                        Some(Depend::new(
+                            unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(*key)) },
+                            collection_row.clone(),
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
         }
-        ret
     }
     pub fn index_depend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.depend
