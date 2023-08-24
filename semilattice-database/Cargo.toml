@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.76.0"
+version = "0.76.1"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -19,5 +19,5 @@ toml = "0.7"
 futures = "0.3.28"
 async-recursion = "1.0.4"
 
-versatile-data = { version = "0.84" , path = "../../versatile-data" }
+versatile-data = { version = "0.85" , path = "../../versatile-data" }
 binary_set = { version = "0.3" , path = "../../binary_set" }

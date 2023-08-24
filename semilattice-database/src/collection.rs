@@ -45,11 +45,10 @@ impl DerefMut for Collection {
 
 impl Database {
     pub fn collections(&self) -> Vec<String> {
-        let mut r = Vec::new();
-        for (_, collection) in self.collections.iter() {
-            r.push(collection.name().to_owned());
-        }
-        r
+        self.collections
+            .iter()
+            .map(|(_, x)| x.name().to_owned())
+            .collect()
     }
 
     pub fn collection(&self, id: i32) -> Option<&Collection> {

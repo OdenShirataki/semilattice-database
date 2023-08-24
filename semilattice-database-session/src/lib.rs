@@ -224,23 +224,25 @@ impl SessionDatabase {
         pend_row: u32,
         session: Option<&Session>,
     ) -> Vec<Depend> {
-        let mut r: Vec<Depend> = vec![];
         if pend_collection_id > 0 {
-            let depends = self.relation().read().unwrap().depends(
-                key,
-                &CollectionRow::new(pend_collection_id, pend_row as u32),
-            );
-            for i in depends {
-                r.push(i.into());
-            }
+            self.relation()
+                .read()
+                .unwrap()
+                .depends(
+                    key,
+                    &CollectionRow::new(pend_collection_id, pend_row as u32),
+                )
+                .iter()
+                .cloned()
+                .collect()
         } else {
             if let Some(session) = session {
                 if let Some(session_depends) = session.depends(key, pend_row) {
-                    r = session_depends;
+                    return session_depends;
                 }
             }
+            vec![]
         }
-        r
     }
 
     pub fn register_relations_with_session(

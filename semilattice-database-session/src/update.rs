@@ -75,13 +75,11 @@ impl SessionDatabase {
                             term_end,
                             uuid,
                             operation: SessionOperation::New,
-                            fields: {
-                                let mut tmp = HashMap::new();
-                                for kv in &record.fields {
-                                    tmp.insert(kv.key().to_string(), kv.value().to_vec());
-                                }
-                                tmp
-                            },
+                            fields: record
+                                .fields
+                                .iter()
+                                .map(|kv| (kv.key().to_string(), kv.value().to_vec()))
+                                .collect(),
                             depends: if let Depends::Overwrite(depends) = depends {
                                 let mut tmp = vec![];
                                 for (key, depend) in depends {
@@ -241,13 +239,11 @@ impl SessionDatabase {
                             term_end,
                             uuid,
                             operation: SessionOperation::Update,
-                            fields: {
-                                let mut tmp = HashMap::new();
-                                for kv in &record.fields {
-                                    tmp.insert(kv.key().into(), kv.value().into());
-                                }
-                                tmp
-                            },
+                            fields: record
+                                .fields
+                                .iter()
+                                .map(|kv| (kv.key().into(), kv.value().into()))
+                                .collect(),
                             depends: tmp_depends,
                         });
                     if let Some((key, depend_session_row)) = depend_by_pend {

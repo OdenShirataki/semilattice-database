@@ -150,8 +150,8 @@ impl SessionData {
                                             .rows
                                             .session_row
                                             .iter_by(|v| v.cmp(&session_row))
-                                            .map(|x| x.row())
-                                            .filter_map(|relation_row| {
+                                            .filter_map(|x| {
+                                                let relation_row = x.row();
                                                 if let (Some(key), Some(depend)) = (
                                                     self.relation.rows.key.value(relation_row),
                                                     self.relation.rows.depend.value(relation_row),

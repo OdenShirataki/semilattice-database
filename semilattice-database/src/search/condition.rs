@@ -31,42 +31,42 @@ impl Condition {
     ) -> RowSet {
         match self {
             Self::Activity(c) => {
-                VersatileDataSearch::search_exec_cond(
+                VersatileDataSearch::result_condition(
                     &collection.data,
                     &VersatileDataCondition::Activity(*c),
                 )
                 .await
             }
             Self::Term(c) => {
-                VersatileDataSearch::search_exec_cond(
+                VersatileDataSearch::result_condition(
                     &collection.data,
                     &VersatileDataCondition::Term(c.clone()),
                 )
                 .await
             }
             Self::Row(c) => {
-                VersatileDataSearch::search_exec_cond(
+                VersatileDataSearch::result_condition(
                     &collection.data,
                     &VersatileDataCondition::Row(c.clone()),
                 )
                 .await
             }
             Self::Uuid(c) => {
-                VersatileDataSearch::search_exec_cond(
+                VersatileDataSearch::result_condition(
                     &collection.data,
                     &VersatileDataCondition::Uuid(c.clone()),
                 )
                 .await
             }
             Self::LastUpdated(c) => {
-                VersatileDataSearch::search_exec_cond(
+                VersatileDataSearch::result_condition(
                     &collection.data,
                     &VersatileDataCondition::LastUpdated(c.clone()),
                 )
                 .await
             }
             Self::Field(key, condition) => {
-                VersatileDataSearch::search_exec_cond(
+                VersatileDataSearch::result_condition(
                     &collection.data,
                     &VersatileDataCondition::Field(key.to_owned(), condition.clone()),
                 )

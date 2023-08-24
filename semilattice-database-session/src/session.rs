@@ -257,51 +257,56 @@ impl Session {
     }
 
     pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<Depend>> {
-        let mut r = vec![];
         if let Some(ref session_data) = self.session_data {
             if let Some(key_name) = key {
                 if let Some(key_id) = session_data.relation.key_names.row(key_name.as_bytes()) {
-                    for relation_row in session_data
+                    return Some(
+                        session_data
+                            .relation
+                            .rows
+                            .session_row
+                            .iter_by(|v| v.cmp(&pend_row))
+                            .filter_map(|x| {
+                                let relation_row = x.row();
+                                if let (Some(key), Some(depend)) = (
+                                    session_data.relation.rows.key.value(relation_row),
+                                    session_data.relation.rows.depend.value(relation_row),
+                                ) {
+                                    if *key == key_id {
+                                        return Some(Depend::new(key_name, depend.clone()));
+                                    }
+                                }
+                                None
+                            })
+                            .collect(),
+                    );
+                }
+            } else {
+                return Some(
+                    session_data
                         .relation
                         .rows
                         .session_row
                         .iter_by(|v| v.cmp(&pend_row))
-                        .map(|x| x.row())
-                    {
-                        if let (Some(key), Some(depend)) = (
-                            session_data.relation.rows.key.value(relation_row),
-                            session_data.relation.rows.depend.value(relation_row),
-                        ) {
-                            if *key == key_id {
-                                r.push(Depend::new(key_name, depend.clone()));
+                        .filter_map(|x| {
+                            let relation_row = x.row();
+                            if let (Some(key), Some(depend)) = (
+                                session_data.relation.rows.key.value(relation_row),
+                                session_data.relation.rows.depend.value(relation_row),
+                            ) {
+                                return Some(Depend::new(
+                                    unsafe {
+                                        std::str::from_utf8_unchecked(
+                                            session_data.relation.key_names.bytes(*key),
+                                        )
+                                    },
+                                    depend.clone(),
+                                ));
                             }
-                        }
-                    }
-                    return Some(r);
-                }
-            } else {
-                for relation_row in session_data
-                    .relation
-                    .rows
-                    .session_row
-                    .iter_by(|v| v.cmp(&pend_row))
-                    .map(|x| x.row())
-                {
-                    if let (Some(key), Some(depend)) = (
-                        session_data.relation.rows.key.value(relation_row),
-                        session_data.relation.rows.depend.value(relation_row),
-                    ) {
-                        r.push(Depend::new(
-                            unsafe {
-                                std::str::from_utf8_unchecked(
-                                    session_data.relation.key_names.bytes(*key),
-                                )
-                            },
-                            depend.clone(),
-                        ));
-                    }
-                }
-                return Some(r);
+                            None
+                        })
+                        .collect(),
+                );
             }
         }
         None

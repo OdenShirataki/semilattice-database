@@ -118,10 +118,10 @@ impl RelationIndex {
                 self.rows
                     .depend
                     .iter_by(|v| v.cmp(depend))
-                    .map(|x| x.row())
-                    .filter_map(|i| {
+                    .filter_map(|x| {
+                        let row = x.row();
                         if let (Some(key_row), Some(collection_row)) =
-                            (self.rows.key.value(i), self.rows.pend.value(i))
+                            (self.rows.key.value(row), self.rows.pend.value(row))
                         {
                             if *key_row == key {
                                 return Some(collection_row.clone());
@@ -137,9 +137,9 @@ impl RelationIndex {
             self.rows
                 .depend
                 .iter_by(|v| v.cmp(depend))
-                .map(|x| x.row())
-                .filter_map(|i| {
-                    if let Some(collection_row) = self.rows.pend.value(i) {
+                .filter_map(|x| {
+                    let row = x.row();
+                    if let Some(collection_row) = self.rows.pend.value(row) {
                         Some(collection_row.clone())
                     } else {
                         None
@@ -154,10 +154,10 @@ impl RelationIndex {
                 self.rows
                     .pend
                     .iter_by(|v| v.cmp(pend))
-                    .map(|x| x.row())
-                    .filter_map(|i| {
+                    .filter_map(|x| {
+                        let row = x.row();
                         if let (Some(key_row), Some(collection_row)) =
-                            (self.rows.key.value(i), self.rows.depend.value(i))
+                            (self.rows.key.value(row), self.rows.depend.value(row))
                         {
                             if *key_row == key {
                                 return Some(Depend::new(key_name, collection_row.clone()));
@@ -173,10 +173,10 @@ impl RelationIndex {
             self.rows
                 .pend
                 .iter_by(|v| v.cmp(pend))
-                .map(|x| x.row())
-                .filter_map(|i| {
+                .filter_map(|x| {
+                    let row = x.row();
                     if let (Some(key), Some(collection_row)) =
-                        (self.rows.key.value(i), self.rows.depend.value(i))
+                        (self.rows.key.value(row), self.rows.depend.value(row))
                     {
                         Some(Depend::new(
                             unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(*key)) },

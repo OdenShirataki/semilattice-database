@@ -54,11 +54,9 @@ impl SessionDatabase {
                             .fields
                             .iter()
                             .filter_map(|(key, field_data)| {
-                                if let Some(val) = field_data.bytes(session_row) {
-                                    Some(KeyValue::new(key, val))
-                                } else {
-                                    None
-                                }
+                                field_data
+                                    .bytes(session_row)
+                                    .map(|val| KeyValue::new(key, val))
                             })
                             .collect()
                     };
