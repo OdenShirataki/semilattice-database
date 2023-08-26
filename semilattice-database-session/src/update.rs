@@ -154,11 +154,10 @@ impl SessionDatabase {
 
                     let uuid = {
                         if in_session {
-                            if let Some(uuid) = session_data.uuid.value(row) {
-                                *uuid
-                            } else {
-                                semilattice_database::create_uuid()
-                            }
+                            session_data
+                                .uuid
+                                .value(row)
+                                .map_or(semilattice_database::create_uuid(), |uuid| *uuid)
                         } else {
                             if let Some(collection) = self.collection(master_collection_id) {
                                 let uuid = collection.uuid(row).unwrap_or(0);
@@ -202,7 +201,6 @@ impl SessionDatabase {
                                     .unwrap()
                                     .index_pend()
                                     .iter_by(|v| v.cmp(&CollectionRow::new(collection_id, row)))
-                                    .map(|x| x.row())
                                 {
                                     if let Some(depend) = self.relation().read().unwrap().depend(i)
                                     {

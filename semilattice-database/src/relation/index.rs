@@ -106,75 +106,43 @@ impl RelationIndex {
             .rows
             .pend
             .iter_by(|v| v.cmp(collection_row))
-            .map(|x| x.row())
             .collect::<Vec<u32>>()
         {
             self.delete(row);
         }
     }
     pub fn pends(&self, key: &Option<String>, depend: &CollectionRow) -> Vec<CollectionRow> {
-        if let Some(key) = key {
-            if let Some(key) = self.key_names.row(key.as_bytes()) {
-                self.rows
-                    .depend
-                    .iter_by(|v| v.cmp(depend))
-                    .filter_map(|x| {
-                        let row = x.row();
-                        if let (Some(key_row), Some(collection_row)) =
-                            (self.rows.key.value(row), self.rows.pend.value(row))
-                        {
-                            if *key_row == key {
-                                return Some(collection_row.clone());
-                            }
-                        }
-                        None
-                    })
-                    .collect()
-            } else {
-                vec![]
-            }
-        } else {
+        key.as_ref().map_or(
             self.rows
                 .depend
                 .iter_by(|v| v.cmp(depend))
-                .filter_map(|x| {
-                    let row = x.row();
-                    if let Some(collection_row) = self.rows.pend.value(row) {
-                        Some(collection_row.clone())
-                    } else {
-                        None
-                    }
+                .filter_map(|row| self.rows.pend.value(row).cloned())
+                .collect(),
+            |key| {
+                self.key_names.row(key.as_bytes()).map_or(vec![], |key| {
+                    self.rows
+                        .depend
+                        .iter_by(|v| v.cmp(depend))
+                        .filter_map(|row| {
+                            if let (Some(key_row), Some(collection_row)) =
+                                (self.rows.key.value(row), self.rows.pend.value(row))
+                            {
+                                (*key_row == key).then_some(collection_row.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect()
                 })
-                .collect()
-        }
+            },
+        )
     }
     pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {
-        if let Some(key_name) = key {
-            if let Some(key) = self.key_names.row(key_name.as_bytes()) {
-                self.rows
-                    .pend
-                    .iter_by(|v| v.cmp(pend))
-                    .filter_map(|x| {
-                        let row = x.row();
-                        if let (Some(key_row), Some(collection_row)) =
-                            (self.rows.key.value(row), self.rows.depend.value(row))
-                        {
-                            if *key_row == key {
-                                return Some(Depend::new(key_name, collection_row.clone()));
-                            }
-                        }
-                        None
-                    })
-                    .collect()
-            } else {
-                vec![]
-            }
-        } else {
+        key.map_or(
             self.rows
                 .pend
                 .iter_by(|v| v.cmp(pend))
-                .filter_map(|x| {
-                    let row = x.row();
+                .filter_map(|row| {
                     if let (Some(key), Some(collection_row)) =
                         (self.rows.key.value(row), self.rows.depend.value(row))
                     {
@@ -186,8 +154,28 @@ impl RelationIndex {
                         None
                     }
                 })
-                .collect()
-        }
+                .collect(),
+            |key_name| {
+                self.key_names
+                    .row(key_name.as_bytes())
+                    .map_or(vec![], |key| {
+                        self.rows
+                            .pend
+                            .iter_by(|v| v.cmp(pend))
+                            .filter_map(|row| {
+                                if let (Some(key_row), Some(collection_row)) =
+                                    (self.rows.key.value(row), self.rows.depend.value(row))
+                                {
+                                    (*key_row == key)
+                                        .then_some(Depend::new(key_name, collection_row.clone()))
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect()
+                    })
+            },
+        )
     }
     pub fn index_depend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.depend
@@ -199,10 +187,8 @@ impl RelationIndex {
         self.rows.depend.value(row)
     }
     pub unsafe fn key(&self, row: u32) -> &str {
-        if let Some(key_row) = self.rows.key.value(row) {
+        self.rows.key.value(row).map_or("", |key_row| {
             std::str::from_utf8_unchecked(self.key_names.bytes(*key_row))
-        } else {
-            ""
-        }
+        })
     }
 }

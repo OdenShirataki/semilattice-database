@@ -26,15 +26,13 @@ impl SearchResult {
     }
 
     pub fn sort(&self, database: &Database, orders: &[Order]) -> Vec<u32> {
-        if let Some(collection) = database.collection(self.collection_id) {
+        database.collection(self.collection_id).map_or(vec![], |c| {
             if orders.len() > 0 {
-                collection.data.sort(&self.rows, &orders)
+                c.data.sort(&self.rows, &orders)
             } else {
                 self.rows.iter().map(|&x| x).collect()
             }
-        } else {
-            vec![]
-        }
+        })
     }
 }
 

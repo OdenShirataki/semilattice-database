@@ -65,40 +65,30 @@ impl<'a> SessionSearch<'a> {
                 search::Term::Past(c) => ent.term_end >= *c,
                 search::Term::Future(c) => ent.term_begin >= *c,
             },
-            Condition::Field(key, cond) => {
-                if let Some(field_tmp) = ent.fields.get(key) {
-                    match cond {
-                        search::Field::Match(v) => field_tmp == v,
-                        search::Field::Range(min, max) => {
-                            min <= field_tmp && max >= field_tmp
-                        }
-                        search::Field::Min(min) => min <= field_tmp,
-                        search::Field::Max(max) => max >= field_tmp,
-                        search::Field::Forward(v) => {
-                            unsafe { std::str::from_utf8_unchecked(field_tmp) }
-                                .starts_with(v.as_ref())
-                        }
-                        search::Field::Partial(v) => {
-                            unsafe { std::str::from_utf8_unchecked(field_tmp) }.contains(v.as_ref())
-                        }
-                        search::Field::Backward(v) => {
-                            unsafe { std::str::from_utf8_unchecked(field_tmp) }
-                                .ends_with(v.as_ref())
-                        }
-                        search::Field::ValueForward(v) => {
-                            v.starts_with(unsafe { std::str::from_utf8_unchecked(field_tmp) })
-                        }
-                        search::Field::ValueBackward(v) => {
-                            v.ends_with(unsafe { std::str::from_utf8_unchecked(field_tmp) })
-                        }
-                        search::Field::ValuePartial(v) => {
-                            v.contains(unsafe { std::str::from_utf8_unchecked(field_tmp) })
-                        }
-                    }
-                } else {
-                    false
+            Condition::Field(key, cond) => ent.fields.get(key).map_or(false, |f| match cond {
+                search::Field::Match(v) => f == v,
+                search::Field::Range(min, max) => min <= f && max >= f,
+                search::Field::Min(min) => min <= f,
+                search::Field::Max(max) => max >= f,
+                search::Field::Forward(v) => {
+                    unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v.as_ref())
                 }
-            }
+                search::Field::Partial(v) => {
+                    unsafe { std::str::from_utf8_unchecked(f) }.contains(v.as_ref())
+                }
+                search::Field::Backward(v) => {
+                    unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v.as_ref())
+                }
+                search::Field::ValueForward(v) => {
+                    v.starts_with(unsafe { std::str::from_utf8_unchecked(f) })
+                }
+                search::Field::ValueBackward(v) => {
+                    v.ends_with(unsafe { std::str::from_utf8_unchecked(f) })
+                }
+                search::Field::ValuePartial(v) => {
+                    v.contains(unsafe { std::str::from_utf8_unchecked(f) })
+                }
+            }),
             Condition::Narrow(conditions) => {
                 let mut is_match = true;
                 for c in conditions {
@@ -122,11 +112,8 @@ impl<'a> SessionSearch<'a> {
             Condition::Depend(key, collection_row) => {
                 let mut is_match = true;
                 for depend in &ent.depends {
-                    is_match = if let Some(key) = key {
-                        key == depend.key()
-                    } else {
-                        true
-                    } && collection_row == depend.deref();
+                    is_match = key.as_ref().map_or(true, |key| key == depend.key())
+                        && collection_row == depend.deref();
                     if is_match {
                         break;
                     }

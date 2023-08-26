@@ -71,8 +71,8 @@ impl SessionDatabase {
                         }
                         sessions.push(SessionInfo {
                             name: fname.to_owned(),
-                            access_at: access_at,
-                            expire: expire,
+                            access_at,
+                            expire,
                         });
                     }
                 }
@@ -162,7 +162,6 @@ impl SessionDatabase {
                     for session_row in session_data
                         .sequence
                         .iter_by(|v| v.cmp(&row))
-                        .map(|x| x.row())
                         .collect::<Vec<u32>>()
                     {
                         session_data.relation.delete(session_row);

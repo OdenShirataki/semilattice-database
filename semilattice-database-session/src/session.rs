@@ -105,14 +105,12 @@ impl Session {
         }
     }
     pub fn sequence_cursor(&self) -> Option<SequenceCursor> {
-        if let Some(session_data) = &self.session_data {
-            Some(SequenceCursor {
+        self.session_data
+            .as_ref()
+            .map(|session_data| SequenceCursor {
                 max: session_data.sequence_number.max(),
                 current: session_data.sequence_number.current(),
             })
-        } else {
-            None
-        }
     }
 
     pub fn new_data(session_dir: &Path, expire_interval_sec: Option<i64>) -> SessionData {
@@ -123,11 +121,7 @@ impl Session {
             .write(true)
             .open(access)
             .unwrap();
-        let expire = if let Some(expire) = expire_interval_sec {
-            expire
-        } else {
-            -1
-        };
+        let expire = expire_interval_sec.unwrap_or(-1);
         file.write(&expire.to_be_bytes()).unwrap();
 
         let mut fields = HashMap::new();
@@ -245,9 +239,10 @@ impl Session {
             }
         }
         if row > 0 {
-            return collection.field_bytes(row as u32, key);
+            collection.field_bytes(row as u32, key)
+        } else {
+            b""
         }
-        b""
     }
     pub fn temporary_collection(
         &self,
@@ -257,39 +252,15 @@ impl Session {
     }
 
     pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<Depend>> {
-        if let Some(ref session_data) = self.session_data {
-            if let Some(key_name) = key {
-                if let Some(key_id) = session_data.relation.key_names.row(key_name.as_bytes()) {
-                    return Some(
-                        session_data
-                            .relation
-                            .rows
-                            .session_row
-                            .iter_by(|v| v.cmp(&pend_row))
-                            .filter_map(|x| {
-                                let relation_row = x.row();
-                                if let (Some(key), Some(depend)) = (
-                                    session_data.relation.rows.key.value(relation_row),
-                                    session_data.relation.rows.depend.value(relation_row),
-                                ) {
-                                    if *key == key_id {
-                                        return Some(Depend::new(key_name, depend.clone()));
-                                    }
-                                }
-                                None
-                            })
-                            .collect(),
-                    );
-                }
-            } else {
-                return Some(
+        self.session_data.as_ref().and_then(|session_data| {
+            key.map_or(
+                Some(
                     session_data
                         .relation
                         .rows
                         .session_row
                         .iter_by(|v| v.cmp(&pend_row))
-                        .filter_map(|x| {
-                            let relation_row = x.row();
+                        .filter_map(|relation_row| {
                             if let (Some(key), Some(depend)) = (
                                 session_data.relation.rows.key.value(relation_row),
                                 session_data.relation.rows.depend.value(relation_row),
@@ -306,9 +277,33 @@ impl Session {
                             None
                         })
                         .collect(),
-                );
-            }
-        }
-        None
+                ),
+                |key_name| {
+                    session_data
+                        .relation
+                        .key_names
+                        .row(key_name.as_bytes())
+                        .map(|key_id| {
+                            session_data
+                                .relation
+                                .rows
+                                .session_row
+                                .iter_by(|v| v.cmp(&pend_row))
+                                .filter_map(|relation_row| {
+                                    if let (Some(key), Some(depend)) = (
+                                        session_data.relation.rows.key.value(relation_row),
+                                        session_data.relation.rows.depend.value(relation_row),
+                                    ) {
+                                        if *key == key_id {
+                                            return Some(Depend::new(key_name, depend.clone()));
+                                        }
+                                    }
+                                    None
+                                })
+                                .collect()
+                        })
+                },
+            )
+        })
     }
 }

@@ -63,7 +63,6 @@ impl Database {
             .unwrap()
             .index_depend()
             .iter_by(|v| v.cmp(&target))
-            .map(|x| x.row())
             .collect::<Vec<u32>>();
         for relation_row in rows {
             let collection_row = self
@@ -83,7 +82,6 @@ impl Database {
             .unwrap()
             .index_pend()
             .iter_by(|v| v.cmp(&target))
-            .map(|x| x.row())
             .collect::<Vec<u32>>();
         for relation_row in rows {
             self.relation.write().unwrap().delete(relation_row);

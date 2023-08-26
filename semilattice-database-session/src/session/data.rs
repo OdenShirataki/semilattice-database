@@ -78,7 +78,7 @@ impl SessionData {
             let mut fields_overlaps: HashMap<CollectionRow, HashMap<String, Vec<u8>>> =
                 HashMap::new();
             for sequence in 1..=current {
-                for session_row in self.sequence.iter_by(|v| v.cmp(&sequence)).map(|x| x.row()) {
+                for session_row in self.sequence.iter_by(|v| v.cmp(&sequence)) {
                     if let Some(collection_id) = self.collection_id.value(session_row) {
                         let collection_id = *collection_id;
 
@@ -138,11 +138,7 @@ impl SessionData {
                                     },
                                     term_begin: *self.term_begin.value(session_row).unwrap(),
                                     term_end: *self.term_end.value(session_row).unwrap(),
-                                    uuid: if let Some(uuid) = self.uuid.value(session_row) {
-                                        *uuid
-                                    } else {
-                                        0
-                                    },
+                                    uuid: self.uuid.value(session_row).map_or(0, |uuid| *uuid),
                                     operation,
                                     fields: row_fields.clone(),
                                     depends: {
@@ -150,8 +146,7 @@ impl SessionData {
                                             .rows
                                             .session_row
                                             .iter_by(|v| v.cmp(&session_row))
-                                            .filter_map(|x| {
-                                                let relation_row = x.row();
+                                            .filter_map(|relation_row| {
                                                 if let (Some(key), Some(depend)) = (
                                                     self.relation.rows.key.value(relation_row),
                                                     self.relation.rows.depend.value(relation_row),

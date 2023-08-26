@@ -73,17 +73,13 @@ impl Database {
     }
 
     pub fn delete_collection(&mut self, name: &str) {
-        let collection_id = if let Some(collection_id) = self.collections_map.get(name) {
-            *collection_id
-        } else {
-            0
-        };
+        let collection_id = self.collections_map.get(name).map_or(0, |x| *x);
         if collection_id > 0 {
-            for row in if let Some(collection) = self.collections.get(&collection_id) {
-                collection.data.all()
-            } else {
-                RowSet::default()
-            } {
+            for row in self
+                .collections
+                .get(&collection_id)
+                .map_or(RowSet::default(), |collection| collection.data.all())
+            {
                 self.delete_recursive(&CollectionRow::new(collection_id, row));
                 if let Some(collection) = self.collection_mut(collection_id) {
                     collection.update(&Operation::Delete { row });
@@ -102,11 +98,9 @@ impl Database {
         let collection = Collection::new(
             Data::new(
                 dir,
-                if let Some(option) = self.collection_settings.get(name) {
-                    option.clone()
-                } else {
-                    DataOption::default()
-                },
+                self.collection_settings
+                    .get(name)
+                    .map_or(DataOption::default(), |f| f.clone()),
             ),
             id,
             name,

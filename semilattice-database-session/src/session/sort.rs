@@ -72,16 +72,12 @@ fn field<'a>(
     field_name: &str,
 ) -> &'a [u8] {
     if row < 0 {
-        if let Some(v) = temporary_collection
+        temporary_collection
             .get(&row)
             .unwrap()
             .fields()
             .get(field_name)
-        {
-            v
-        } else {
-            b""
-        }
+            .map_or(b"", |v| v)
     } else {
         collection.field_bytes(row as u32, field_name)
     }
