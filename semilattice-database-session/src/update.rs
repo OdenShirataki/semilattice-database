@@ -129,18 +129,18 @@ impl SessionDatabase {
 
                     let term_begin = match record.term_begin {
                         Term::Overwrite(term_begin) => term_begin,
-                        Term::Default => {
-                            let mut r = SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs();
-                            if !in_session {
-                                if let Some(collection) = self.collection(master_collection_id) {
-                                    r = collection.term_begin(row).unwrap_or(0);
-                                }
-                            }
-                            r
-                        }
+                        Term::Default => (!in_session)
+                            .then(|| {
+                                self.collection(master_collection_id)
+                                    .map(|collection| collection.term_begin(row).unwrap_or(0))
+                            })
+                            .and_then(|v| v)
+                            .unwrap_or_else(|| {
+                                SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .unwrap()
+                                    .as_secs()
+                            }),
                     };
                     let term_end = if let Term::Overwrite(term_end) = record.term_end {
                         term_end

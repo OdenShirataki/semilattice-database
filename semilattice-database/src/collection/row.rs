@@ -15,13 +15,7 @@ impl PartialOrd for CollectionRow {
 impl Ord for CollectionRow {
     fn cmp(&self, other: &CollectionRow) -> Ordering {
         if self.collection_id == other.collection_id {
-            if self.row == other.row {
-                Ordering::Equal
-            } else if self.row > other.row {
-                Ordering::Greater
-            } else {
-                Ordering::Less
-            }
+            self.row.cmp(&other.row)
         } else if self.collection_id > other.collection_id {
             Ordering::Greater
         } else {

@@ -58,11 +58,9 @@ impl Database {
         self.collections.get_mut(&id)
     }
     pub fn collection_id(&self, name: &str) -> Option<i32> {
-        if self.collections_map.contains_key(name) {
-            Some(*self.collections_map.get(name).unwrap())
-        } else {
-            None
-        }
+        self.collections_map
+            .contains_key(name)
+            .then(|| *self.collections_map.get(name).unwrap())
     }
     pub fn collection_id_or_create(&mut self, name: &str) -> i32 {
         if self.collections_map.contains_key(name) {

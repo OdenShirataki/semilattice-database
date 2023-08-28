@@ -13,7 +13,6 @@ use crate::Database;
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 use versatile_data::Activity;
@@ -49,12 +48,7 @@ impl Search {
         self
     }
     pub fn default(&mut self) -> &mut Self {
-        self.conditions.push(Condition::Term(Term::In(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-        )));
+        self.conditions.push(Condition::Term(Term::default()));
         self.conditions.push(Condition::Activity(Activity::Active));
         self
     }

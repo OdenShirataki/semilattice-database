@@ -29,11 +29,7 @@ impl SequenceNumber {
     pub fn set_current(&mut self, current: usize) {
         let max = self.max();
         unsafe {
-            if max < current {
-                *(self.filemmap.as_ptr() as *mut usize) = max;
-            } else {
-                *(self.filemmap.as_ptr() as *mut usize) = current;
-            }
+            *(self.filemmap.as_ptr() as *mut usize) = if max < current { max } else { current };
         }
     }
     pub fn max(&self) -> usize {

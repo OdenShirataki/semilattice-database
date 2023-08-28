@@ -2,7 +2,6 @@ use std::{
     collections::BTreeSet,
     ops::Deref,
     sync::{Arc, RwLock},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 use semilattice_database::Search;
@@ -20,9 +19,7 @@ impl<'a> SessionSearch<'a> {
     }
     pub fn search_default(self) -> Result<Self, std::time::SystemTimeError> {
         Ok(self
-            .search_term(search::Term::In(
-                SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
-            ))
+            .search_term(search::Term::default())
             .search(Condition::Activity(Activity::Active)))
     }
     pub fn search_field(self, field_name: impl Into<String>, condition: search::Field) -> Self {

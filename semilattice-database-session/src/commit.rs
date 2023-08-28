@@ -77,33 +77,33 @@ impl SessionDatabase {
                                 );
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
-                                    if *op == SessionOperation::New {
-                                        collection.update(&Operation::New(Record {
+                                    collection.update(&if *op == SessionOperation::New {
+                                        Operation::New(Record {
                                             activity,
                                             term_begin,
                                             term_end,
                                             fields,
-                                        }))
+                                        })
                                     } else {
                                         //SessionOperation::Update
-                                        let row = if in_session {
-                                            let main_collection_row = session_collection_row_map
-                                                .get(&session_collection_row)
-                                                .unwrap();
-                                            main_collection_row.row()
-                                        } else {
-                                            row
-                                        };
-                                        collection.update(&Operation::Update {
-                                            row,
+                                        Operation::Update {
+                                            row: if in_session {
+                                                let main_collection_row =
+                                                    session_collection_row_map
+                                                        .get(&session_collection_row)
+                                                        .unwrap();
+                                                main_collection_row.row()
+                                            } else {
+                                                row
+                                            },
                                             record: Record {
                                                 activity,
                                                 term_begin,
                                                 term_end,
                                                 fields,
                                             },
-                                        })
-                                    },
+                                        }
+                                    }),
                                 );
                                 commit_rows.push(collection_row.clone());
                                 self.relation()
@@ -121,18 +121,18 @@ impl SessionDatabase {
                                         session_data.relation.rows.key.value(relation_row),
                                         session_data.relation.rows.depend.value(relation_row),
                                     ) {
-                                        let key_name = unsafe {
-                                            std::str::from_utf8_unchecked(
-                                                session_data.relation.key_names.bytes(*key),
-                                            )
-                                        };
-                                        let tmp = relation_temporary
+                                        relation_temporary
                                             .entry(depend.clone())
-                                            .or_insert_with(|| Vec::new());
-                                        tmp.push((
-                                            key_name.to_owned(),
-                                            session_collection_row.clone(),
-                                        ));
+                                            .or_insert_with(|| Vec::new())
+                                            .push((
+                                                unsafe {
+                                                    std::str::from_utf8_unchecked(
+                                                        session_data.relation.key_names.bytes(*key),
+                                                    )
+                                                }
+                                                .to_owned(),
+                                                session_collection_row.clone(),
+                                            ));
                                     }
                                 }
                                 session_collection_row_map
