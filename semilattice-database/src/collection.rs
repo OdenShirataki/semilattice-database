@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use versatile_data::{Data, DataOption, Operation, RowSet};
+use versatile_data::{Data, DataOption, Operation};
 
 use crate::Database;
 
@@ -73,15 +73,13 @@ impl Database {
     pub fn delete_collection(&mut self, name: &str) {
         let collection_id = self.collections_map.get(name).map_or(0, |x| *x);
         if collection_id > 0 {
-            for row in self
-                .collections
-                .get(&collection_id)
-                .map_or(RowSet::default(), |collection| collection.data.all())
-            {
-                self.delete_recursive(&CollectionRow::new(collection_id, row));
-                if let Some(collection) = self.collection_mut(collection_id) {
-                    collection.update(&Operation::Delete { row });
-                }
+            if let Some(collection) = self.collections.get(&collection_id) {
+                collection.data.all().iter().for_each(|row| {
+                    self.delete_recursive(&CollectionRow::new(collection_id, *row));
+                    if let Some(collection) = self.collection_mut(collection_id) {
+                        collection.update(&Operation::Delete { row: *row });
+                    }
+                });
             }
             self.collections_map.remove(name);
             self.collections.remove(&collection_id);

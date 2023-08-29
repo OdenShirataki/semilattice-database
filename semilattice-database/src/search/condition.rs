@@ -79,13 +79,7 @@ impl Condition {
                     .unwrap()
                     .pends(key, collection_row)
                     .iter()
-                    .filter_map(|r| {
-                        if r.collection_id() == collection_id {
-                            Some(r.row())
-                        } else {
-                            None
-                        }
-                    })
+                    .filter_map(|r| (r.collection_id() == collection_id).then(|| r.row()))
                     .collect::<RowSet>()
             }
             Self::Narrow(conditions) => {
