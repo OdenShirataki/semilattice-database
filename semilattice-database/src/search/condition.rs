@@ -104,11 +104,13 @@ impl Condition {
                 rows
             }
             Self::Wide(conditions) => {
-                let mut fs: Vec<_> = conditions
+                let mut fs = conditions
                     .iter()
                     .map(|c| c.result(collection, relation))
                     .collect();
-                let mut tmp = RowSet::default();
+                let (ret, _index, remaining) = future::select_all(fs).await;
+                let mut tmp = ret;
+                fs = remaining;
                 while !fs.is_empty() {
                     let (ret, _index, remaining) = future::select_all(fs).await;
                     tmp.extend(ret);

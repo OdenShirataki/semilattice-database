@@ -65,8 +65,7 @@ impl Search {
             };
 
             let join_result = block_on(async {
-                let mut join_result: HashMap<String, HashMap<u32, Vec<CollectionRow>>> =
-                    HashMap::new();
+                let mut join_result = HashMap::new();
                 let mut fs: Vec<_> = self
                     .join
                     .iter()

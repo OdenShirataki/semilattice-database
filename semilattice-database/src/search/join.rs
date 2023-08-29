@@ -37,8 +37,7 @@ impl Join {
                             .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
                             .iter()
                             .filter(|r| r.collection_id() == self.collection_id)
-                            .cloned()
-                            .collect::<Vec<_>>(),
+                            .cloned(),
                     );
                 }
             }
