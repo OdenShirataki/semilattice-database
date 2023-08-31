@@ -112,12 +112,14 @@ impl RelationIndex {
         }
     }
     pub fn pends(&self, key: &Option<String>, depend: &CollectionRow) -> Vec<CollectionRow> {
-        key.as_ref().map_or(
-            self.rows
-                .depend
-                .iter_by(|v| v.cmp(depend))
-                .filter_map(|row| self.rows.pend.value(row).cloned())
-                .collect(),
+        key.as_ref().map_or_else(
+            || {
+                self.rows
+                    .depend
+                    .iter_by(|v| v.cmp(depend))
+                    .filter_map(|row| self.rows.pend.value(row).cloned())
+                    .collect()
+            },
             |key| {
                 self.key_names.row(key.as_bytes()).map_or(vec![], |key| {
                     self.rows
@@ -138,23 +140,27 @@ impl RelationIndex {
         )
     }
     pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {
-        key.map_or(
-            self.rows
-                .pend
-                .iter_by(|v| v.cmp(pend))
-                .filter_map(|row| {
-                    if let (Some(key), Some(collection_row)) =
-                        (self.rows.key.value(row), self.rows.depend.value(row))
-                    {
-                        Some(Depend::new(
-                            unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(*key)) },
-                            collection_row.clone(),
-                        ))
-                    } else {
-                        None
-                    }
-                })
-                .collect(),
+        key.map_or_else(
+            || {
+                self.rows
+                    .pend
+                    .iter_by(|v| v.cmp(pend))
+                    .filter_map(|row| {
+                        if let (Some(key), Some(collection_row)) =
+                            (self.rows.key.value(row), self.rows.depend.value(row))
+                        {
+                            Some(Depend::new(
+                                unsafe {
+                                    std::str::from_utf8_unchecked(self.key_names.bytes(*key))
+                                },
+                                collection_row.clone(),
+                            ))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            },
             |key_name| {
                 self.key_names
                     .row(key_name.as_bytes())

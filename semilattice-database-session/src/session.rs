@@ -253,31 +253,33 @@ impl Session {
 
     pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<Depend>> {
         self.session_data.as_ref().and_then(|session_data| {
-            key.map_or(
-                Some(
-                    session_data
-                        .relation
-                        .rows
-                        .session_row
-                        .iter_by(|v| v.cmp(&pend_row))
-                        .filter_map(|relation_row| {
-                            if let (Some(key), Some(depend)) = (
-                                session_data.relation.rows.key.value(relation_row),
-                                session_data.relation.rows.depend.value(relation_row),
-                            ) {
-                                return Some(Depend::new(
-                                    unsafe {
-                                        std::str::from_utf8_unchecked(
-                                            session_data.relation.key_names.bytes(*key),
-                                        )
-                                    },
-                                    depend.clone(),
-                                ));
-                            }
-                            None
-                        })
-                        .collect(),
-                ),
+            key.map_or_else(
+                || {
+                    Some(
+                        session_data
+                            .relation
+                            .rows
+                            .session_row
+                            .iter_by(|v| v.cmp(&pend_row))
+                            .filter_map(|relation_row| {
+                                if let (Some(key), Some(depend)) = (
+                                    session_data.relation.rows.key.value(relation_row),
+                                    session_data.relation.rows.depend.value(relation_row),
+                                ) {
+                                    return Some(Depend::new(
+                                        unsafe {
+                                            std::str::from_utf8_unchecked(
+                                                session_data.relation.key_names.bytes(*key),
+                                            )
+                                        },
+                                        depend.clone(),
+                                    ));
+                                }
+                                None
+                            })
+                            .collect(),
+                    )
+                },
                 |key_name| {
                     session_data
                         .relation

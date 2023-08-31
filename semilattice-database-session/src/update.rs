@@ -157,7 +157,7 @@ impl SessionDatabase {
                             session_data
                                 .uuid
                                 .value(row)
-                                .map_or(semilattice_database::create_uuid(), |uuid| *uuid)
+                                .map_or_else(|| semilattice_database::create_uuid(), |uuid| *uuid)
                         } else {
                             if let Some(collection) = self.collection(master_collection_id) {
                                 let uuid = collection.uuid(row).unwrap_or(0);

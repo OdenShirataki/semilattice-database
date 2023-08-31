@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.77.3"
+version = "0.77.4"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
