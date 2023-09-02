@@ -55,8 +55,8 @@ impl RelationIndex {
     }
     pub fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
-        if let Some(row) = self.fragment.pop() {
-            block_on(async {
+        block_on(async {
+            if let Some(row) = self.fragment.pop() {
                 futures::join!(
                     async {
                         self.rows.key.update(row, key_id);
@@ -68,9 +68,7 @@ impl RelationIndex {
                         self.rows.pend.update(row, pend);
                     },
                 )
-            });
-        } else {
-            block_on(async {
+            } else {
                 futures::join!(
                     async {
                         self.rows.key.insert(key_id);
@@ -81,11 +79,11 @@ impl RelationIndex {
                     async {
                         self.rows.pend.insert(pend);
                     }
-                );
-            });
-        }
+                )
+            }
+        });
     }
-    pub fn delete(&mut self, row: u32) -> u64 {
+    pub fn delete(&mut self, row: u32) {
         block_on(async {
             futures::join!(
                 async {
@@ -97,9 +95,11 @@ impl RelationIndex {
                 async {
                     self.rows.pend.delete(row);
                 },
-            );
+                async {
+                    self.fragment.insert_blank(row);
+                },
+            )
         });
-        self.fragment.insert_blank(row)
     }
     pub fn delete_pends_by_collection_row(&mut self, collection_row: &CollectionRow) {
         for row in self

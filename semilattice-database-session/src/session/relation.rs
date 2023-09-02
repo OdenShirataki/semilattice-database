@@ -97,26 +97,24 @@ impl SessionRelation {
         }
         ret
     }
-    pub fn delete(&mut self, session_row: u32) {
+    pub async fn delete(&mut self, session_row: u32) {
         for relation_row in self
             .rows
             .session_row
             .iter_by(|v| v.cmp(&session_row))
             .collect::<Vec<u32>>()
         {
-            block_on(async {
-                futures::join!(
-                    async {
-                        self.rows.session_row.delete(relation_row);
-                    },
-                    async {
-                        self.rows.key.delete(relation_row);
-                    },
-                    async {
-                        self.rows.depend.delete(relation_row);
-                    },
-                )
-            });
+            futures::join!(
+                async {
+                    self.rows.session_row.delete(relation_row);
+                },
+                async {
+                    self.rows.key.delete(relation_row);
+                },
+                async {
+                    self.rows.depend.delete(relation_row);
+                },
+            );
         }
     }
 }

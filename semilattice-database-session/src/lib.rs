@@ -164,9 +164,9 @@ impl SessionDatabase {
                         .iter_by(|v| v.cmp(&row))
                         .collect::<Vec<u32>>()
                     {
-                        session_data.relation.delete(session_row);
                         block_on(async {
                             futures::join!(
+                                session_data.relation.delete(session_row),
                                 async {
                                     session_data.collection_id.delete(session_row);
                                 },
@@ -189,10 +189,14 @@ impl SessionDatabase {
                                     session_data.uuid.delete(session_row);
                                 },
                                 async {
+                                    let mut fs=vec![];
                                     for (_field_name, field_data) in session_data.fields.iter_mut()
                                     {
-                                        field_data.delete(session_row);
+                                        fs.push(async{
+                                            field_data.delete(session_row)    
+                                        });
                                     }
+                                    futures::future::join_all(fs).await;
                                 },
                                 async {
                                     session_data.sequence.delete(session_row);
