@@ -6,7 +6,7 @@ use std::{
 use futures::{executor::block_on, future};
 use versatile_data::{Order, RowSet};
 
-use crate::{Database, Search};
+use crate::{Collection, Condition, Database, RelationIndex, Search};
 
 #[derive(Clone, Debug)]
 pub struct SearchResult {
@@ -52,25 +52,33 @@ impl Search {
         Arc::clone(&self.result)
     }
 
+    pub(crate) async fn result_conditions(
+        collection: &Collection,
+        conditions: &Vec<Condition>,
+        relation: &Arc<RwLock<RelationIndex>>,
+    ) -> RowSet {
+        let mut fs = conditions
+            .iter()
+            .map(|c| c.result(collection, relation))
+            .collect();
+        let (ret, _index, remaining) = future::select_all(fs).await;
+        let mut rows = ret;
+        fs = remaining;
+        while !fs.is_empty() {
+            let (ret, _index, remaining) = future::select_all(fs).await;
+            rows = rows.intersection(&ret).map(|&x| x).collect();
+            fs = remaining;
+        }
+        rows
+    }
     pub fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
         if let Some(collection) = database.collection(self.collection_id) {
             let rows = if self.conditions.len() > 0 {
-                block_on(async {
-                    let mut fs = self
-                        .conditions
-                        .iter()
-                        .map(|c| c.result(collection, &database.relation))
-                        .collect();
-                    let (ret, _index, remaining) = future::select_all(fs).await;
-                    let mut rows = ret;
-                    fs = remaining;
-                    while !fs.is_empty() {
-                        let (ret, _index, remaining) = future::select_all(fs).await;
-                        rows = rows.intersection(&ret).map(|&x| x).collect();
-                        fs = remaining;
-                    }
-                    rows
-                })
+                block_on(Self::result_conditions(
+                    collection,
+                    &self.conditions,
+                    &database.relation,
+                ))
             } else {
                 collection.data.all()
             };

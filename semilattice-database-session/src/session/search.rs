@@ -129,6 +129,8 @@ impl<'a> SessionSearch<'a> {
         }
         true
     }
+
+    //TODO : Supports join for session data. overwrite result data by session datas. 
     pub fn result(
         self,
         database: &Database,

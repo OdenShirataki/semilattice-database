@@ -8,7 +8,7 @@ use versatile_data::{
     Activity, Condition as VersatileDataCondition, RowSet, Search as VersatileDataSearch,
 };
 
-use crate::{Collection, CollectionRow, RelationIndex};
+use crate::{Collection, CollectionRow, RelationIndex, Search};
 
 #[derive(Debug)]
 pub enum Condition {
@@ -83,19 +83,7 @@ impl Condition {
                     .collect::<RowSet>()
             }
             Self::Narrow(conditions) => {
-                let mut fs = conditions
-                    .iter()
-                    .map(|c| c.result(collection, relation))
-                    .collect();
-                let (ret, _index, remaining) = future::select_all(fs).await;
-                let mut rows = ret;
-                fs = remaining;
-                while !fs.is_empty() {
-                    let (ret, _index, remaining) = future::select_all(fs).await;
-                    rows = rows.intersection(&ret).map(|&x| x).collect();
-                    fs = remaining;
-                }
-                rows
+                Search::result_conditions(collection, conditions, relation).await
             }
             Self::Wide(conditions) => {
                 let mut fs = conditions

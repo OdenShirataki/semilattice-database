@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use async_recursion::async_recursion;
-use futures::future;
-use versatile_data::RowSet;
+use futures::{future, FutureExt};
+use versatile_data::{RowSet, Search};
 
 use crate::{CollectionRow, Database};
 
@@ -34,40 +34,53 @@ impl Join {
         &self,
         database: &Database,
         parent_collection_id: i32,
-        parent_row: &u32,
+        parent_row: u32,
     ) -> SearchResult {
-        let parent_row = *parent_row;
-        let mut result = RowSet::default();
+        let mut fs: Vec<_> = vec![];
         for condition in &self.conditions {
             match condition {
                 JoinCondition::Pends { key } => {
-                    result.append(
-                        &mut database
-                            .relation
-                            .read()
-                            .unwrap()
-                            .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
-                            .iter()
-                            .filter(|r| r.collection_id() == self.collection_id)
-                            .map(|v| v.row())
-                            .collect(),
+                    fs.push(
+                        async {
+                            database
+                                .relation
+                                .read()
+                                .unwrap()
+                                .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
+                                .iter()
+                                .filter(|r| r.collection_id() == self.collection_id)
+                                .map(|v| v.row())
+                                .collect::<RowSet>()
+                        }
+                        .boxed(),
                     );
                 }
                 JoinCondition::Field(name, condition) => {
                     if let Some(collection) = database.collection(parent_collection_id) {
-                        collection.search_field(name, condition);
+                        fs.push(Search::result_field(collection, name, condition).boxed());
                     }
                 }
             }
         }
-        let mut join_inner = HashMap::new();
+
+        let (ret, _index, remaining) = future::select_all(fs).await;
+        let mut rows = ret;
+        fs = remaining;
+        while !fs.is_empty() {
+            let (ret, _index, remaining) = future::select_all(fs).await;
+            rows = rows.intersection(&ret).cloned().collect();
+            fs = remaining;
+        }
+
+        //TODO: optimize , multithreading
+        let mut join_nest = HashMap::new();
         for (key, join) in &self.join {
-            join_inner.insert(
+            join_nest.insert(
                 key.to_owned(),
-                join.result(database, self.collection_id, &result).await,
+                join.result(database, self.collection_id, &rows).await,
             );
         }
-        SearchResult::new(self.collection_id, result, join_inner)
+        SearchResult::new(self.collection_id, rows, join_nest)
     }
 
     #[async_recursion]
@@ -85,7 +98,7 @@ impl Join {
                 Box::pin(async {
                     (
                         *parent_row,
-                        self.result_row(database, parent_collection_id, parent_row)
+                        self.result_row(database, parent_collection_id, *parent_row)
                             .await,
                     )
                 })
