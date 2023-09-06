@@ -17,7 +17,7 @@ use std::{
 
 use versatile_data::Activity;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Search {
     collection_id: i32,
     conditions: Vec<Condition>,

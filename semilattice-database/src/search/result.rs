@@ -6,22 +6,33 @@ use std::{
 use futures::{executor::block_on, future};
 use versatile_data::{Order, RowSet};
 
-use crate::{CollectionRow, Database, Search};
+use crate::{Database, Search};
 
 #[derive(Clone, Debug)]
 pub struct SearchResult {
     collection_id: i32,
     rows: RowSet,
-    join: HashMap<String, HashMap<u32, Vec<CollectionRow>>>,
+    join: HashMap<String, HashMap<u32, SearchResult>>,
 }
 impl SearchResult {
+    pub fn new(
+        collection_id: i32,
+        rows: RowSet,
+        join: HashMap<String, HashMap<u32, SearchResult>>,
+    ) -> Self {
+        Self {
+            collection_id,
+            rows,
+            join,
+        }
+    }
     pub fn collection_id(&self) -> i32 {
         self.collection_id
     }
     pub fn rows(&self) -> &RowSet {
         &self.rows
     }
-    pub fn join(&self) -> &HashMap<String, HashMap<u32, Vec<CollectionRow>>> {
+    pub fn join(&self) -> &HashMap<String, HashMap<u32, SearchResult>> {
         &self.join
     }
 

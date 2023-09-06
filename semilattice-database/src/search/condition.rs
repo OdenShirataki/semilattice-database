@@ -10,7 +10,7 @@ use versatile_data::{
 
 use crate::{Collection, CollectionRow, RelationIndex};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Condition {
     Activity(Activity),
     Term(Term),
@@ -47,28 +47,28 @@ impl Condition {
             Self::Row(c) => {
                 VersatileDataSearch::result_condition(
                     &collection.data,
-                    &VersatileDataCondition::Row(c.clone()),
+                    &VersatileDataCondition::Row(c),
                 )
                 .await
             }
             Self::Uuid(c) => {
                 VersatileDataSearch::result_condition(
                     &collection.data,
-                    &VersatileDataCondition::Uuid(c.clone()),
+                    &VersatileDataCondition::Uuid(c),
                 )
                 .await
             }
             Self::LastUpdated(c) => {
                 VersatileDataSearch::result_condition(
                     &collection.data,
-                    &VersatileDataCondition::LastUpdated(c.clone()),
+                    &VersatileDataCondition::LastUpdated(c),
                 )
                 .await
             }
             Self::Field(key, condition) => {
                 VersatileDataSearch::result_condition(
                     &collection.data,
-                    &VersatileDataCondition::Field(key.to_owned(), condition.clone()),
+                    &VersatileDataCondition::Field(key, condition),
                 )
                 .await
             }
