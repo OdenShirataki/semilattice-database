@@ -64,11 +64,14 @@ impl SessionData {
         depend_session_row: u32,
     ) {
         let row = *self.row.value(depend_session_row).unwrap();
-        let depend = CollectionRow::new(
-            *self.collection_id.value(depend_session_row).unwrap(),
-            if row == 0 { depend_session_row } else { row },
+        self.relation.insert(
+            relation_key,
+            pend_session_row,
+            CollectionRow::new(
+                *self.collection_id.value(depend_session_row).unwrap(),
+                if row == 0 { depend_session_row } else { row },
+            ),
         );
-        self.relation.insert(relation_key, pend_session_row, depend);
     }
 
     pub(crate) fn init_temporary_data(&self) -> TemporaryData {
@@ -123,11 +126,11 @@ impl SessionData {
                                     CollectionRow::new(collection_id, row)
                                 })
                                 .or_insert(HashMap::new());
-                            for (key, val) in &self.fields {
+                            self.fields.iter().for_each(|(key, val)| {
                                 if let Some(v) = val.bytes(session_row) {
                                     row_fields.insert(key.to_string(), v.to_vec());
                                 }
-                            }
+                            });
                             temporary_collection.insert(
                                 temporary_row,
                                 TemporaryDataEntity {
@@ -151,12 +154,14 @@ impl SessionData {
                                                     self.relation.rows.key.value(relation_row),
                                                     self.relation.rows.depend.value(relation_row),
                                                 ) {
-                                                    let key_name = unsafe {
-                                                        std::str::from_utf8_unchecked(
-                                                            self.relation.key_names.bytes(*key),
-                                                        )
-                                                    };
-                                                    Some(Depend::new(key_name, depend.clone()))
+                                                    Some(Depend::new(
+                                                        unsafe {
+                                                            std::str::from_utf8_unchecked(
+                                                                self.relation.key_names.bytes(*key),
+                                                            )
+                                                        },
+                                                        depend.clone(),
+                                                    ))
                                                 } else {
                                                     None
                                                 }

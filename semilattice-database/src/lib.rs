@@ -71,7 +71,7 @@ impl Database {
                 .unwrap()
                 .index_pend()
                 .value(relation_row)
-                .and_then(|v| Some(v.clone()));
+                .cloned();
             if let Some(collection_row) = collection_row {
                 self.delete_recursive(&collection_row);
             }
