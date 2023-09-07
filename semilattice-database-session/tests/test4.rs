@@ -102,11 +102,10 @@ fn test4() {
             CollectionRow::new(-collection_widget, 1),
         ))
         .search_activity(Activity::Active);
-    for r in search.result(&database, &vec![]).unwrap() {
+    for r in search.result(&database, &vec![]) {
         println!(
             "session_search : {}",
-            std::str::from_utf8(sess.field_bytes(&database, collection_field, r, "name"))
-                .unwrap()
+            std::str::from_utf8(sess.field_bytes(&database, collection_field, r, "name")).unwrap()
         );
     }
 }

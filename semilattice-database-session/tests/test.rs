@@ -9,7 +9,7 @@ fn test() {
 
     if std::path::Path::new(dir).exists() {
         std::fs::remove_dir_all(dir).unwrap();
-    } 
+    }
     std::fs::create_dir_all(dir).unwrap();
 
     let mut database = SessionDatabase::new(dir.into(), None);
@@ -40,7 +40,7 @@ fn test() {
         .begin_search(collection_admin)
         .search_field("id", search::Field::Match(b"test".to_vec()))
         .search_field("password", search::Field::Match(b"test".to_vec()));
-    for row in search.result(&database, &vec![]).unwrap() {
+    for row in search.result(&database, &vec![]) {
         assert!(row >= 0);
         database.update(
             &mut sess,
@@ -61,7 +61,7 @@ fn test() {
 
     let sess = database.session("login", None);
     let search = sess.begin_search(collection_login);
-    for row in search.result(&database, &vec![]).unwrap() {
+    for row in search.result(&database, &vec![]) {
         let depends =
             database.depends_with_session(Some("admin"), collection_login, row as u32, Some(&sess));
         for d in depends {
@@ -70,7 +70,7 @@ fn test() {
                 let search = sess
                     .begin_search(collection_id)
                     .search_row(search::Number::In(vec![d.row() as isize]));
-                for row in search.result(&database, &vec![]).unwrap() {
+                for row in search.result(&database, &vec![]) {
                     println!(
                         "login id : {}",
                         std::str::from_utf8(collection.field_bytes(row as u32, "id")).unwrap()
@@ -225,7 +225,7 @@ fn test() {
     let search = sess
         .begin_search(collection_person)
         .search_activity(Activity::Active);
-    for r in search.result(&database, &vec![]).unwrap() {
+    for r in search.result(&database, &vec![]) {
         println!(
             "session_search : {},{}",
             std::str::from_utf8(sess.field_bytes(&database, collection_person, r, "name")).unwrap(),

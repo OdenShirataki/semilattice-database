@@ -16,7 +16,7 @@ use std::{
     time::{self, UNIX_EPOCH},
 };
 
-use semilattice_database::{idx_binary, BinarySet, Database, Field, FileMmap, IdxFile, RowSet};
+use semilattice_database::{idx_binary, BinarySet, Database, Field, FileMmap, IdxFile};
 use session::SessionInfo;
 
 pub struct SessionDatabase {
@@ -189,12 +189,10 @@ impl SessionDatabase {
                                     session_data.uuid.delete(session_row);
                                 },
                                 async {
-                                    let mut fs=vec![];
+                                    let mut fs = vec![];
                                     for (_field_name, field_data) in session_data.fields.iter_mut()
                                     {
-                                        fs.push(async{
-                                            field_data.delete(session_row)    
-                                        });
+                                        fs.push(async { field_data.delete(session_row) });
                                     }
                                     futures::future::join_all(fs).await;
                                 },

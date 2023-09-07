@@ -11,10 +11,9 @@ let dir = "./sl-test/";
 
 if std::path::Path::new(dir).exists() {
     std::fs::remove_dir_all(dir).unwrap();
-    std::fs::create_dir_all(dir).unwrap();
-} else {
-    std::fs::create_dir_all(dir).unwrap();
 }
+std::fs::create_dir_all(dir).unwrap();
+
 let mut database = SessionDatabase::new(dir.into(), None);
 
 let collection_admin = database.collection_id_or_create("admin");
@@ -41,9 +40,9 @@ let collection_login = database.collection_id_or_create("login");
 let mut sess = database.session("login", None);
 let search = sess
     .begin_search(collection_admin)
-    .search_field("id", search::Field::Match(Arc::new(b"test".to_vec())))
-    .search_field("password", search::Field::Match(Arc::new(b"test".to_vec())));
-for row in search.result(&database, &vec![]).unwrap() {
+    .search_field("id", search::Field::Match(b"test".to_vec()))
+    .search_field("password", search::Field::Match(b"test".to_vec()));
+for row in search.result(&database, &vec![]) {
     assert!(row >= 0);
     database.update(
         &mut sess,
@@ -64,7 +63,7 @@ for row in search.result(&database, &vec![]).unwrap() {
 
 let sess = database.session("login", None);
 let search = sess.begin_search(collection_login);
-for row in search.result(&database, &vec![]).unwrap() {
+for row in search.result(&database, &vec![]) {
     let depends =
         database.depends_with_session(Some("admin"), collection_login, row as u32, Some(&sess));
     for d in depends {
@@ -73,7 +72,7 @@ for row in search.result(&database, &vec![]).unwrap() {
             let search = sess
                 .begin_search(collection_id)
                 .search_row(search::Number::In(vec![d.row() as isize]));
-            for row in search.result(&database, &vec![]).unwrap() {
+            for row in search.result(&database, &vec![]) {
                 println!(
                     "login id : {}",
                     std::str::from_utf8(collection.field_bytes(row as u32, "id")).unwrap()
@@ -177,7 +176,7 @@ if let (Some(person), Some(history)) = (
     database.collection(collection_history),
 ) {
     let mut search = database.search(collection_person);
-    let result = search.result(&database).unwrap();
+    let result = search.result(&database);
     let person_rows = if let Some(r) = result.read().unwrap().as_ref() {
         r.sort(
             &database,
@@ -197,7 +196,7 @@ if let (Some(person), Some(history)) = (
             Some("history".to_owned()),
             CollectionRow::new(collection_person, i),
         ));
-        let result = search.result(&database).unwrap();
+        let result = search.result(&database);
         if let Some(result) = Arc::clone(&result).read().unwrap().as_ref() {
             for h in result.rows() {
                 println!(
@@ -228,7 +227,7 @@ let mut sess = database.session("test", None);
 let search = sess
     .begin_search(collection_person)
     .search_activity(Activity::Active);
-for r in search.result(&database, &vec![]).unwrap() {
+for r in search.result(&database, &vec![]) {
     println!(
         "session_search : {},{}",
         std::str::from_utf8(sess.field_bytes(&database, collection_person, r, "name")).unwrap(),

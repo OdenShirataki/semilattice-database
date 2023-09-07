@@ -7,7 +7,7 @@ use std::{
 use semilattice_database::Search;
 
 use super::{SessionOperation, TemporaryDataEntity};
-use crate::{search, Activity, Condition, Database, Order, RowSet, Session};
+use crate::{search, Activity, Condition, Database, Order, Session};
 
 pub struct SessionSearch<'a> {
     session: &'a Session,
@@ -130,12 +130,8 @@ impl<'a> SessionSearch<'a> {
         true
     }
 
-    //TODO : Supports join for session data. overwrite result data by session datas. 
-    pub fn result(
-        self,
-        database: &Database,
-        orders: &Vec<Order>,
-    ) -> Result<Vec<i64>, std::sync::mpsc::SendError<RowSet>> {
+    //TODO : Supports join for session data. overwrite result data by session datas.
+    pub fn result(self, database: &Database, orders: &Vec<Order>) -> Vec<i64> {
         let collection_id = self.search.read().unwrap().collection_id();
         if let Some(collection) = database.collection(collection_id) {
             let result = self.search.write().unwrap().result(database);
@@ -171,18 +167,18 @@ impl<'a> SessionSearch<'a> {
                 if orders.len() > 0 {
                     super::sort::sort(&mut new_rows, orders, collection, tmp);
                 }
-                return Ok(new_rows);
+                return new_rows;
             } else {
                 if let Some(result) = result.read().unwrap().as_ref() {
-                    return Ok(result
+                    return result
                         .sort(database, orders)
                         .into_iter()
                         .map(|x| x as i64)
-                        .collect());
+                        .collect();
                 }
             }
         }
 
-        Ok(vec![])
+        vec![]
     }
 }
