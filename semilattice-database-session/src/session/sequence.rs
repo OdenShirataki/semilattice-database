@@ -7,10 +7,11 @@ pub struct SequenceNumber {
 }
 impl SequenceNumber {
     pub fn new(path: PathBuf) -> Self {
+        const INIT_SIZE: u64 = std::mem::size_of::<usize>() as u64 * 2;
+
         let mut filemmap = FileMmap::new(path).unwrap();
-        let init_size = std::mem::size_of::<usize>() as u64 * 2;
         if filemmap.len() == 0 {
-            filemmap.set_len(init_size).unwrap();
+            filemmap.set_len(INIT_SIZE).unwrap();
         }
         Self { filemmap }
     }
