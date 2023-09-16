@@ -33,6 +33,18 @@ pub struct SessionInfo {
     pub(super) expire: i64,
 }
 
+impl SessionInfo {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn access_at(&self) -> u64 {
+        self.access_at
+    }
+    pub fn expire(&self) -> i64 {
+        self.expire
+    }
+}
+
 #[derive(Debug)]
 pub struct TemporaryDataEntity {
     pub(super) activity: Activity,
