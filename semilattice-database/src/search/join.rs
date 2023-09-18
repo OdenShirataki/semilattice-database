@@ -21,6 +21,7 @@ pub struct Join {
     join: HashMap<String, Join>,
 }
 impl Join {
+    #[inline(always)]
     pub fn new(collection_id: i32, conditions: Vec<JoinCondition>) -> Self {
         Self {
             collection_id,

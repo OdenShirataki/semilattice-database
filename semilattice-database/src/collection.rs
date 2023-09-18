@@ -17,6 +17,7 @@ pub struct Collection {
     name: String,
 }
 impl Collection {
+    #[inline(always)]
     pub fn new(data: Data, id: i32, name: impl Into<String>) -> Self {
         Self {
             data,
@@ -24,9 +25,13 @@ impl Collection {
             name: name.into(),
         }
     }
+
+    #[inline(always)]
     pub fn id(&self) -> i32 {
         self.id
     }
+
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -44,6 +49,7 @@ impl DerefMut for Collection {
 }
 
 impl Database {
+    #[inline(always)]
     pub fn collections(&self) -> Vec<String> {
         self.collections
             .iter()
@@ -51,17 +57,24 @@ impl Database {
             .collect()
     }
 
+    #[inline(always)]
     pub fn collection(&self, id: i32) -> Option<&Collection> {
         self.collections.get(&id)
     }
+
+    #[inline(always)]
     pub fn collection_mut(&mut self, id: i32) -> Option<&mut Collection> {
         self.collections.get_mut(&id)
     }
+
+    #[inline(always)]
     pub fn collection_id(&self, name: &str) -> Option<i32> {
         self.collections_map
             .contains_key(name)
             .then(|| *self.collections_map.get(name).unwrap())
     }
+
+    #[inline(always)]
     pub fn collection_id_or_create(&mut self, name: &str) -> i32 {
         if self.collections_map.contains_key(name) {
             *self.collections_map.get(name).unwrap()
@@ -90,6 +103,7 @@ impl Database {
         }
     }
 
+    #[inline(always)]
     pub(super) fn create_collection(&mut self, id: i32, name: &str, dir: PathBuf) {
         let collection = Collection::new(
             Data::new(
@@ -104,6 +118,8 @@ impl Database {
         self.collections_map.insert(name.to_string(), id);
         self.collections.insert(id, collection);
     }
+
+    #[inline(always)]
     fn collection_by_name_or_create(&mut self, name: &str) -> i32 {
         let mut max_id = 0;
         if self.collections_dir.exists() {

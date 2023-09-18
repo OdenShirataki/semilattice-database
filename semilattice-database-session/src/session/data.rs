@@ -22,6 +22,7 @@ pub struct SessionData {
 }
 
 impl SessionData {
+    #[inline(always)]
     pub fn update(
         &mut self,
         session_dir: &Path,
@@ -33,6 +34,7 @@ impl SessionData {
         uuid: u128,
         fields: &Vec<KeyValue>,
     ) {
+        //TODO: multi thread
         self.row.update(session_row, row);
         self.activity.update(session_row, *activity as u8);
         self.term_begin.update(session_row, term_begin);
@@ -57,6 +59,7 @@ impl SessionData {
         }
     }
 
+    #[inline(always)]
     pub fn incidentally_depend(
         &mut self,
         pend_session_row: u32,
@@ -74,6 +77,7 @@ impl SessionData {
         );
     }
 
+    #[inline(always)]
     pub(crate) fn init_temporary_data(&self) -> TemporaryData {
         let mut temporary_data = HashMap::new();
         let current = self.sequence_number.current();

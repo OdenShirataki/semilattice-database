@@ -24,7 +24,9 @@ pub struct Search {
     join: HashMap<String, Join>,
     result: Arc<RwLock<Option<SearchResult>>>,
 }
+
 impl Search {
+    #[inline(always)]
     pub fn new(
         collection_id: i32,
         conditions: Vec<Condition>,
@@ -37,16 +39,24 @@ impl Search {
             result: Arc::new(RwLock::new(None)),
         }
     }
+
+    #[inline(always)]
     pub fn collection_id(&self) -> i32 {
         self.collection_id
     }
+
+    #[inline(always)]
     pub fn conditions(&self) -> &Vec<Condition> {
         &self.conditions
     }
+
+    #[inline(always)]
     pub fn search(&mut self, condition: Condition) -> &mut Self {
         self.conditions.push(condition);
         self
     }
+
+    #[inline(always)]
     pub fn default(&mut self) -> &mut Self {
         self.conditions.push(Condition::Term(Term::default()));
         self.conditions.push(Condition::Activity(Activity::Active));
@@ -55,6 +65,7 @@ impl Search {
 }
 
 impl Database {
+    #[inline(always)]
     pub fn search(&self, colletion_id: i32) -> Search {
         Search::new(colletion_id, vec![], HashMap::new())
     }

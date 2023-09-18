@@ -7,6 +7,7 @@ use crate::{
 };
 
 impl SessionDatabase {
+    #[inline(always)]
     pub fn commit(&mut self, session: &mut Session) -> Vec<CollectionRow> {
         if let Some(ref mut data) = session.session_data {
             let r = self.commit_inner(data);
@@ -17,6 +18,7 @@ impl SessionDatabase {
         }
     }
 
+    #[inline(always)]
     fn commit_inner(&mut self, session_data: &SessionData) -> Vec<CollectionRow> {
         let mut commit_rows = Vec::new();
 

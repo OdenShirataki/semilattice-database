@@ -53,6 +53,8 @@ impl RelationIndex {
             },
         }
     }
+
+    #[inline(always)]
     pub fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
         block_on(async {
@@ -83,6 +85,8 @@ impl RelationIndex {
             }
         });
     }
+
+    #[inline(always)]
     pub fn delete(&mut self, row: u32) {
         block_on(async {
             futures::join!(
@@ -101,6 +105,8 @@ impl RelationIndex {
             )
         });
     }
+
+    #[inline(always)]
     pub fn delete_pends_by_collection_row(&mut self, collection_row: &CollectionRow) {
         for row in self
             .rows
@@ -111,6 +117,8 @@ impl RelationIndex {
             self.delete(row);
         }
     }
+
+    #[inline(always)]
     pub fn pends(&self, key: &Option<String>, depend: &CollectionRow) -> Vec<CollectionRow> {
         key.as_ref().map_or_else(
             || {
@@ -139,6 +147,8 @@ impl RelationIndex {
             },
         )
     }
+
+    #[inline(always)]
     pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {
         key.map_or_else(
             || {
@@ -183,15 +193,23 @@ impl RelationIndex {
             },
         )
     }
+
+    #[inline(always)]
     pub fn index_depend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.depend
     }
+
+    #[inline(always)]
     pub fn index_pend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.pend
     }
+
+    #[inline(always)]
     pub fn depend(&self, row: u32) -> Option<&CollectionRow> {
         self.rows.depend.value(row)
     }
+
+    #[inline(always)]
     pub unsafe fn key(&self, row: u32) -> &str {
         self.rows.key.value(row).map_or("", |key_row| {
             std::str::from_utf8_unchecked(self.key_names.bytes(*key_row))

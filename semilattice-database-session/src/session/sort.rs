@@ -3,6 +3,7 @@ use std::{cmp::Ordering, collections::HashMap};
 use super::TemporaryDataEntity;
 use crate::{idx_binary, Collection, Order, OrderKey};
 
+#[inline(always)]
 fn serial(collection: &Collection, a: i64, b: i64) -> (u32, u32) {
     let a = if a < 0 {
         0
@@ -16,6 +17,8 @@ fn serial(collection: &Collection, a: i64, b: i64) -> (u32, u32) {
     };
     (a, b)
 }
+
+#[inline(always)]
 fn term_begin(
     temporary_collection: &HashMap<i64, TemporaryDataEntity>,
     collection: &Collection,
@@ -34,6 +37,8 @@ fn term_begin(
     };
     (a, b)
 }
+
+#[inline(always)]
 fn term_end(
     temporary_collection: &HashMap<i64, TemporaryDataEntity>,
     collection: &Collection,
@@ -52,6 +57,8 @@ fn term_end(
     };
     (a, b)
 }
+
+#[inline(always)]
 fn last_updated(collection: &Collection, a: i64, b: i64) -> (u64, u64) {
     let a = if a < 0 {
         0
@@ -65,6 +72,8 @@ fn last_updated(collection: &Collection, a: i64, b: i64) -> (u64, u64) {
     };
     (a, b)
 }
+
+#[inline(always)]
 fn field<'a>(
     temporary_collection: &'a HashMap<i64, TemporaryDataEntity>,
     collection: &'a Collection,
@@ -84,6 +93,7 @@ fn field<'a>(
 }
 
 //TODO : Supports session data for OrderKey::Custom
+#[inline(always)]
 pub fn sort(
     rows: &mut Vec<i64>,
     orders: &Vec<Order>,

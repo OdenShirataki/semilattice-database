@@ -15,6 +15,7 @@ pub struct SearchResult {
     join: HashMap<String, HashMap<u32, SearchResult>>,
 }
 impl SearchResult {
+    #[inline(always)]
     pub fn new(
         collection_id: i32,
         rows: RowSet,
@@ -26,16 +27,23 @@ impl SearchResult {
             join,
         }
     }
+
+    #[inline(always)]
     pub fn collection_id(&self) -> i32 {
         self.collection_id
     }
+
+    #[inline(always)]
     pub fn rows(&self) -> &RowSet {
         &self.rows
     }
+
+    #[inline(always)]
     pub fn join(&self) -> &HashMap<String, HashMap<u32, SearchResult>> {
         &self.join
     }
 
+    #[inline(always)]
     pub fn sort(&self, database: &Database, orders: &[Order]) -> Vec<u32> {
         database.collection(self.collection_id).map_or(vec![], |c| {
             if orders.len() > 0 {
@@ -48,10 +56,12 @@ impl SearchResult {
 }
 
 impl Search {
+    #[inline(always)]
     pub fn get_result(&self) -> Arc<RwLock<Option<SearchResult>>> {
         Arc::clone(&self.result)
     }
 
+    #[inline(always)]
     pub(crate) async fn result_conditions(
         collection: &Collection,
         conditions: &Vec<Condition>,
@@ -71,6 +81,8 @@ impl Search {
         }
         rows
     }
+
+    #[inline(always)]
     pub fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
         if let Some(collection) = database.collection(self.collection_id) {
             let rows = if self.conditions.len() > 0 {

@@ -8,11 +8,13 @@ pub struct CollectionRow {
     row: u32,
 }
 impl PartialOrd for CollectionRow {
+    #[inline(always)]
     fn partial_cmp(&self, other: &CollectionRow) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 impl Ord for CollectionRow {
+    #[inline(always)]
     fn cmp(&self, other: &CollectionRow) -> Ordering {
         if self.collection_id == other.collection_id {
             self.row.cmp(&other.row)
@@ -24,6 +26,7 @@ impl Ord for CollectionRow {
     }
 }
 impl PartialEq for CollectionRow {
+    #[inline(always)]
     fn eq(&self, other: &CollectionRow) -> bool {
         self.collection_id == other.collection_id && self.row == other.row
     }
@@ -31,12 +34,17 @@ impl PartialEq for CollectionRow {
 impl Eq for CollectionRow {}
 
 impl CollectionRow {
+    #[inline(always)]
     pub fn new(collection_id: i32, row: u32) -> Self {
         Self { collection_id, row }
     }
+
+    #[inline(always)]
     pub fn collection_id(&self) -> i32 {
         self.collection_id
     }
+
+    #[inline(always)]
     pub fn row(&self) -> u32 {
         self.row
     }

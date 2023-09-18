@@ -44,6 +44,8 @@ impl SessionRelation {
             },
         }
     }
+
+    #[inline(always)]
     pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
         block_on(async {
             futures::join!(
@@ -60,6 +62,8 @@ impl SessionRelation {
             )
         });
     }
+
+    #[inline(always)]
     pub fn from_session_row(&mut self, session_row: u32, new_session_row: u32) -> Vec<Depend> {
         let mut ret = vec![];
         for session_relation_row in self
@@ -97,6 +101,8 @@ impl SessionRelation {
         }
         ret
     }
+
+    #[inline(always)]
     pub async fn delete(&mut self, session_row: u32) {
         for relation_row in self
             .rows

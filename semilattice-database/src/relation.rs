@@ -17,12 +17,15 @@ pub struct Depend {
     collection_row: CollectionRow,
 }
 impl Depend {
+    #[inline(always)]
     pub fn new(key: impl Into<String>, collection_row: CollectionRow) -> Self {
         Self {
             key: key.into(),
             collection_row,
         }
     }
+
+    #[inline(always)]
     pub fn key(&self) -> &str {
         &self.key
     }
@@ -47,10 +50,12 @@ impl Serialize for Depend {
 }
 
 impl Database {
+    #[inline(always)]
     pub fn relation(&self) -> Arc<RwLock<RelationIndex>> {
         self.relation.clone()
     }
 
+    #[inline(always)]
     pub fn register_relation(
         &mut self,
         key_name: &str,
@@ -63,6 +68,8 @@ impl Database {
             .unwrap()
             .insert(key_name, depend, pend)
     }
+
+    #[inline(always)]
     pub fn register_relations(
         &mut self,
         depend: &CollectionRow,
@@ -73,6 +80,7 @@ impl Database {
         }
     }
 
+    #[inline(always)]
     pub fn depends(
         &self,
         key: Option<&str>,

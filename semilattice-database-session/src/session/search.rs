@@ -14,32 +14,45 @@ pub struct SessionSearch<'a> {
     search: Arc<RwLock<Search>>,
 }
 impl<'a> SessionSearch<'a> {
+    #[inline(always)]
     pub fn new(session: &'a Session, search: Arc<RwLock<Search>>) -> Self {
         Self { session, search }
     }
+
+    #[inline(always)]
     pub fn search_default(self) -> Result<Self, std::time::SystemTimeError> {
         Ok(self
             .search_term(search::Term::default())
             .search(Condition::Activity(Activity::Active)))
     }
+
+    #[inline(always)]
     pub fn search_field(self, field_name: impl Into<String>, condition: search::Field) -> Self {
         self.search(Condition::Field(field_name.into(), condition))
     }
+
+    #[inline(always)]
     pub fn search_term(self, condition: search::Term) -> Self {
         self.search(Condition::Term(condition))
     }
+
+    #[inline(always)]
     pub fn search_activity(self, condition: Activity) -> Self {
         self.search(Condition::Activity(condition))
     }
+
+    #[inline(always)]
     pub fn search_row(self, condition: search::Number) -> Self {
         self.search(Condition::Row(condition))
     }
 
+    #[inline(always)]
     pub fn search(self, condition: Condition) -> Self {
         self.search.write().unwrap().search(condition);
         self
     }
 
+    #[inline(always)]
     fn temporary_data_match(
         &self,
         row: i64,
@@ -121,6 +134,7 @@ impl<'a> SessionSearch<'a> {
         }
     }
 
+    #[inline(always)]
     fn temprary_data_match_conditions(&self, row: i64, ent: &TemporaryDataEntity) -> bool {
         for c in self.search.read().unwrap().conditions() {
             if !self.temporary_data_match(row, ent, c) {
@@ -131,6 +145,7 @@ impl<'a> SessionSearch<'a> {
     }
 
     //TODO : Supports join for session data. overwrite result data by session datas.
+    #[inline(always)]
     pub fn result(self, database: &Database, orders: &Vec<Order>) -> Vec<i64> {
         let collection_id = self.search.read().unwrap().collection_id();
         if let Some(collection) = database.collection(collection_id) {

@@ -56,24 +56,37 @@ pub struct TemporaryDataEntity {
     pub(super) depends: Vec<Depend>,
 }
 impl TemporaryDataEntity {
+    #[inline(always)]
     pub fn activity(&self) -> Activity {
         self.activity
     }
+
+    #[inline(always)]
     pub fn term_begin(&self) -> u64 {
         self.term_begin
     }
+
+    #[inline(always)]
     pub fn term_end(&self) -> u64 {
         self.term_end
     }
+
+    #[inline(always)]
     pub fn uuid(&self) -> u128 {
         self.uuid
     }
+
+    #[inline(always)]
     pub fn uuid_string(&self) -> String {
         semilattice_database::uuid_string(self.uuid)
     }
+
+    #[inline(always)]
     pub fn fields(&self) -> &HashMap<String, Vec<u8>> {
         &self.fields
     }
+
+    #[inline(always)]
     pub fn depends(&self) -> &Vec<Depend> {
         &self.depends
     }
@@ -108,14 +121,20 @@ impl Session {
             temporary_data,
         }
     }
+
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
+
+    #[inline(always)]
     pub fn set_sequence_cursor(&mut self, current: usize) {
         if let Some(session_data) = &mut self.session_data {
             session_data.sequence_number.set_current(current);
         }
     }
+
+    #[inline(always)]
     pub fn sequence_cursor(&self) -> Option<SequenceCursor> {
         self.session_data
             .as_ref()
@@ -204,6 +223,7 @@ impl Session {
         }
     }
 
+    #[inline(always)]
     pub fn begin_search(&self, collection_id: i32) -> SessionSearch {
         self.search(&Arc::new(RwLock::new(Search::new(
             collection_id,
@@ -211,10 +231,13 @@ impl Session {
             HashMap::new(),
         ))))
     }
+
+    #[inline(always)]
     pub fn search(&self, search: &Arc<RwLock<Search>>) -> SessionSearch {
         SessionSearch::new(self, Arc::clone(search))
     }
 
+    #[inline(always)]
     pub fn field_bytes<'a>(
         &'a self,
         database: &'a SessionDatabase,
@@ -237,6 +260,7 @@ impl Session {
         b""
     }
 
+    #[inline(always)]
     pub fn collection_field_bytes<'a>(
         &'a self,
         collection: &'a Collection,
@@ -256,6 +280,8 @@ impl Session {
             b""
         }
     }
+
+    #[inline(always)]
     pub fn temporary_collection(
         &self,
         collection_id: i32,
@@ -263,6 +289,7 @@ impl Session {
         self.temporary_data.get(&collection_id)
     }
 
+    #[inline(always)]
     pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<Depend>> {
         self.session_data.as_ref().and_then(|session_data| {
             key.map_or_else(
