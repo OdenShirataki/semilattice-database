@@ -5,5 +5,5 @@ members = [
     "semilattice-database-session",
 ]
 
-[dependencies]
+[workspace.dependencies]
 hashbrown = "0.14.0"
