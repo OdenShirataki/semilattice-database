@@ -10,10 +10,9 @@ pub use versatile_data::search::{Field, Number, Term};
 
 use crate::Database;
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
+
+use hashbrown::HashMap;
 
 use versatile_data::Activity;
 

@@ -1,9 +1,7 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use futures::{executor::block_on, future};
+use hashbrown::HashMap;
 use versatile_data::{Order, RowSet};
 
 use crate::{Collection, Condition, Database, RelationIndex, Search};

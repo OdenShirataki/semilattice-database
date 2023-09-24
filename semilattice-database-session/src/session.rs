@@ -6,17 +6,18 @@ mod relation;
 mod sequence;
 mod sort;
 
+pub use data::SessionData;
+pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
+
 use std::{
-    collections::HashMap,
     io::Write,
     path::Path,
     sync::{Arc, RwLock},
 };
 
-use crate::{Activity, Collection, CollectionRow, Depend, Field, IdxFile, SessionDatabase};
+use hashbrown::HashMap;
 
-pub use data::SessionData;
-pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
+use crate::{Activity, Collection, CollectionRow, Depend, Field, IdxFile, SessionDatabase};
 
 use relation::SessionRelation;
 use search::SessionSearch;

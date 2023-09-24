@@ -1,8 +1,9 @@
 use std::{
-    collections::HashMap,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
+
+use hashbrown::HashMap;
 
 use crate::{
     session::{Depends, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity},

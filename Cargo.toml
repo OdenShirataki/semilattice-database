@@ -4,3 +4,6 @@ members = [
     "semilattice-database",
     "semilattice-database-session",
 ]
+
+[dependencies]
+hashbrown = "0.14.0"

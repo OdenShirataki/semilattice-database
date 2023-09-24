@@ -1,5 +1,6 @@
 use semilattice_database::{Activity, KeyValue, Operation, Record, Term};
-use std::collections::HashMap;
+
+use hashbrown::HashMap;
 
 use crate::{
     session::{SessionData, SessionOperation},

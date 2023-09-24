@@ -1,4 +1,6 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::cmp::Ordering;
+
+use hashbrown::HashMap;
 
 use super::TemporaryDataEntity;
 use crate::{idx_binary, Collection, Order, OrderKey};

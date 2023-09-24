@@ -1,4 +1,6 @@
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
+
+use hashbrown::HashMap;
 
 use semilattice_database::{Activity, CollectionRow, Depend, Field, IdxFile, KeyValue};
 

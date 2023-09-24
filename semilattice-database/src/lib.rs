@@ -13,20 +13,25 @@ pub use versatile_data::{
 };
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
+
+use hashbrown::HashMap;
 
 pub struct Database {
     collections_dir: PathBuf,
     collections_map: HashMap<String, i32>,
     collections: BTreeMap<i32, Collection>,
     relation: Arc<RwLock<RelationIndex>>,
-    collection_settings: HashMap<String, DataOption>,
+    collection_settings: std::collections::HashMap<String, DataOption>,
 }
 impl Database {
-    pub fn new(dir: PathBuf, collection_settings: Option<HashMap<String, DataOption>>) -> Self {
+    pub fn new(
+        dir: PathBuf,
+        collection_settings: Option<std::collections::HashMap<String, DataOption>>,
+    ) -> Self {
         let mut collections_dir = dir.to_path_buf();
         collections_dir.push("collection");
 
@@ -35,7 +40,7 @@ impl Database {
             collections: BTreeMap::new(),
             collections_map: HashMap::new(),
             relation: Arc::new(RwLock::new(RelationIndex::new(&dir))),
-            collection_settings: collection_settings.unwrap_or(HashMap::new()),
+            collection_settings: collection_settings.unwrap_or(std::collections::HashMap::new()),
         };
         if db.collections_dir.exists() {
             let dir = db.collections_dir.read_dir().unwrap();

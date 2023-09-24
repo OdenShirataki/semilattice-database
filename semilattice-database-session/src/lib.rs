@@ -2,7 +2,6 @@ mod commit;
 mod session;
 mod update;
 
-use futures::executor::block_on;
 pub use semilattice_database::{
     search, Activity, Collection, CollectionRow, Condition, CustomSort, DataOption, Depend,
     KeyValue, Operation, Order, OrderKey, Record, Term, Uuid,
@@ -10,12 +9,13 @@ pub use semilattice_database::{
 pub use session::{Depends, Pend, Session, SessionRecord};
 
 use std::{
-    collections::HashMap,
     io::Read,
     path::PathBuf,
     time::{self, UNIX_EPOCH},
 };
 
+use futures::executor::block_on;
+use hashbrown::HashMap;
 use semilattice_database::{idx_binary, BinarySet, Database, Field, FileMmap, IdxFile};
 use session::SessionInfo;
 
@@ -36,7 +36,7 @@ impl std::ops::DerefMut for SessionDatabase {
 }
 
 impl SessionDatabase {
-    pub fn new(dir: PathBuf, collection_settings: Option<HashMap<String, DataOption>>) -> Self {
+    pub fn new(dir: PathBuf, collection_settings: Option<std::collections::HashMap<String, DataOption>>) -> Self {
         let database = Database::new(dir.clone(), collection_settings);
         let mut sessions_dir = dir.to_path_buf();
         sessions_dir.push("sessions");

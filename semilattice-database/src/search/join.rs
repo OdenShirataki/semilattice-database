@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use hashbrown::HashMap;
 use async_recursion::async_recursion;
 use futures::{future, FutureExt};
 use versatile_data::{RowSet, Search};
