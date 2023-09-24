@@ -49,7 +49,7 @@ impl SearchResult {
             if orders.len() > 0 {
                 c.data.sort(&self.rows, &orders)
             } else {
-                self.rows.iter().map(|&x| x).collect()
+                self.rows.iter().cloned().collect()
             }
         })
     }
@@ -76,7 +76,7 @@ impl Search {
         fs = remaining;
         while !fs.is_empty() {
             let (ret, _index, remaining) = future::select_all(fs).await;
-            rows = rows.intersection(&ret).map(|&x| x).collect();
+            rows = rows.intersection(&ret).cloned().collect();
             fs = remaining;
         }
         rows
