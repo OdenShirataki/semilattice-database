@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{num::NonZeroU32, path::Path};
 
 use hashbrown::HashMap;
 
@@ -37,6 +37,7 @@ impl SessionData {
         fields: &Vec<KeyValue>,
     ) {
         //TODO: multi thread
+        assert!(session_row > 0);
         self.row.update(session_row, row);
         self.activity.update(session_row, *activity as u8);
         self.term_begin.update(session_row, term_begin);
@@ -62,19 +63,23 @@ impl SessionData {
     }
 
     #[inline(always)]
-    pub fn incidentally_depend(
+    pub(crate) fn incidentally_depend(
         &mut self,
-        pend_session_row: u32,
+        pend_session_row: NonZeroU32,
         relation_key: &str,
-        depend_session_row: u32,
+        depend_session_row: NonZeroU32,
     ) {
-        let row = *self.row.value(depend_session_row).unwrap();
+        let row = *self.row.value(depend_session_row.get()).unwrap();
         self.relation.insert(
             relation_key,
-            pend_session_row,
+            pend_session_row.get(),
             CollectionRow::new(
-                *self.collection_id.value(depend_session_row).unwrap(),
-                if row == 0 { depend_session_row } else { row },
+                *self.collection_id.value(depend_session_row.get()).unwrap(),
+                if row == 0 {
+                    depend_session_row.get()
+                } else {
+                    row
+                },
             ),
         );
     }
@@ -88,7 +93,7 @@ impl SessionData {
                 HashMap::new();
             for sequence in 1..=current {
                 for session_row in self.sequence.iter_by(|v| v.cmp(&sequence)) {
-                    if let Some(collection_id) = self.collection_id.value(session_row) {
+                    if let Some(collection_id) = self.collection_id.value(session_row.get()) {
                         let collection_id = *collection_id;
 
                         let in_session = collection_id < 0;
@@ -100,17 +105,17 @@ impl SessionData {
                         let temporary_collection = temporary_data
                             .entry(main_collection_id)
                             .or_insert(HashMap::new());
-                        let row = *self.row.value(session_row).unwrap();
+                        let row = *self.row.value(session_row.get()).unwrap();
 
                         let temporary_row = if row == 0 {
-                            -(session_row as i64)
+                            -(session_row.get() as i64)
                         } else if in_session {
                             -(row as i64)
                         } else {
                             row as i64
                         };
 
-                        let operation = self.operation.value(session_row).unwrap().clone();
+                        let operation = self.operation.value(session_row.get()).unwrap().clone();
                         if operation == SessionOperation::Delete {
                             temporary_collection.insert(
                                 temporary_row,
@@ -127,38 +132,49 @@ impl SessionData {
                         } else {
                             let row_fields = fields_overlaps
                                 .entry(if row == 0 {
-                                    CollectionRow::new(-main_collection_id, session_row)
+                                    CollectionRow::new(-main_collection_id, session_row.get())
                                 } else {
                                     CollectionRow::new(collection_id, row)
                                 })
                                 .or_insert(HashMap::new());
                             self.fields.iter().for_each(|(key, val)| {
-                                if let Some(v) = val.bytes(session_row) {
+                                if let Some(v) = val.bytes(session_row.get()) {
                                     row_fields.insert(key.to_string(), v.to_vec());
                                 }
                             });
                             temporary_collection.insert(
                                 temporary_row,
                                 TemporaryDataEntity {
-                                    activity: if *self.activity.value(session_row).unwrap() == 1 {
+                                    activity: if *self.activity.value(session_row.get()).unwrap()
+                                        == 1
+                                    {
                                         Activity::Active
                                     } else {
                                         Activity::Inactive
                                     },
-                                    term_begin: *self.term_begin.value(session_row).unwrap(),
-                                    term_end: *self.term_end.value(session_row).unwrap(),
-                                    uuid: self.uuid.value(session_row).map_or(0, |uuid| *uuid),
+                                    term_begin: *self.term_begin.value(session_row.get()).unwrap(),
+                                    term_end: *self.term_end.value(session_row.get()).unwrap(),
+                                    uuid: self
+                                        .uuid
+                                        .value(session_row.get())
+                                        .map_or(0, |uuid| *uuid),
                                     operation,
                                     fields: row_fields.clone(),
                                     depends: {
                                         self.relation
                                             .rows
                                             .session_row
-                                            .iter_by(|v| v.cmp(&session_row))
+                                            .iter_by(|v| v.cmp(&session_row.get()))
                                             .filter_map(|relation_row| {
                                                 if let (Some(key), Some(depend)) = (
-                                                    self.relation.rows.key.value(relation_row),
-                                                    self.relation.rows.depend.value(relation_row),
+                                                    self.relation
+                                                        .rows
+                                                        .key
+                                                        .value(relation_row.get()),
+                                                    self.relation
+                                                        .rows
+                                                        .depend
+                                                        .value(relation_row.get()),
                                                 ) {
                                                     Some(Depend::new(
                                                         unsafe {

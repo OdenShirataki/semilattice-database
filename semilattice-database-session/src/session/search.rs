@@ -154,14 +154,14 @@ impl<'a> SessionSearch<'a> {
                 let mut tmp_rows: BTreeSet<i64> = BTreeSet::new();
                 if let Some(result) = result.read().unwrap().as_ref() {
                     for row in result.rows() {
-                        if let Some(ent) = tmp.get(&(*row as i64)) {
+                        if let Some(ent) = tmp.get(&(row.get() as i64)) {
                             if ent.operation != SessionOperation::Delete {
-                                if self.temprary_data_match_conditions(*row as i64, ent) {
-                                    tmp_rows.insert(*row as i64);
+                                if self.temprary_data_match_conditions(row.get() as i64, ent) {
+                                    tmp_rows.insert(row.get() as i64);
                                 }
                             }
                         } else {
-                            tmp_rows.insert(*row as i64);
+                            tmp_rows.insert(row.get() as i64);
                         }
                     }
                 }
@@ -188,7 +188,7 @@ impl<'a> SessionSearch<'a> {
                     return result
                         .sort(database, orders)
                         .into_iter()
-                        .map(|x| x as i64)
+                        .map(|x| x.get() as i64)
                         .collect();
                 }
             }

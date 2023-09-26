@@ -1,6 +1,8 @@
-use hashbrown::HashMap;
+use std::num::NonZeroU32;
+
 use async_recursion::async_recursion;
 use futures::{future, FutureExt};
+use hashbrown::HashMap;
 use versatile_data::{RowSet, Search};
 
 use crate::{CollectionRow, Database};
@@ -34,7 +36,7 @@ impl Join {
         &self,
         database: &Database,
         parent_collection_id: i32,
-        parent_row: u32,
+        parent_row: NonZeroU32,
     ) -> SearchResult {
         let mut fs: Vec<_> = vec![];
         for condition in &self.conditions {
@@ -46,7 +48,10 @@ impl Join {
                                 .relation
                                 .read()
                                 .unwrap()
-                                .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
+                                .pends(
+                                    key,
+                                    &CollectionRow::new(parent_collection_id, parent_row.get()),
+                                )
                                 .iter()
                                 .filter(|r| r.collection_id() == self.collection_id)
                                 .map(|v| v.row())
@@ -89,7 +94,7 @@ impl Join {
         database: &Database,
         parent_collection_id: i32,
         parent_rows: &RowSet,
-    ) -> HashMap<u32, SearchResult> {
+    ) -> HashMap<NonZeroU32, SearchResult> {
         let mut r = HashMap::new();
 
         let mut fs: Vec<_> = parent_rows

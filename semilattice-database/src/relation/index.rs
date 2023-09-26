@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{num::NonZeroU32, path::Path};
 
 use binary_set::BinarySet;
 use futures::executor::block_on;
@@ -56,9 +56,10 @@ impl RelationIndex {
 
     #[inline(always)]
     pub fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
-        let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
+        let key_id = self.key_names.row_or_insert(relation_key.as_bytes()).get();
         block_on(async {
             if let Some(row) = self.fragment.pop() {
+                let row = row.get();
                 futures::join!(
                     async {
                         self.rows.key.update(row, key_id);
@@ -88,6 +89,7 @@ impl RelationIndex {
 
     #[inline(always)]
     pub fn delete(&mut self, row: u32) {
+        assert!(row > 0);
         block_on(async {
             futures::join!(
                 async {
@@ -100,7 +102,7 @@ impl RelationIndex {
                     self.rows.pend.delete(row);
                 },
                 async {
-                    self.fragment.insert_blank(row);
+                    self.fragment.insert_blank(NonZeroU32::new(row).unwrap());
                 },
             )
         });
@@ -112,9 +114,9 @@ impl RelationIndex {
             .rows
             .pend
             .iter_by(|v| v.cmp(collection_row))
-            .collect::<Vec<u32>>()
+            .collect::<Vec<_>>()
         {
-            self.delete(row);
+            self.delete(row.get());
         }
     }
 
@@ -125,7 +127,7 @@ impl RelationIndex {
                 self.rows
                     .depend
                     .iter_by(|v| v.cmp(depend))
-                    .filter_map(|row| self.rows.pend.value(row).cloned())
+                    .filter_map(|row| self.rows.pend.value(row.get()).cloned())
                     .collect()
             },
             |key| {
@@ -134,9 +136,10 @@ impl RelationIndex {
                         .depend
                         .iter_by(|v| v.cmp(depend))
                         .filter_map(|row| {
-                            if let (Some(key_row), Some(collection_row)) =
-                                (self.rows.key.value(row), self.rows.pend.value(row))
-                            {
+                            if let (Some(key_row), Some(collection_row)) = (
+                                self.rows.key.value(row.get()),
+                                self.rows.pend.value(row.get()),
+                            ) {
                                 (*key_row == key).then_some(collection_row.clone())
                             } else {
                                 None
@@ -156,9 +159,10 @@ impl RelationIndex {
                     .pend
                     .iter_by(|v| v.cmp(pend))
                     .filter_map(|row| {
-                        if let (Some(key), Some(collection_row)) =
-                            (self.rows.key.value(row), self.rows.depend.value(row))
-                        {
+                        if let (Some(key), Some(collection_row)) = (
+                            self.rows.key.value(row.get()),
+                            self.rows.depend.value(row.get()),
+                        ) {
                             Some(Depend::new(
                                 unsafe {
                                     std::str::from_utf8_unchecked(self.key_names.bytes(*key))
@@ -179,9 +183,10 @@ impl RelationIndex {
                             .pend
                             .iter_by(|v| v.cmp(pend))
                             .filter_map(|row| {
-                                if let (Some(key_row), Some(collection_row)) =
-                                    (self.rows.key.value(row), self.rows.depend.value(row))
-                                {
+                                if let (Some(key_row), Some(collection_row)) = (
+                                    self.rows.key.value(row.get()),
+                                    self.rows.depend.value(row.get()),
+                                ) {
                                     (*key_row == key)
                                         .then_some(Depend::new(key_name, collection_row.clone()))
                                 } else {

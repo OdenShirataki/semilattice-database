@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{num::NonZeroU32, path::Path};
 
 use futures::executor::block_on;
 
@@ -46,12 +46,12 @@ impl SessionRelation {
     }
 
     #[inline(always)]
-    pub fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
+    pub(crate) fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
         block_on(async {
             futures::join!(
                 async {
                     let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
-                    self.rows.key.insert(key_id);
+                    self.rows.key.insert(key_id.get());
                 },
                 async {
                     self.rows.session_row.insert(session_row);
@@ -64,17 +64,21 @@ impl SessionRelation {
     }
 
     #[inline(always)]
-    pub fn from_session_row(&mut self, session_row: u32, new_session_row: u32) -> Vec<Depend> {
+    pub(crate) fn from_session_row(
+        &mut self,
+        session_row: NonZeroU32,
+        new_session_row: NonZeroU32,
+    ) -> Vec<Depend> {
         let mut ret = vec![];
         for session_relation_row in self
             .rows
             .session_row
-            .iter_by(|v| v.cmp(&session_row))
-            .collect::<Vec<u32>>()
+            .iter_by(|v| v.cmp(&session_row.get()))
+            .collect::<Vec<_>>()
         {
             if let (Some(key), Some(depend)) = (
-                self.rows.key.value(session_relation_row),
-                self.rows.depend.value(session_relation_row),
+                self.rows.key.value(session_relation_row.get()),
+                self.rows.depend.value(session_relation_row.get()),
             ) {
                 let key = *key;
                 let depend = depend.clone();
@@ -84,7 +88,7 @@ impl SessionRelation {
                             self.rows.key.insert(key);
                         },
                         async {
-                            self.rows.session_row.insert(new_session_row);
+                            self.rows.session_row.insert(new_session_row.get());
                         },
                         async {
                             self.rows.depend.insert(depend.clone());
@@ -103,22 +107,22 @@ impl SessionRelation {
     }
 
     #[inline(always)]
-    pub async fn delete(&mut self, session_row: u32) {
+    pub(crate) async fn delete(&mut self, session_row: u32) {
         for relation_row in self
             .rows
             .session_row
             .iter_by(|v| v.cmp(&session_row))
-            .collect::<Vec<u32>>()
+            .collect::<Vec<_>>()
         {
             futures::join!(
                 async {
-                    self.rows.session_row.delete(relation_row);
+                    self.rows.session_row.delete(relation_row.get());
                 },
                 async {
-                    self.rows.key.delete(relation_row);
+                    self.rows.key.delete(relation_row.get());
                 },
                 async {
-                    self.rows.depend.delete(relation_row);
+                    self.rows.depend.delete(relation_row.get());
                 },
             );
         }

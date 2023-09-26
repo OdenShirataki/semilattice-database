@@ -88,9 +88,9 @@ impl Database {
         if collection_id > 0 {
             if let Some(collection) = self.collections.get(&collection_id) {
                 collection.data.all().iter().for_each(|row| {
-                    self.delete_recursive(&CollectionRow::new(collection_id, *row));
+                    self.delete_recursive(&CollectionRow::new(collection_id, row.get()));
                     if let Some(collection) = self.collection_mut(collection_id) {
-                        collection.update(&Operation::Delete { row: *row });
+                        collection.update(&Operation::Delete { row: row.get() });
                     }
                 });
             }

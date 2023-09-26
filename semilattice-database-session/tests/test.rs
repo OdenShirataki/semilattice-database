@@ -69,7 +69,7 @@ fn test() {
             if let Some(collection) = database.collection(collection_id) {
                 let search = sess
                     .begin_search(collection_id)
-                    .search_row(search::Number::In(vec![d.row() as isize]));
+                    .search_row(search::Number::In(vec![d.row().get() as isize]));
                 for row in search.result(&database, &vec![]) {
                     println!(
                         "login id : {}",
@@ -186,21 +186,21 @@ fn test() {
         for i in person_rows {
             println!(
                 "{},{}",
-                std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
-                std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
+                std::str::from_utf8(person.field_bytes(i.get(), "name")).unwrap(),
+                std::str::from_utf8(person.field_bytes(i.get(), "birthday")).unwrap()
             );
             let mut seach = database.search(collection_history);
             seach.search(Condition::Depend(
                 Some("history".to_owned()),
-                CollectionRow::new(collection_person, i),
+                CollectionRow::new(collection_person, i.get()),
             ));
             let result = search.result(&database);
             if let Some(result) = Arc::clone(&result).read().unwrap().as_ref() {
                 for h in result.rows() {
                     println!(
                         " {} : {}",
-                        std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),
-                        std::str::from_utf8(history.field_bytes(*h, "event")).unwrap()
+                        std::str::from_utf8(history.field_bytes(h.get(), "date")).unwrap(),
+                        std::str::from_utf8(history.field_bytes(h.get(), "event")).unwrap()
                     );
                 }
             }

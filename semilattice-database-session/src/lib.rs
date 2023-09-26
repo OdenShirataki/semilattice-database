@@ -36,7 +36,10 @@ impl std::ops::DerefMut for SessionDatabase {
 }
 
 impl SessionDatabase {
-    pub fn new(dir: PathBuf, collection_settings: Option<std::collections::HashMap<String, DataOption>>) -> Self {
+    pub fn new(
+        dir: PathBuf,
+        collection_settings: Option<std::collections::HashMap<String, DataOption>>,
+    ) -> Self {
         let database = Database::new(dir.clone(), collection_settings);
         let mut sessions_dir = dir.to_path_buf();
         sessions_dir.push("sessions");
@@ -162,42 +165,42 @@ impl SessionDatabase {
                     for session_row in session_data
                         .sequence
                         .iter_by(|v| v.cmp(&row))
-                        .collect::<Vec<u32>>()
+                        .collect::<Vec<_>>()
                     {
                         block_on(async {
                             futures::join!(
-                                session_data.relation.delete(session_row),
+                                session_data.relation.delete(session_row.get()),
                                 async {
-                                    session_data.collection_id.delete(session_row);
+                                    session_data.collection_id.delete(session_row.get());
                                 },
                                 async {
-                                    session_data.row.delete(session_row);
+                                    session_data.row.delete(session_row.get());
                                 },
                                 async {
-                                    session_data.operation.delete(session_row);
+                                    session_data.operation.delete(session_row.get());
                                 },
                                 async {
-                                    session_data.activity.delete(session_row);
+                                    session_data.activity.delete(session_row.get());
                                 },
                                 async {
-                                    session_data.term_begin.delete(session_row);
+                                    session_data.term_begin.delete(session_row.get());
                                 },
                                 async {
-                                    session_data.term_end.delete(session_row);
+                                    session_data.term_end.delete(session_row.get());
                                 },
                                 async {
-                                    session_data.uuid.delete(session_row);
+                                    session_data.uuid.delete(session_row.get());
                                 },
                                 async {
                                     let mut fs = vec![];
                                     for (_field_name, field_data) in session_data.fields.iter_mut()
                                     {
-                                        fs.push(async { field_data.delete(session_row) });
+                                        fs.push(async { field_data.delete(session_row.get()) });
                                     }
                                     futures::future::join_all(fs).await;
                                 },
                                 async {
-                                    session_data.sequence.delete(session_row);
+                                    session_data.sequence.delete(session_row.get());
                                 }
                             );
                         });
@@ -229,10 +232,7 @@ impl SessionDatabase {
             self.relation()
                 .read()
                 .unwrap()
-                .depends(
-                    key,
-                    &CollectionRow::new(pend_collection_id, pend_row as u32),
-                )
+                .depends(key, &CollectionRow::new(pend_collection_id, pend_row))
                 .iter()
                 .cloned()
                 .collect()

@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use semilattice_database::{Activity, KeyValue, Operation, Record, Term};
 
 use hashbrown::HashMap;
@@ -31,15 +33,15 @@ impl SessionDatabase {
             for session_row in session_data
                 .sequence
                 .iter_by(|v| v.cmp(&sequence))
-                .collect::<Vec<u32>>()
+                .collect::<Vec<_>>()
                 .iter()
                 .rev()
             {
                 let session_row = *session_row;
                 if let (Some(op), Some(collection_id), Some(row)) = (
-                    session_data.operation.value(session_row),
-                    session_data.collection_id.value(session_row),
-                    session_data.row.value(session_row),
+                    session_data.operation.value(session_row.get()),
+                    session_data.collection_id.value(session_row.get()),
+                    session_data.row.value(session_row.get()),
                 ) {
                     let in_session = *collection_id < 0;
 
@@ -48,7 +50,9 @@ impl SessionDatabase {
                     } else {
                         *collection_id
                     };
-                    let row = if *row == 0 { session_row } else { *row };
+                    let row = unsafe {
+                        NonZeroU32::new_unchecked(if *row == 0 { session_row.get() } else { *row })
+                    };
                     let fields = if *op == SessionOperation::Delete {
                         vec![]
                     } else {
@@ -57,26 +61,30 @@ impl SessionDatabase {
                             .iter()
                             .filter_map(|(key, field_data)| {
                                 field_data
-                                    .bytes(session_row)
+                                    .bytes(session_row.get())
                                     .map(|val| KeyValue::new(key, val))
                             })
                             .collect()
                     };
                     if let Some(collection) = self.collection_mut(main_collection_id) {
-                        let session_collection_row = CollectionRow::new(*collection_id, row);
+                        let session_collection_row = CollectionRow::new(*collection_id, row.get());
                         match op {
                             SessionOperation::New | SessionOperation::Update => {
-                                let activity =
-                                    if *session_data.activity.value(session_row).unwrap() == 1 {
-                                        Activity::Active
-                                    } else {
-                                        Activity::Inactive
-                                    };
+                                let activity = if *session_data
+                                    .activity
+                                    .value(session_row.get())
+                                    .unwrap()
+                                    == 1
+                                {
+                                    Activity::Active
+                                } else {
+                                    Activity::Inactive
+                                };
                                 let term_begin = Term::Overwrite(
-                                    *session_data.term_begin.value(session_row).unwrap(),
+                                    *session_data.term_begin.value(session_row.get()).unwrap(),
                                 );
                                 let term_end = Term::Overwrite(
-                                    *session_data.term_end.value(session_row).unwrap(),
+                                    *session_data.term_end.value(session_row.get()).unwrap(),
                                 );
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
@@ -98,7 +106,8 @@ impl SessionDatabase {
                                                 main_collection_row.row()
                                             } else {
                                                 row
-                                            },
+                                            }
+                                            .get(),
                                             record: Record {
                                                 activity,
                                                 term_begin,
@@ -118,11 +127,11 @@ impl SessionDatabase {
                                     .relation
                                     .rows
                                     .session_row
-                                    .iter_by(|v| v.cmp(&session_row))
+                                    .iter_by(|v| v.cmp(&session_row.get()))
                                 {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.value(relation_row),
-                                        session_data.relation.rows.depend.value(relation_row),
+                                        session_data.relation.rows.key.value(relation_row.get()),
+                                        session_data.relation.rows.depend.value(relation_row.get()),
                                     ) {
                                         relation_temporary
                                             .entry(depend.clone())
@@ -151,7 +160,7 @@ impl SessionDatabase {
                                 } else {
                                     self.delete_recursive(&CollectionRow::new(
                                         main_collection_id,
-                                        row,
+                                        row.get(),
                                     ));
                                 }
                                 session_collection_row_map.remove(&session_collection_row);

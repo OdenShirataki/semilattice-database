@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    num::NonZeroU32,
+    sync::{Arc, RwLock},
+};
 
 use futures::{executor::block_on, future};
 use hashbrown::HashMap;
@@ -10,14 +13,14 @@ use crate::{Collection, Condition, Database, RelationIndex, Search};
 pub struct SearchResult {
     collection_id: i32,
     rows: RowSet,
-    join: HashMap<String, HashMap<u32, SearchResult>>,
+    join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
 }
 impl SearchResult {
     #[inline(always)]
     pub fn new(
         collection_id: i32,
         rows: RowSet,
-        join: HashMap<String, HashMap<u32, SearchResult>>,
+        join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
     ) -> Self {
         Self {
             collection_id,
@@ -37,12 +40,12 @@ impl SearchResult {
     }
 
     #[inline(always)]
-    pub fn join(&self) -> &HashMap<String, HashMap<u32, SearchResult>> {
+    pub fn join(&self) -> &HashMap<String, HashMap<NonZeroU32, SearchResult>> {
         &self.join
     }
 
     #[inline(always)]
-    pub fn sort(&self, database: &Database, orders: &[Order]) -> Vec<u32> {
+    pub fn sort(&self, database: &Database, orders: &[Order]) -> Vec<NonZeroU32> {
         database.collection(self.collection_id).map_or(vec![], |c| {
             if orders.len() > 0 {
                 c.data.sort(&self.rows, &orders)

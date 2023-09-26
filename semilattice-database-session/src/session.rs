@@ -303,8 +303,8 @@ impl Session {
                             .iter_by(|v| v.cmp(&pend_row))
                             .filter_map(|relation_row| {
                                 if let (Some(key), Some(depend)) = (
-                                    session_data.relation.rows.key.value(relation_row),
-                                    session_data.relation.rows.depend.value(relation_row),
+                                    session_data.relation.rows.key.value(relation_row.get()),
+                                    session_data.relation.rows.depend.value(relation_row.get()),
                                 ) {
                                     return Some(Depend::new(
                                         unsafe {
@@ -333,8 +333,8 @@ impl Session {
                                 .iter_by(|v| v.cmp(&pend_row))
                                 .filter_map(|relation_row| {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.value(relation_row),
-                                        session_data.relation.rows.depend.value(relation_row),
+                                        session_data.relation.rows.key.value(relation_row.get()),
+                                        session_data.relation.rows.depend.value(relation_row.get()),
                                     ) {
                                         if *key == key_id {
                                             return Some(Depend::new(key_name, depend.clone()));

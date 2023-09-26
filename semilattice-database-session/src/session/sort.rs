@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, num::NonZeroU32};
 
 use hashbrown::HashMap;
 
@@ -148,7 +148,10 @@ pub fn sort(
                         let a = *a;
                         let b = *b;
                         if a > 0 && b > 0 {
-                            let ord = custom_order.compare(a as u32, b as u32);
+                            let ord = custom_order
+                                .compare(unsafe { NonZeroU32::new_unchecked(a as u32) }, unsafe {
+                                    NonZeroU32::new_unchecked(b as u32)
+                                });
                             if ord != Ordering::Equal {
                                 return ord;
                             }
@@ -200,7 +203,10 @@ pub fn sort(
                         let a = *a;
                         let b = *b;
                         if a > 0 && b > 0 {
-                            let ord = custom_order.compare(b as u32, b as u32);
+                            let ord = custom_order
+                                .compare(unsafe { NonZeroU32::new_unchecked(b as u32) }, unsafe {
+                                    NonZeroU32::new_unchecked(b as u32)
+                                });
                             if ord != Ordering::Equal {
                                 return ord;
                             }
