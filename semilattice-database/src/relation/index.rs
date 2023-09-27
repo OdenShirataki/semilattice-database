@@ -140,7 +140,7 @@ impl RelationIndex {
                                 self.rows.key.value(row.get()),
                                 self.rows.pend.value(row.get()),
                             ) {
-                                (*key_row == key).then_some(collection_row.clone())
+                                (*key_row == key.get()).then_some(collection_row.clone())
                             } else {
                                 None
                             }
@@ -187,7 +187,7 @@ impl RelationIndex {
                                     self.rows.key.value(row.get()),
                                     self.rows.depend.value(row.get()),
                                 ) {
-                                    (*key_row == key)
+                                    (*key_row == key.get())
                                         .then_some(Depend::new(key_name, collection_row.clone()))
                                 } else {
                                     None

@@ -336,7 +336,7 @@ impl Session {
                                         session_data.relation.rows.key.value(relation_row.get()),
                                         session_data.relation.rows.depend.value(relation_row.get()),
                                     ) {
-                                        if *key == key_id {
+                                        if *key == key_id.get() {
                                             return Some(Depend::new(key_name, depend.clone()));
                                         }
                                     }
