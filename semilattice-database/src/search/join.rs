@@ -1,4 +1,4 @@
-use std::num::NonZeroU32;
+use std::num::{NonZeroI32, NonZeroU32};
 
 use async_recursion::async_recursion;
 use futures::{future, FutureExt};
@@ -17,13 +17,13 @@ pub enum JoinCondition {
 
 #[derive(Debug)]
 pub struct Join {
-    collection_id: i32,
+    collection_id: NonZeroI32,
     conditions: Vec<JoinCondition>,
     join: HashMap<String, Join>,
 }
 impl Join {
     #[inline(always)]
-    pub fn new(collection_id: i32, conditions: Vec<JoinCondition>) -> Self {
+    pub fn new(collection_id: NonZeroI32, conditions: Vec<JoinCondition>) -> Self {
         Self {
             collection_id,
             conditions,
@@ -35,7 +35,7 @@ impl Join {
     async fn result_row(
         &self,
         database: &Database,
-        parent_collection_id: i32,
+        parent_collection_id: NonZeroI32,
         parent_row: NonZeroU32,
     ) -> SearchResult {
         let mut fs: Vec<_> = vec![];
@@ -92,7 +92,7 @@ impl Join {
     pub async fn result(
         &self,
         database: &Database,
-        parent_collection_id: i32,
+        parent_collection_id: NonZeroI32,
         parent_rows: &RowSet,
     ) -> HashMap<NonZeroU32, SearchResult> {
         let mut r = HashMap::new();

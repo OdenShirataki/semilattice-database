@@ -1,10 +1,13 @@
-use std::{cmp::Ordering, num::NonZeroU32};
+use std::{
+    cmp::Ordering,
+    num::{NonZeroI32, NonZeroU32},
+};
 
 use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize, Hash)]
 pub struct CollectionRow {
-    collection_id: i32,
+    collection_id: NonZeroI32,
     row: NonZeroU32,
 }
 impl PartialOrd for CollectionRow {
@@ -35,7 +38,7 @@ impl Eq for CollectionRow {}
 
 impl CollectionRow {
     #[inline(always)]
-    pub fn new(collection_id: i32, row: u32) -> Self {
+    pub fn new(collection_id: NonZeroI32, row: u32) -> Self {
         Self {
             collection_id,
             row: NonZeroU32::new(row).unwrap(),
@@ -43,7 +46,7 @@ impl CollectionRow {
     }
 
     #[inline(always)]
-    pub fn collection_id(&self) -> i32 {
+    pub fn collection_id(&self) -> NonZeroI32 {
         self.collection_id
     }
 

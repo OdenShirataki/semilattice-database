@@ -1,5 +1,5 @@
 use std::{
-    num::NonZeroU32,
+    num::{NonZeroI32, NonZeroU32},
     sync::{Arc, RwLock},
 };
 
@@ -11,14 +11,14 @@ use crate::{Collection, Condition, Database, RelationIndex, Search};
 
 #[derive(Clone, Debug)]
 pub struct SearchResult {
-    collection_id: i32,
+    collection_id: NonZeroI32,
     rows: RowSet,
     join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
 }
 impl SearchResult {
     #[inline(always)]
     pub fn new(
-        collection_id: i32,
+        collection_id: NonZeroI32,
         rows: RowSet,
         join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
     ) -> Self {
@@ -30,7 +30,7 @@ impl SearchResult {
     }
 
     #[inline(always)]
-    pub fn collection_id(&self) -> i32 {
+    pub fn collection_id(&self) -> NonZeroI32 {
         self.collection_id
     }
 

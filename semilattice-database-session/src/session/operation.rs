@@ -1,3 +1,5 @@
+use std::num::NonZeroI32;
+
 use crate::{CollectionRow, Record};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -41,20 +43,20 @@ impl Pend {
 #[derive(Debug)]
 pub enum SessionRecord {
     New {
-        collection_id: i32,
+        collection_id: NonZeroI32,
         record: Record,
         depends: Depends,
         pends: Vec<Pend>,
     },
     Update {
-        collection_id: i32,
+        collection_id: NonZeroI32,
         row: u32,
         record: Record,
         depends: Depends,
         pends: Vec<Pend>,
     },
     Delete {
-        collection_id: i32,
+        collection_id: NonZeroI32,
         row: u32,
     },
 }

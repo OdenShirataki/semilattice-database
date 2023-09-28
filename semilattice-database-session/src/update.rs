@@ -57,7 +57,7 @@ impl SessionDatabase {
                         .update(session_row.get(), SessionOperation::New);
                     session_data.update(
                         session_dir,
-                        session_row.get(),
+                        session_row,
                         0,
                         &record.activity,
                         term_begin,
@@ -85,11 +85,9 @@ impl SessionDatabase {
                             depends: if let Depends::Overwrite(depends) = depends {
                                 let mut tmp = vec![];
                                 for (key, depend) in depends {
-                                    session_data.relation.insert(
-                                        key,
-                                        session_row.get(),
-                                        depend.clone(),
-                                    );
+                                    session_data
+                                        .relation
+                                        .insert(key, session_row, depend.clone());
                                     tmp.push(Depend::new(key, depend.clone()));
                                 }
                                 tmp
@@ -120,151 +118,142 @@ impl SessionDatabase {
                     depends,
                     pends,
                 } => {
-                    if let Some(row) = NonZeroU32::new(*row) {
-                        let collection_id = *collection_id;
-                        ret.push(CollectionRow::new(collection_id, row.get()));
+                    let collection_id = *collection_id;
+                    ret.push(CollectionRow::new(collection_id, *row));
 
-                        let in_session = collection_id < 0;
-                        let master_collection_id = if in_session {
-                            -collection_id
+                    let row = NonZeroU32::new(*row).unwrap();
+                    let in_session = collection_id.get() < 0;
+                    let master_collection_id = if in_session {
+                        -collection_id
+                    } else {
+                        collection_id
+                    };
+
+                    let term_begin = match record.term_begin {
+                        Term::Overwrite(term_begin) => term_begin,
+                        Term::Default => (!in_session)
+                            .then(|| {
+                                self.collection(master_collection_id)
+                                    .map(|collection| collection.term_begin(row.get()).unwrap_or(0))
+                            })
+                            .and_then(|v| v)
+                            .unwrap_or_else(|| {
+                                SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .unwrap()
+                                    .as_secs()
+                            }),
+                    };
+                    let term_end = if let Term::Overwrite(term_end) = record.term_end {
+                        term_end
+                    } else {
+                        0
+                    };
+
+                    let temporary_collection = temporary_data
+                        .entry(master_collection_id)
+                        .or_insert(HashMap::new());
+
+                    let uuid = {
+                        if in_session {
+                            session_data
+                                .uuid
+                                .value(row.get())
+                                .map_or_else(|| semilattice_database::create_uuid(), |uuid| *uuid)
                         } else {
-                            collection_id
-                        };
-
-                        let term_begin = match record.term_begin {
-                            Term::Overwrite(term_begin) => term_begin,
-                            Term::Default => (!in_session)
-                                .then(|| {
-                                    self.collection(master_collection_id).map(|collection| {
-                                        collection.term_begin(row.get()).unwrap_or(0)
-                                    })
-                                })
-                                .and_then(|v| v)
-                                .unwrap_or_else(|| {
-                                    SystemTime::now()
-                                        .duration_since(UNIX_EPOCH)
-                                        .unwrap()
-                                        .as_secs()
-                                }),
-                        };
-                        let term_end = if let Term::Overwrite(term_end) = record.term_end {
-                            term_end
-                        } else {
-                            0
-                        };
-
-                        let temporary_collection = temporary_data
-                            .entry(master_collection_id)
-                            .or_insert(HashMap::new());
-
-                        let uuid = {
-                            if in_session {
-                                session_data.uuid.value(row.get()).map_or_else(
-                                    || semilattice_database::create_uuid(),
-                                    |uuid| *uuid,
-                                )
-                            } else {
-                                if let Some(collection) = self.collection(master_collection_id) {
-                                    let uuid = collection.uuid(row.get()).unwrap_or(0);
-                                    if uuid == 0 {
-                                        semilattice_database::create_uuid()
-                                    } else {
-                                        uuid
-                                    }
+                            if let Some(collection) = self.collection(master_collection_id) {
+                                let uuid = collection.uuid(row.get()).unwrap_or(0);
+                                if uuid == 0 {
+                                    semilattice_database::create_uuid()
                                 } else {
-                                    unreachable!();
+                                    uuid
+                                }
+                            } else {
+                                unreachable!();
+                            }
+                        }
+                    };
+
+                    session_data
+                        .collection_id
+                        .update(session_row.get(), collection_id);
+                    session_data
+                        .operation
+                        .update(session_row.get(), SessionOperation::Update);
+                    session_data.update(
+                        session_dir,
+                        session_row,
+                        row.get(),
+                        &record.activity,
+                        term_begin,
+                        term_end,
+                        uuid,
+                        &record.fields,
+                    );
+
+                    let mut tmp_depends = vec![];
+                    match depends {
+                        Depends::Default => {
+                            if in_session {
+                                session_data.relation.from_session_row(row, session_row);
+                            } else {
+                                for i in self.relation().read().unwrap().index_pend().iter_by(|v| {
+                                    v.cmp(&CollectionRow::new(collection_id, row.get()))
+                                }) {
+                                    if let Some(depend) = self.relation().read().unwrap().depend(i)
+                                    {
+                                        let key = unsafe { self.relation().read().unwrap().key(i) }
+                                            .to_owned();
+                                        session_data.relation.insert(
+                                            &key,
+                                            session_row,
+                                            depend.clone(),
+                                        );
+                                        tmp_depends.push(Depend::new(key, depend.clone()));
+                                    }
                                 }
                             }
-                        };
-
-                        session_data
-                            .collection_id
-                            .update(session_row.get(), collection_id);
-                        session_data
-                            .operation
-                            .update(session_row.get(), SessionOperation::Update);
-                        session_data.update(
-                            session_dir,
-                            session_row.get(),
-                            row.get(),
-                            &record.activity,
+                        }
+                        Depends::Overwrite(depends) => {
+                            for (key, depend) in depends {
+                                session_data
+                                    .relation
+                                    .insert(key, session_row, depend.clone());
+                                tmp_depends.push(Depend::new(key, depend.clone()));
+                            }
+                        }
+                    }
+                    temporary_collection
+                        .entry(if in_session {
+                            -(row.get() as i64)
+                        } else {
+                            row.get() as i64
+                        })
+                        .or_insert(TemporaryDataEntity {
+                            activity: record.activity,
                             term_begin,
                             term_end,
                             uuid,
-                            &record.fields,
+                            operation: SessionOperation::Update,
+                            fields: record
+                                .fields
+                                .iter()
+                                .map(|kv| (kv.key().into(), kv.value().into()))
+                                .collect(),
+                            depends: tmp_depends,
+                        });
+                    if let Some((key, depend_session_row)) = depend_by_pend {
+                        session_data.incidentally_depend(session_row, key, depend_session_row);
+                    }
+                    for pend in pends {
+                        self.update_recursive(
+                            session_data,
+                            temporary_data,
+                            session_dir,
+                            sequence_number,
+                            pend.records(),
+                            Some((pend.key(), session_row)),
                         );
-
-                        let mut tmp_depends = vec![];
-                        match depends {
-                            Depends::Default => {
-                                if in_session {
-                                    session_data.relation.from_session_row(row, session_row);
-                                } else {
-                                    for i in
-                                        self.relation().read().unwrap().index_pend().iter_by(|v| {
-                                            v.cmp(&CollectionRow::new(collection_id, row.get()))
-                                        })
-                                    {
-                                        if let Some(depend) =
-                                            self.relation().read().unwrap().depend(i.get())
-                                        {
-                                            let key = unsafe {
-                                                self.relation().read().unwrap().key(i.get())
-                                            }
-                                            .to_owned();
-                                            session_data.relation.insert(
-                                                &key,
-                                                session_row.get(),
-                                                depend.clone(),
-                                            );
-                                            tmp_depends.push(Depend::new(key, depend.clone()));
-                                        }
-                                    }
-                                }
-                            }
-                            Depends::Overwrite(depends) => {
-                                for (key, depend) in depends {
-                                    session_data.relation.insert(
-                                        key,
-                                        session_row.get(),
-                                        depend.clone(),
-                                    );
-                                    tmp_depends.push(Depend::new(key, depend.clone()));
-                                }
-                            }
-                        }
-                        temporary_collection
-                            .entry(if in_session {
-                                -(row.get() as i64)
-                            } else {
-                                row.get() as i64
-                            })
-                            .or_insert(TemporaryDataEntity {
-                                activity: record.activity,
-                                term_begin,
-                                term_end,
-                                uuid,
-                                operation: SessionOperation::Update,
-                                fields: record
-                                    .fields
-                                    .iter()
-                                    .map(|kv| (kv.key().into(), kv.value().into()))
-                                    .collect(),
-                                depends: tmp_depends,
-                            });
-                        if let Some((key, depend_session_row)) = depend_by_pend {
-                            session_data.incidentally_depend(session_row, key, depend_session_row);
-                        }
-                        for pend in pends {
-                            self.update_recursive(
-                                session_data,
-                                temporary_data,
-                                session_dir,
-                                sequence_number,
-                                pend.records(),
-                                Some((pend.key(), session_row)),
-                            );
-                        }
                     }
                 }
                 SessionRecord::Delete { collection_id, row } => {

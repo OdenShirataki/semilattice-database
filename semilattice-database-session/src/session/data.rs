@@ -1,4 +1,7 @@
-use std::{num::NonZeroU32, path::Path};
+use std::{
+    num::{NonZeroI32, NonZeroU32},
+    path::Path,
+};
 
 use hashbrown::HashMap;
 
@@ -12,7 +15,7 @@ use super::{
 pub struct SessionData {
     pub(crate) sequence_number: SequenceNumber,
     pub(crate) sequence: IdxFile<usize>,
-    pub(crate) collection_id: IdxFile<i32>,
+    pub(crate) collection_id: IdxFile<NonZeroI32>,
     pub(crate) row: IdxFile<u32>,
     pub(crate) operation: IdxFile<SessionOperation>,
     pub(crate) activity: IdxFile<u8>,
@@ -28,7 +31,7 @@ impl SessionData {
     pub fn update(
         &mut self,
         session_dir: &Path,
-        session_row: u32,
+        session_row: NonZeroU32,
         row: u32,
         activity: &Activity,
         term_begin: u64,
@@ -37,12 +40,11 @@ impl SessionData {
         fields: &Vec<KeyValue>,
     ) {
         //TODO: multi thread
-        assert!(session_row > 0);
-        self.row.update(session_row, row);
-        self.activity.update(session_row, *activity as u8);
-        self.term_begin.update(session_row, term_begin);
-        self.term_end.update(session_row, term_end);
-        self.uuid.update(session_row, uuid);
+        self.row.update(session_row.get(), row);
+        self.activity.update(session_row.get(), *activity as u8);
+        self.term_begin.update(session_row.get(), term_begin);
+        self.term_end.update(session_row.get(), term_end);
+        self.uuid.update(session_row.get(), uuid);
         for kv in fields {
             let key = kv.key();
             let field = if self.fields.contains_key(key) {
@@ -58,7 +60,7 @@ impl SessionData {
                 }
                 self.fields.get_mut(key).unwrap()
             };
-            field.update(session_row, kv.value());
+            field.update(session_row.get(), kv.value());
         }
     }
 
@@ -72,7 +74,7 @@ impl SessionData {
         let row = *self.row.value(depend_session_row.get()).unwrap();
         self.relation.insert(
             relation_key,
-            pend_session_row.get(),
+            pend_session_row,
             CollectionRow::new(
                 *self.collection_id.value(depend_session_row.get()).unwrap(),
                 if row == 0 {
@@ -96,7 +98,7 @@ impl SessionData {
                     if let Some(collection_id) = self.collection_id.value(session_row.get()) {
                         let collection_id = *collection_id;
 
-                        let in_session = collection_id < 0;
+                        let in_session = collection_id.get() < 0;
                         let main_collection_id = if in_session {
                             -collection_id
                         } else {

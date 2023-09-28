@@ -3,6 +3,7 @@ mod row;
 pub use row::CollectionRow;
 
 use std::{
+    num::NonZeroI32,
     ops::{Deref, DerefMut},
     path::PathBuf,
 };
@@ -13,12 +14,12 @@ use crate::Database;
 
 pub struct Collection {
     pub(crate) data: Data,
-    id: i32,
+    id: NonZeroI32,
     name: String,
 }
 impl Collection {
     #[inline(always)]
-    pub fn new(data: Data, id: i32, name: impl Into<String>) -> Self {
+    pub fn new(data: Data, id: NonZeroI32, name: impl Into<String>) -> Self {
         Self {
             data,
             id,
@@ -27,7 +28,7 @@ impl Collection {
     }
 
     #[inline(always)]
-    pub fn id(&self) -> i32 {
+    pub fn id(&self) -> NonZeroI32 {
         self.id
     }
 
@@ -58,24 +59,24 @@ impl Database {
     }
 
     #[inline(always)]
-    pub fn collection(&self, id: i32) -> Option<&Collection> {
+    pub fn collection(&self, id: NonZeroI32) -> Option<&Collection> {
         self.collections.get(&id)
     }
 
     #[inline(always)]
-    pub fn collection_mut(&mut self, id: i32) -> Option<&mut Collection> {
+    pub fn collection_mut(&mut self, id: NonZeroI32) -> Option<&mut Collection> {
         self.collections.get_mut(&id)
     }
 
     #[inline(always)]
-    pub fn collection_id(&self, name: &str) -> Option<i32> {
+    pub fn collection_id(&self, name: &str) -> Option<NonZeroI32> {
         self.collections_map
             .contains_key(name)
             .then(|| *self.collections_map.get(name).unwrap())
     }
 
     #[inline(always)]
-    pub fn collection_id_or_create(&mut self, name: &str) -> i32 {
+    pub fn collection_id_or_create(&mut self, name: &str) -> NonZeroI32 {
         if self.collections_map.contains_key(name) {
             *self.collections_map.get(name).unwrap()
         } else {
@@ -84,8 +85,9 @@ impl Database {
     }
 
     pub fn delete_collection(&mut self, name: &str) {
-        let collection_id = self.collections_map.get(name).map_or(0, |x| *x);
+        let collection_id = self.collections_map.get(name).map_or(0, |x| x.get());
         if collection_id > 0 {
+            let collection_id = unsafe { NonZeroI32::new_unchecked(collection_id) };
             if let Some(collection) = self.collections.get(&collection_id) {
                 collection.data.all().iter().for_each(|row| {
                     self.delete_recursive(&CollectionRow::new(collection_id, row.get()));
@@ -104,7 +106,7 @@ impl Database {
     }
 
     #[inline(always)]
-    pub(super) fn create_collection(&mut self, id: i32, name: &str, dir: PathBuf) {
+    pub(super) fn create_collection(&mut self, id: NonZeroI32, name: &str, dir: PathBuf) {
         let collection = Collection::new(
             Data::new(
                 dir,
@@ -120,7 +122,7 @@ impl Database {
     }
 
     #[inline(always)]
-    fn collection_by_name_or_create(&mut self, name: &str) -> i32 {
+    fn collection_by_name_or_create(&mut self, name: &str) -> NonZeroI32 {
         let mut max_id = 0;
         if self.collections_dir.exists() {
             for d in self.collections_dir.read_dir().unwrap() {
@@ -133,6 +135,7 @@ impl Database {
                                 max_id = std::cmp::max(max_id, i);
                             }
                             if s[1] == name {
+                                let max_id = NonZeroI32::new(max_id).unwrap();
                                 self.create_collection(max_id, name, d.path());
                                 return max_id;
                             }
@@ -141,7 +144,7 @@ impl Database {
                 }
             }
         }
-        let collection_id = max_id + 1;
+        let collection_id = unsafe { NonZeroI32::new_unchecked(max_id + 1) };
         self.create_collection(collection_id, name, {
             let mut collecion_dir = self.collections_dir.clone();
             collecion_dir.push(&(collection_id.to_string() + "_" + name));

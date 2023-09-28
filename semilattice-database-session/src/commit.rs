@@ -43,7 +43,7 @@ impl SessionDatabase {
                     session_data.collection_id.value(session_row.get()),
                     session_data.row.value(session_row.get()),
                 ) {
-                    let in_session = *collection_id < 0;
+                    let in_session = collection_id.get() < 0;
 
                     let main_collection_id = if in_session {
                         -*collection_id
@@ -171,7 +171,7 @@ impl SessionDatabase {
             }
         }
         for (depend, pends) in relation_temporary {
-            if depend.collection_id() < 0 {
+            if depend.collection_id().get() < 0 {
                 if let Some(depend) = session_collection_row_map.get(&depend) {
                     self.register_relations_with_session(
                         depend,

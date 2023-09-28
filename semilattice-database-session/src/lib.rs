@@ -10,6 +10,7 @@ pub use session::{Depends, Pend, Session, SessionRecord};
 
 use std::{
     io::Read,
+    num::{NonZeroI32, NonZeroU32},
     path::PathBuf,
     time::{self, UNIX_EPOCH},
 };
@@ -224,11 +225,11 @@ impl SessionDatabase {
     pub fn depends_with_session(
         &self,
         key: Option<&str>,
-        pend_collection_id: i32,
+        pend_collection_id: NonZeroI32,
         pend_row: u32,
         session: Option<&Session>,
     ) -> Vec<Depend> {
-        if pend_collection_id > 0 {
+        if pend_collection_id.get() > 0 {
             self.relation()
                 .read()
                 .unwrap()
@@ -238,7 +239,9 @@ impl SessionDatabase {
                 .collect()
         } else {
             if let Some(session) = session {
-                if let Some(session_depends) = session.depends(key, pend_row) {
+                if let Some(session_depends) =
+                    session.depends(key, NonZeroU32::new(pend_row).unwrap())
+                {
                     return session_depends;
                 }
             }
@@ -253,7 +256,7 @@ impl SessionDatabase {
         row_map: &HashMap<CollectionRow, CollectionRow>,
     ) {
         for (key_name, pend) in pends {
-            if pend.collection_id() < 0 {
+            if pend.collection_id().get() < 0 {
                 if let Some(pend) = row_map.get(&pend) {
                     self.register_relation(&key_name, depend, pend.clone());
                 }

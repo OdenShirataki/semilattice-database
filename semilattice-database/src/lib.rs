@@ -14,6 +14,7 @@ pub use versatile_data::{
 
 use std::{
     collections::BTreeMap,
+    num::NonZeroI32,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
@@ -22,8 +23,8 @@ use hashbrown::HashMap;
 
 pub struct Database {
     collections_dir: PathBuf,
-    collections_map: HashMap<String, i32>,
-    collections: BTreeMap<i32, Collection>,
+    collections_map: HashMap<String, NonZeroI32>,
+    collections: BTreeMap<NonZeroI32, Collection>,
     relation: Arc<RwLock<RelationIndex>>,
     collection_settings: std::collections::HashMap<String, DataOption>,
 }
@@ -49,7 +50,7 @@ impl Database {
                 if d.file_type().unwrap().is_dir() {
                     if let Some(fname) = d.file_name().to_str() {
                         if let Some(pos) = fname.find("_") {
-                            if let Ok(collection_id) = (&fname[..pos]).parse::<i32>() {
+                            if let Ok(collection_id) = (&fname[..pos]).parse::<NonZeroI32>() {
                                 let name = &fname[(pos + 1)..];
                                 db.create_collection(collection_id, name, d.path());
                             }

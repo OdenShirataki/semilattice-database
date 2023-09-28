@@ -46,7 +46,12 @@ impl SessionRelation {
     }
 
     #[inline(always)]
-    pub(crate) fn insert(&mut self, relation_key: &str, session_row: u32, depend: CollectionRow) {
+    pub(crate) fn insert(
+        &mut self,
+        relation_key: &str,
+        session_row: NonZeroU32,
+        depend: CollectionRow,
+    ) {
         block_on(async {
             futures::join!(
                 async {
@@ -54,7 +59,7 @@ impl SessionRelation {
                     self.rows.key.insert(key_id.get());
                 },
                 async {
-                    self.rows.session_row.insert(session_row);
+                    self.rows.session_row.insert(session_row.get());
                 },
                 async {
                     self.rows.depend.insert(depend);

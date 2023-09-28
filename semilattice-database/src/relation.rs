@@ -3,6 +3,7 @@ mod index;
 pub use index::RelationIndex;
 
 use std::{
+    num::{NonZeroI32, NonZeroU32},
     ops::Deref,
     sync::{Arc, RwLock},
 };
@@ -84,13 +85,13 @@ impl Database {
     pub fn depends(
         &self,
         key: Option<&str>,
-        pend_collection_id: i32,
-        pend_row: u32,
+        pend_collection_id: NonZeroI32,
+        pend_row: NonZeroU32,
     ) -> Vec<Depend> {
         self.relation
             .read()
             .unwrap()
-            .depends(key, &CollectionRow::new(pend_collection_id, pend_row))
+            .depends(key, &CollectionRow::new(pend_collection_id, pend_row.get()))
             .iter()
             .cloned()
             .collect()

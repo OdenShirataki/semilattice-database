@@ -11,6 +11,7 @@ pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 
 use std::{
     io::Write,
+    num::{NonZeroI32, NonZeroU32},
     path::Path,
     sync::{Arc, RwLock},
 };
@@ -92,7 +93,7 @@ impl TemporaryDataEntity {
         &self.depends
     }
 }
-pub type TemporaryData = HashMap<i32, HashMap<i64, TemporaryDataEntity>>;
+pub type TemporaryData = HashMap<NonZeroI32, HashMap<i64, TemporaryDataEntity>>;
 
 pub struct Session {
     name: String,
@@ -225,7 +226,7 @@ impl Session {
     }
 
     #[inline(always)]
-    pub fn begin_search(&self, collection_id: i32) -> SessionSearch {
+    pub fn begin_search(&self, collection_id: NonZeroI32) -> SessionSearch {
         self.search(&Arc::new(RwLock::new(Search::new(
             collection_id,
             vec![],
@@ -242,7 +243,7 @@ impl Session {
     pub fn field_bytes<'a>(
         &'a self,
         database: &'a SessionDatabase,
-        collection_id: i32,
+        collection_id: NonZeroI32,
         row: i64,
         key: &str,
     ) -> &[u8] {
@@ -285,13 +286,13 @@ impl Session {
     #[inline(always)]
     pub fn temporary_collection(
         &self,
-        collection_id: i32,
+        collection_id: NonZeroI32,
     ) -> Option<&HashMap<i64, TemporaryDataEntity>> {
         self.temporary_data.get(&collection_id)
     }
 
     #[inline(always)]
-    pub fn depends(&self, key: Option<&str>, pend_row: u32) -> Option<Vec<Depend>> {
+    pub fn depends(&self, key: Option<&str>, pend_row: NonZeroU32) -> Option<Vec<Depend>> {
         self.session_data.as_ref().and_then(|session_data| {
             key.map_or_else(
                 || {
@@ -300,7 +301,7 @@ impl Session {
                             .relation
                             .rows
                             .session_row
-                            .iter_by(|v| v.cmp(&pend_row))
+                            .iter_by(|v| v.cmp(&pend_row.get()))
                             .filter_map(|relation_row| {
                                 if let (Some(key), Some(depend)) = (
                                     session_data.relation.rows.key.value(relation_row.get()),
@@ -330,7 +331,7 @@ impl Session {
                                 .relation
                                 .rows
                                 .session_row
-                                .iter_by(|v| v.cmp(&pend_row))
+                                .iter_by(|v| v.cmp(&pend_row.get()))
                                 .filter_map(|relation_row| {
                                     if let (Some(key), Some(depend)) = (
                                         session_data.relation.rows.key.value(relation_row.get()),
