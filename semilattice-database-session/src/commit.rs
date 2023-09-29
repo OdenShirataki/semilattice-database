@@ -39,9 +39,9 @@ impl SessionDatabase {
             {
                 let session_row = *session_row;
                 if let (Some(op), Some(collection_id), Some(row)) = (
-                    session_data.operation.value(session_row.get()),
-                    session_data.collection_id.value(session_row.get()),
-                    session_data.row.value(session_row.get()),
+                    session_data.operation.value(session_row),
+                    session_data.collection_id.value(session_row),
+                    session_data.row.value(session_row),
                 ) {
                     let in_session = collection_id.get() < 0;
 
@@ -50,8 +50,10 @@ impl SessionDatabase {
                     } else {
                         *collection_id
                     };
-                    let row = unsafe {
-                        NonZeroU32::new_unchecked(if *row == 0 { session_row.get() } else { *row })
+                    let row = if *row == 0 {
+                        session_row
+                    } else {
+                        unsafe { NonZeroU32::new_unchecked(*row) }
                     };
                     let fields = if *op == SessionOperation::Delete {
                         vec![]
@@ -61,61 +63,60 @@ impl SessionDatabase {
                             .iter()
                             .filter_map(|(key, field_data)| {
                                 field_data
-                                    .bytes(session_row.get())
+                                    .bytes(session_row)
                                     .map(|val| KeyValue::new(key, val))
                             })
                             .collect()
                     };
                     if let Some(collection) = self.collection_mut(main_collection_id) {
-                        let session_collection_row = CollectionRow::new(*collection_id, row.get());
+                        let session_collection_row = CollectionRow::new(*collection_id, row);
                         match op {
                             SessionOperation::New | SessionOperation::Update => {
-                                let activity = if *session_data
-                                    .activity
-                                    .value(session_row.get())
-                                    .unwrap()
-                                    == 1
-                                {
-                                    Activity::Active
-                                } else {
-                                    Activity::Inactive
-                                };
+                                let activity =
+                                    if *session_data.activity.value(session_row).unwrap() == 1 {
+                                        Activity::Active
+                                    } else {
+                                        Activity::Inactive
+                                    };
                                 let term_begin = Term::Overwrite(
-                                    *session_data.term_begin.value(session_row.get()).unwrap(),
+                                    *session_data.term_begin.value(session_row).unwrap(),
                                 );
                                 let term_end = Term::Overwrite(
-                                    *session_data.term_end.value(session_row.get()).unwrap(),
+                                    *session_data.term_end.value(session_row).unwrap(),
                                 );
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
-                                    collection.update(&if *op == SessionOperation::New {
-                                        Operation::New(Record {
-                                            activity,
-                                            term_begin,
-                                            term_end,
-                                            fields,
-                                        })
-                                    } else {
-                                        //SessionOperation::Update
-                                        Operation::Update {
-                                            row: if in_session {
-                                                let main_collection_row =
-                                                    session_collection_row_map
-                                                        .get(&session_collection_row)
-                                                        .unwrap();
-                                                main_collection_row.row()
-                                            } else {
-                                                row
-                                            }
-                                            .get(),
-                                            record: Record {
+                                    collection
+                                        .update(&if *op == SessionOperation::New {
+                                            Operation::New(Record {
                                                 activity,
                                                 term_begin,
                                                 term_end,
                                                 fields,
-                                            },
-                                        }
-                                    }),
+                                            })
+                                        } else {
+                                            //SessionOperation::Update
+                                            Operation::Update {
+                                                row: if in_session {
+                                                    let main_collection_row =
+                                                        session_collection_row_map
+                                                            .get(&session_collection_row)
+                                                            .unwrap();
+                                                    main_collection_row.row()
+                                                } else {
+                                                    row
+                                                }
+                                                .get(),
+                                                record: Record {
+                                                    activity,
+                                                    term_begin,
+                                                    term_end,
+                                                    fields,
+                                                },
+                                            }
+                                        })
+                                        .try_into()
+                                        .unwrap(),
                                 );
                                 commit_rows.push(collection_row.clone());
                                 self.relation()
@@ -130,8 +131,8 @@ impl SessionDatabase {
                                     .iter_by(|v| v.cmp(&session_row.get()))
                                 {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.value(relation_row.get()),
-                                        session_data.relation.rows.depend.value(relation_row.get()),
+                                        session_data.relation.rows.key.value(relation_row),
+                                        session_data.relation.rows.depend.value(relation_row),
                                     ) {
                                         relation_temporary
                                             .entry(depend.clone())
@@ -139,7 +140,10 @@ impl SessionDatabase {
                                             .push((
                                                 unsafe {
                                                     std::str::from_utf8_unchecked(
-                                                        session_data.relation.key_names.bytes(*key),
+                                                        session_data
+                                                            .relation
+                                                            .key_names
+                                                            .bytes(NonZeroU32::new(*key).unwrap()),
                                                     )
                                                 }
                                                 .to_owned(),
@@ -160,7 +164,7 @@ impl SessionDatabase {
                                 } else {
                                     self.delete_recursive(&CollectionRow::new(
                                         main_collection_id,
-                                        row.get(),
+                                        row,
                                     ));
                                 }
                                 session_collection_row_map.remove(&session_collection_row);

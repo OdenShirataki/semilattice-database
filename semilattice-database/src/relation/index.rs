@@ -59,7 +59,6 @@ impl RelationIndex {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes()).get();
         block_on(async {
             if let Some(row) = self.fragment.pop() {
-                let row = row.get();
                 futures::join!(
                     async {
                         self.rows.key.update(row, key_id);
@@ -88,8 +87,7 @@ impl RelationIndex {
     }
 
     #[inline(always)]
-    pub fn delete(&mut self, row: u32) {
-        assert!(row > 0);
+    pub fn delete(&mut self, row: NonZeroU32) {
         block_on(async {
             futures::join!(
                 async {
@@ -102,7 +100,7 @@ impl RelationIndex {
                     self.rows.pend.delete(row);
                 },
                 async {
-                    self.fragment.insert_blank(NonZeroU32::new(row).unwrap());
+                    self.fragment.insert_blank(row);
                 },
             )
         });
@@ -116,7 +114,7 @@ impl RelationIndex {
             .iter_by(|v| v.cmp(collection_row))
             .collect::<Vec<_>>()
         {
-            self.delete(row.get());
+            self.delete(row);
         }
     }
 
@@ -127,7 +125,7 @@ impl RelationIndex {
                 self.rows
                     .depend
                     .iter_by(|v| v.cmp(depend))
-                    .filter_map(|row| self.rows.pend.value(row.get()).cloned())
+                    .filter_map(|row| self.rows.pend.value(row).cloned())
                     .collect()
             },
             |key| {
@@ -136,10 +134,9 @@ impl RelationIndex {
                         .depend
                         .iter_by(|v| v.cmp(depend))
                         .filter_map(|row| {
-                            if let (Some(key_row), Some(collection_row)) = (
-                                self.rows.key.value(row.get()),
-                                self.rows.pend.value(row.get()),
-                            ) {
+                            if let (Some(key_row), Some(collection_row)) =
+                                (self.rows.key.value(row), self.rows.pend.value(row))
+                            {
                                 (*key_row == key.get()).then_some(collection_row.clone())
                             } else {
                                 None
@@ -159,13 +156,14 @@ impl RelationIndex {
                     .pend
                     .iter_by(|v| v.cmp(pend))
                     .filter_map(|row| {
-                        if let (Some(key), Some(collection_row)) = (
-                            self.rows.key.value(row.get()),
-                            self.rows.depend.value(row.get()),
-                        ) {
+                        if let (Some(key), Some(collection_row)) =
+                            (self.rows.key.value(row), self.rows.depend.value(row))
+                        {
                             Some(Depend::new(
                                 unsafe {
-                                    std::str::from_utf8_unchecked(self.key_names.bytes(*key))
+                                    std::str::from_utf8_unchecked(
+                                        self.key_names.bytes(NonZeroU32::new(*key).unwrap()),
+                                    )
                                 },
                                 collection_row.clone(),
                             ))
@@ -183,10 +181,9 @@ impl RelationIndex {
                             .pend
                             .iter_by(|v| v.cmp(pend))
                             .filter_map(|row| {
-                                if let (Some(key_row), Some(collection_row)) = (
-                                    self.rows.key.value(row.get()),
-                                    self.rows.depend.value(row.get()),
-                                ) {
+                                if let (Some(key_row), Some(collection_row)) =
+                                    (self.rows.key.value(row), self.rows.depend.value(row))
+                                {
                                     (*key_row == key.get())
                                         .then_some(Depend::new(key_name, collection_row.clone()))
                                 } else {
@@ -211,13 +208,13 @@ impl RelationIndex {
 
     #[inline(always)]
     pub fn depend(&self, row: NonZeroU32) -> Option<&CollectionRow> {
-        self.rows.depend.value(row.get())
+        self.rows.depend.value(row)
     }
 
     #[inline(always)]
     pub unsafe fn key(&self, row: NonZeroU32) -> &str {
-        self.rows.key.value(row.get()).map_or("", |key_row| {
-            std::str::from_utf8_unchecked(self.key_names.bytes(*key_row))
+        self.rows.key.value(row).map_or("", |key_row| {
+            std::str::from_utf8_unchecked(self.key_names.bytes(NonZeroU32::new(*key_row).unwrap()))
         })
     }
 }

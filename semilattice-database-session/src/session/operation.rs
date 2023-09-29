@@ -1,4 +1,4 @@
-use std::num::NonZeroI32;
+use std::num::{NonZeroI32, NonZeroU32};
 
 use crate::{CollectionRow, Record};
 
@@ -50,13 +50,13 @@ pub enum SessionRecord {
     },
     Update {
         collection_id: NonZeroI32,
-        row: u32,
+        row: NonZeroU32,
         record: Record,
         depends: Depends,
         pends: Vec<Pend>,
     },
     Delete {
         collection_id: NonZeroI32,
-        row: u32,
+        row: NonZeroU32,
     },
 }

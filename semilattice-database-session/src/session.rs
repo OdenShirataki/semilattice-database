@@ -11,7 +11,7 @@ pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 
 use std::{
     io::Write,
-    num::{NonZeroI32, NonZeroU32},
+    num::{NonZeroI32, NonZeroI64, NonZeroU32},
     path::Path,
     sync::{Arc, RwLock},
 };
@@ -93,7 +93,7 @@ impl TemporaryDataEntity {
         &self.depends
     }
 }
-pub type TemporaryData = HashMap<NonZeroI32, HashMap<i64, TemporaryDataEntity>>;
+pub type TemporaryData = HashMap<NonZeroI32, HashMap<NonZeroI64, TemporaryDataEntity>>;
 
 pub struct Session {
     name: String,
@@ -244,7 +244,7 @@ impl Session {
         &'a self,
         database: &'a SessionDatabase,
         collection_id: NonZeroI32,
-        row: i64,
+        row: NonZeroI64,
         key: &str,
     ) -> &[u8] {
         if let Some(temporary_collection) = self.temporary_data.get(&collection_id) {
@@ -254,9 +254,9 @@ impl Session {
                 }
             }
         }
-        if row > 0 {
+        if row.get() > 0 {
             if let Some(collection) = database.collection(collection_id) {
-                return collection.field_bytes(row as u32, key);
+                return collection.field_bytes(row.try_into().unwrap(), key);
             }
         }
         b""
@@ -266,7 +266,7 @@ impl Session {
     pub fn collection_field_bytes<'a>(
         &'a self,
         collection: &'a Collection,
-        row: i64,
+        row: NonZeroI64,
         key: &str,
     ) -> &[u8] {
         if let Some(temprary_collection) = self.temporary_data.get(&collection.id()) {
@@ -276,8 +276,8 @@ impl Session {
                 }
             }
         }
-        if row > 0 {
-            collection.field_bytes(row as u32, key)
+        if row.get() > 0 {
+            collection.field_bytes(row.try_into().unwrap(), key)
         } else {
             b""
         }
@@ -287,7 +287,7 @@ impl Session {
     pub fn temporary_collection(
         &self,
         collection_id: NonZeroI32,
-    ) -> Option<&HashMap<i64, TemporaryDataEntity>> {
+    ) -> Option<&HashMap<NonZeroI64, TemporaryDataEntity>> {
         self.temporary_data.get(&collection_id)
     }
 
@@ -304,13 +304,16 @@ impl Session {
                             .iter_by(|v| v.cmp(&pend_row.get()))
                             .filter_map(|relation_row| {
                                 if let (Some(key), Some(depend)) = (
-                                    session_data.relation.rows.key.value(relation_row.get()),
-                                    session_data.relation.rows.depend.value(relation_row.get()),
+                                    session_data.relation.rows.key.value(relation_row),
+                                    session_data.relation.rows.depend.value(relation_row),
                                 ) {
                                     return Some(Depend::new(
                                         unsafe {
                                             std::str::from_utf8_unchecked(
-                                                session_data.relation.key_names.bytes(*key),
+                                                session_data
+                                                    .relation
+                                                    .key_names
+                                                    .bytes(NonZeroU32::new(*key).unwrap()),
                                             )
                                         },
                                         depend.clone(),
@@ -334,8 +337,8 @@ impl Session {
                                 .iter_by(|v| v.cmp(&pend_row.get()))
                                 .filter_map(|relation_row| {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.value(relation_row.get()),
-                                        session_data.relation.rows.depend.value(relation_row.get()),
+                                        session_data.relation.rows.key.value(relation_row),
+                                        session_data.relation.rows.depend.value(relation_row),
                                     ) {
                                         if *key == key_id.get() {
                                             return Some(Depend::new(key_name, depend.clone()));

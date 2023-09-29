@@ -91,7 +91,7 @@ impl Database {
         self.relation
             .read()
             .unwrap()
-            .depends(key, &CollectionRow::new(pend_collection_id, pend_row.get()))
+            .depends(key, &CollectionRow::new(pend_collection_id, pend_row))
             .iter()
             .cloned()
             .collect()

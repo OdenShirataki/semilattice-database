@@ -1,5 +1,5 @@
 use std::{
-    num::{NonZeroI32, NonZeroU32},
+    num::{NonZeroI32, NonZeroI64, NonZeroU32},
     path::Path,
 };
 
@@ -40,11 +40,11 @@ impl SessionData {
         fields: &Vec<KeyValue>,
     ) {
         //TODO: multi thread
-        self.row.update(session_row.get(), row);
-        self.activity.update(session_row.get(), *activity as u8);
-        self.term_begin.update(session_row.get(), term_begin);
-        self.term_end.update(session_row.get(), term_end);
-        self.uuid.update(session_row.get(), uuid);
+        self.row.update(session_row, row);
+        self.activity.update(session_row, *activity as u8);
+        self.term_begin.update(session_row, term_begin);
+        self.term_end.update(session_row, term_end);
+        self.uuid.update(session_row, uuid);
         for kv in fields {
             let key = kv.key();
             let field = if self.fields.contains_key(key) {
@@ -60,7 +60,7 @@ impl SessionData {
                 }
                 self.fields.get_mut(key).unwrap()
             };
-            field.update(session_row.get(), kv.value());
+            field.update(session_row, kv.value());
         }
     }
 
@@ -71,16 +71,16 @@ impl SessionData {
         relation_key: &str,
         depend_session_row: NonZeroU32,
     ) {
-        let row = *self.row.value(depend_session_row.get()).unwrap();
+        let row = *self.row.value(depend_session_row).unwrap();
         self.relation.insert(
             relation_key,
             pend_session_row,
             CollectionRow::new(
-                *self.collection_id.value(depend_session_row.get()).unwrap(),
+                *self.collection_id.value(depend_session_row).unwrap(),
                 if row == 0 {
-                    depend_session_row.get()
+                    depend_session_row
                 } else {
-                    row
+                    unsafe { NonZeroU32::new_unchecked(row) }
                 },
             ),
         );
@@ -95,7 +95,7 @@ impl SessionData {
                 HashMap::new();
             for sequence in 1..=current {
                 for session_row in self.sequence.iter_by(|v| v.cmp(&sequence)) {
-                    if let Some(collection_id) = self.collection_id.value(session_row.get()) {
+                    if let Some(collection_id) = self.collection_id.value(session_row) {
                         let collection_id = *collection_id;
 
                         let in_session = collection_id.get() < 0;
@@ -107,17 +107,18 @@ impl SessionData {
                         let temporary_collection = temporary_data
                             .entry(main_collection_id)
                             .or_insert(HashMap::new());
-                        let row = *self.row.value(session_row.get()).unwrap();
+                        let row = *self.row.value(session_row).unwrap();
 
-                        let temporary_row = if row == 0 {
+                        let temporary_row = NonZeroI64::new(if row == 0 {
                             -(session_row.get() as i64)
                         } else if in_session {
                             -(row as i64)
                         } else {
                             row as i64
-                        };
+                        })
+                        .unwrap();
 
-                        let operation = self.operation.value(session_row.get()).unwrap().clone();
+                        let operation = self.operation.value(session_row).unwrap().clone();
                         if operation == SessionOperation::Delete {
                             temporary_collection.insert(
                                 temporary_row,
@@ -134,32 +135,29 @@ impl SessionData {
                         } else {
                             let row_fields = fields_overlaps
                                 .entry(if row == 0 {
-                                    CollectionRow::new(-main_collection_id, session_row.get())
+                                    CollectionRow::new(-main_collection_id, session_row)
                                 } else {
-                                    CollectionRow::new(collection_id, row)
+                                    CollectionRow::new(collection_id, unsafe {
+                                        NonZeroU32::new_unchecked(row)
+                                    })
                                 })
                                 .or_insert(HashMap::new());
                             self.fields.iter().for_each(|(key, val)| {
-                                if let Some(v) = val.bytes(session_row.get()) {
+                                if let Some(v) = val.bytes(session_row) {
                                     row_fields.insert(key.to_string(), v.to_vec());
                                 }
                             });
                             temporary_collection.insert(
                                 temporary_row,
                                 TemporaryDataEntity {
-                                    activity: if *self.activity.value(session_row.get()).unwrap()
-                                        == 1
-                                    {
+                                    activity: if *self.activity.value(session_row).unwrap() == 1 {
                                         Activity::Active
                                     } else {
                                         Activity::Inactive
                                     },
-                                    term_begin: *self.term_begin.value(session_row.get()).unwrap(),
-                                    term_end: *self.term_end.value(session_row.get()).unwrap(),
-                                    uuid: self
-                                        .uuid
-                                        .value(session_row.get())
-                                        .map_or(0, |uuid| *uuid),
+                                    term_begin: *self.term_begin.value(session_row).unwrap(),
+                                    term_end: *self.term_end.value(session_row).unwrap(),
+                                    uuid: self.uuid.value(session_row).map_or(0, |uuid| *uuid),
                                     operation,
                                     fields: row_fields.clone(),
                                     depends: {
@@ -169,19 +167,15 @@ impl SessionData {
                                             .iter_by(|v| v.cmp(&session_row.get()))
                                             .filter_map(|relation_row| {
                                                 if let (Some(key), Some(depend)) = (
-                                                    self.relation
-                                                        .rows
-                                                        .key
-                                                        .value(relation_row.get()),
-                                                    self.relation
-                                                        .rows
-                                                        .depend
-                                                        .value(relation_row.get()),
+                                                    self.relation.rows.key.value(relation_row),
+                                                    self.relation.rows.depend.value(relation_row),
                                                 ) {
                                                     Some(Depend::new(
                                                         unsafe {
                                                             std::str::from_utf8_unchecked(
-                                                                self.relation.key_names.bytes(*key),
+                                                                self.relation.key_names.bytes(
+                                                                    NonZeroU32::new(*key).unwrap(),
+                                                                ),
                                                             )
                                                         },
                                                         depend.clone(),

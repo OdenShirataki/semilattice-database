@@ -1,5 +1,6 @@
 use std::{
     collections::BTreeSet,
+    num::NonZeroI64,
     ops::Deref,
     sync::{Arc, RwLock},
 };
@@ -55,16 +56,16 @@ impl<'a> SessionSearch<'a> {
     #[inline(always)]
     fn temporary_data_match(
         &self,
-        row: i64,
+        row: NonZeroI64,
         ent: &TemporaryDataEntity,
         condition: &Condition,
     ) -> bool {
         match condition {
             Condition::Row(cond) => match cond {
-                search::Number::In(c) => c.contains(&(row as isize)),
-                search::Number::Max(c) => row <= *c as i64,
-                search::Number::Min(c) => row >= *c as i64,
-                search::Number::Range(c) => c.contains(&(row as isize)),
+                search::Number::In(c) => c.contains(&(row.get() as isize)),
+                search::Number::Max(c) => row.get() <= *c as i64,
+                search::Number::Min(c) => row.get() >= *c as i64,
+                search::Number::Range(c) => c.contains(&(row.get() as isize)),
             },
             Condition::Uuid(uuid) => uuid.contains(&ent.uuid),
             Condition::Activity(activity) => ent.activity == *activity,
@@ -135,7 +136,7 @@ impl<'a> SessionSearch<'a> {
     }
 
     #[inline(always)]
-    fn temprary_data_match_conditions(&self, row: i64, ent: &TemporaryDataEntity) -> bool {
+    fn temprary_data_match_conditions(&self, row: NonZeroI64, ent: &TemporaryDataEntity) -> bool {
         for c in self.search.read().unwrap().conditions() {
             if !self.temporary_data_match(row, ent, c) {
                 return false;
@@ -146,33 +147,33 @@ impl<'a> SessionSearch<'a> {
 
     //TODO : Supports join for session data. overwrite result data by session datas.
     #[inline(always)]
-    pub fn result(self, database: &Database, orders: &Vec<Order>) -> Vec<i64> {
+    pub fn result(self, database: &Database, orders: &Vec<Order>) -> Vec<NonZeroI64> {
         let collection_id = self.search.read().unwrap().collection_id();
         if let Some(collection) = database.collection(collection_id) {
             let result = self.search.write().unwrap().result(database);
             if let Some(tmp) = self.session.temporary_data.get(&collection_id) {
-                let mut tmp_rows: BTreeSet<i64> = BTreeSet::new();
+                let mut tmp_rows: BTreeSet<NonZeroI64> = BTreeSet::new();
                 if let Some(result) = result.read().unwrap().as_ref() {
                     for row in result.rows() {
-                        if let Some(ent) = tmp.get(&(row.get() as i64)) {
+                        let row = NonZeroI64::from(*row);
+                        if let Some(ent) = tmp.get(&row) {
                             if ent.operation != SessionOperation::Delete {
-                                if self.temprary_data_match_conditions(row.get() as i64, ent) {
-                                    tmp_rows.insert(row.get() as i64);
+                                if self.temprary_data_match_conditions(row, ent) {
+                                    tmp_rows.insert(row);
                                 }
                             }
                         } else {
-                            tmp_rows.insert(row.get() as i64);
+                            tmp_rows.insert(row);
                         }
                     }
                 }
                 for (row, _) in tmp {
                     //session new data
-                    let row = *row;
-                    if row < 0 {
-                        if let Some(ent) = tmp.get(&(row as i64)) {
+                    if row.get() < 0 {
+                        if let Some(ent) = tmp.get(row) {
                             if ent.operation != SessionOperation::Delete {
-                                if self.temprary_data_match_conditions(row, ent) {
-                                    tmp_rows.insert(row as i64);
+                                if self.temprary_data_match_conditions(*row, ent) {
+                                    tmp_rows.insert(*row);
                                 }
                             }
                         }
@@ -188,7 +189,7 @@ impl<'a> SessionSearch<'a> {
                     return result
                         .sort(database, orders)
                         .into_iter()
-                        .map(|x| x.get() as i64)
+                        .map(|x| x.into())
                         .collect();
                 }
             }

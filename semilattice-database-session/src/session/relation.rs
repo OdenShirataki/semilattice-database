@@ -82,8 +82,8 @@ impl SessionRelation {
             .collect::<Vec<_>>()
         {
             if let (Some(key), Some(depend)) = (
-                self.rows.key.value(session_relation_row.get()),
-                self.rows.depend.value(session_relation_row.get()),
+                self.rows.key.value(session_relation_row),
+                self.rows.depend.value(session_relation_row),
             ) {
                 let key = *key;
                 let depend = depend.clone();
@@ -100,7 +100,11 @@ impl SessionRelation {
                         },
                         async {
                             ret.push(Depend::new(
-                                unsafe { std::str::from_utf8_unchecked(self.key_names.bytes(key)) },
+                                unsafe {
+                                    std::str::from_utf8_unchecked(
+                                        self.key_names.bytes(NonZeroU32::new(key).unwrap()),
+                                    )
+                                },
                                 depend.clone(),
                             ));
                         }
@@ -112,22 +116,22 @@ impl SessionRelation {
     }
 
     #[inline(always)]
-    pub(crate) async fn delete(&mut self, session_row: u32) {
+    pub(crate) async fn delete(&mut self, session_row: NonZeroU32) {
         for relation_row in self
             .rows
             .session_row
-            .iter_by(|v| v.cmp(&session_row))
+            .iter_by(|v| v.cmp(&session_row.get()))
             .collect::<Vec<_>>()
         {
             futures::join!(
                 async {
-                    self.rows.session_row.delete(relation_row.get());
+                    self.rows.session_row.delete(relation_row);
                 },
                 async {
-                    self.rows.key.delete(relation_row.get());
+                    self.rows.key.delete(relation_row);
                 },
                 async {
-                    self.rows.depend.delete(relation_row.get());
+                    self.rows.depend.delete(relation_row);
                 },
             );
         }

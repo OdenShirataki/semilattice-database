@@ -38,11 +38,8 @@ impl Eq for CollectionRow {}
 
 impl CollectionRow {
     #[inline(always)]
-    pub fn new(collection_id: NonZeroI32, row: u32) -> Self {
-        Self {
-            collection_id,
-            row: NonZeroU32::new(row).unwrap(),
-        }
+    pub fn new(collection_id: NonZeroI32, row: NonZeroU32) -> Self {
+        Self { collection_id, row }
     }
 
     #[inline(always)]

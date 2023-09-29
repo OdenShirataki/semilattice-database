@@ -76,7 +76,7 @@ impl Database {
                 .read()
                 .unwrap()
                 .index_pend()
-                .value(relation_row.get())
+                .value(relation_row)
                 .cloned();
             if let Some(collection_row) = collection_row {
                 self.delete_recursive(&collection_row);
@@ -90,7 +90,7 @@ impl Database {
             .iter_by(|v| v.cmp(target))
             .collect::<Vec<_>>();
         for relation_row in rows {
-            self.relation.write().unwrap().delete(relation_row.get());
+            self.relation.write().unwrap().delete(relation_row);
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {
             collection.update(&Operation::Delete {

@@ -41,7 +41,6 @@ fn test() {
         .search_field("id", search::Field::Match(b"test".to_vec()))
         .search_field("password", search::Field::Match(b"test".to_vec()));
     for row in search.result(&database, &vec![]) {
-        assert!(row >= 0);
         database.update(
             &mut sess,
             vec![SessionRecord::New {
@@ -52,7 +51,7 @@ fn test() {
                 },
                 depends: Depends::Overwrite(vec![(
                     "admin".to_owned(),
-                    CollectionRow::new(collection_admin, row as u32),
+                    CollectionRow::new(collection_admin, row.try_into().unwrap()),
                 )]),
                 pends: vec![],
             }],
@@ -62,8 +61,12 @@ fn test() {
     let sess = database.session("login", None);
     let search = sess.begin_search(collection_login);
     for row in search.result(&database, &vec![]) {
-        let depends =
-            database.depends_with_session(Some("admin"), collection_login, row as u32, Some(&sess));
+        let depends = database.depends_with_session(
+            Some("admin"),
+            collection_login,
+            row.try_into().unwrap(),
+            Some(&sess),
+        );
         for d in depends {
             let collection_id = d.collection_id();
             if let Some(collection) = database.collection(collection_id) {
@@ -73,7 +76,8 @@ fn test() {
                 for row in search.result(&database, &vec![]) {
                     println!(
                         "login id : {}",
-                        std::str::from_utf8(collection.field_bytes(row as u32, "id")).unwrap()
+                        std::str::from_utf8(collection.field_bytes(row.try_into().unwrap(), "id"))
+                            .unwrap()
                     );
                 }
             }
@@ -186,21 +190,21 @@ fn test() {
         for i in person_rows {
             println!(
                 "{},{}",
-                std::str::from_utf8(person.field_bytes(i.get(), "name")).unwrap(),
-                std::str::from_utf8(person.field_bytes(i.get(), "birthday")).unwrap()
+                std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
+                std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
             );
             let mut seach = database.search(collection_history);
             seach.search(Condition::Depend(
                 Some("history".to_owned()),
-                CollectionRow::new(collection_person, i.get()),
+                CollectionRow::new(collection_person, i),
             ));
             let result = search.result(&database);
             if let Some(result) = Arc::clone(&result).read().unwrap().as_ref() {
                 for h in result.rows() {
                     println!(
                         " {} : {}",
-                        std::str::from_utf8(history.field_bytes(h.get(), "date")).unwrap(),
-                        std::str::from_utf8(history.field_bytes(h.get(), "event")).unwrap()
+                        std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),
+                        std::str::from_utf8(history.field_bytes(*h, "event")).unwrap()
                     );
                 }
             }
@@ -211,7 +215,7 @@ fn test() {
         &mut sess,
         vec![SessionRecord::Update {
             collection_id: collection_person,
-            row: 1,
+            row: 1.try_into().unwrap(),
             record: Record {
                 fields: vec![KeyValue::new("name", "Renamed Joe")],
                 ..Record::default()
@@ -262,7 +266,7 @@ fn test() {
         &mut sess,
         vec![SessionRecord::Update {
             collection_id: test1,
-            row: 3,
+            row: 3.try_into().unwrap(),
             record: Record {
                 fields: vec![],
                 ..Record::default()
@@ -276,21 +280,22 @@ fn test() {
     if let Some(t1) = database.collection(test1) {
         let mut sum = 0.0;
         for i in range.clone() {
-            sum += t1.field_num(i, "num");
+            sum += t1.field_num(i.try_into().unwrap(), "num");
             println!(
                 "{},{},{},{},{},{},{},{}",
-                t1.serial(i),
-                if let Some(Activity::Active) = t1.activity(i) {
+                t1.serial(i.try_into().unwrap()),
+                if let Some(Activity::Active) = t1.activity(i.try_into().unwrap()) {
                     "Active"
                 } else {
                     "Inactive"
                 },
-                t1.uuid_string(i).unwrap_or("".to_string()),
-                t1.last_updated(i).unwrap_or(0),
-                t1.term_begin(i).unwrap_or(0),
-                t1.term_end(i).unwrap_or(0),
-                std::str::from_utf8(t1.field_bytes(i, "num")).unwrap(),
-                std::str::from_utf8(t1.field_bytes(i, "num_by3")).unwrap()
+                t1.uuid_string(i.try_into().unwrap())
+                    .unwrap_or("".to_string()),
+                t1.last_updated(i.try_into().unwrap()).unwrap_or(0),
+                t1.term_begin(i.try_into().unwrap()).unwrap_or(0),
+                t1.term_end(i.try_into().unwrap()).unwrap_or(0),
+                std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), "num")).unwrap(),
+                std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), "num_by3")).unwrap()
             );
         }
         assert_eq!(sum, 55.0);

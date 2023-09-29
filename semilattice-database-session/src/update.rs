@@ -1,5 +1,5 @@
 use std::{
-    num::NonZeroU32,
+    num::{NonZeroI64, NonZeroU32},
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -33,7 +33,7 @@ impl SessionDatabase {
                     pends,
                 } => {
                     let session_collection_id = -*collection_id;
-                    ret.push(CollectionRow::new(session_collection_id, session_row.get()));
+                    ret.push(CollectionRow::new(session_collection_id, session_row));
                     let term_begin = if let Term::Overwrite(term_begin) = record.term_begin {
                         term_begin
                     } else {
@@ -51,10 +51,10 @@ impl SessionDatabase {
 
                     session_data
                         .collection_id
-                        .update(session_row.get(), session_collection_id);
+                        .update(session_row, session_collection_id);
                     session_data
                         .operation
-                        .update(session_row.get(), SessionOperation::New);
+                        .update(session_row, SessionOperation::New);
                     session_data.update(
                         session_dir,
                         session_row,
@@ -70,7 +70,7 @@ impl SessionDatabase {
                         .entry(-session_collection_id)
                         .or_insert(HashMap::new());
                     temprary_collection.insert(
-                        -(session_row.get() as i64),
+                        (-(session_row.get() as i64)).try_into().unwrap(),
                         TemporaryDataEntity {
                             activity: record.activity,
                             term_begin,
@@ -121,7 +121,6 @@ impl SessionDatabase {
                     let collection_id = *collection_id;
                     ret.push(CollectionRow::new(collection_id, *row));
 
-                    let row = NonZeroU32::new(*row).unwrap();
                     let in_session = collection_id.get() < 0;
                     let master_collection_id = if in_session {
                         -collection_id
@@ -134,7 +133,7 @@ impl SessionDatabase {
                         Term::Default => (!in_session)
                             .then(|| {
                                 self.collection(master_collection_id)
-                                    .map(|collection| collection.term_begin(row.get()).unwrap_or(0))
+                                    .map(|collection| collection.term_begin(*row).unwrap_or(0))
                             })
                             .and_then(|v| v)
                             .unwrap_or_else(|| {
@@ -158,11 +157,11 @@ impl SessionDatabase {
                         if in_session {
                             session_data
                                 .uuid
-                                .value(row.get())
+                                .value(*row)
                                 .map_or_else(|| semilattice_database::create_uuid(), |uuid| *uuid)
                         } else {
                             if let Some(collection) = self.collection(master_collection_id) {
-                                let uuid = collection.uuid(row.get()).unwrap_or(0);
+                                let uuid = collection.uuid(*row).unwrap_or(0);
                                 if uuid == 0 {
                                     semilattice_database::create_uuid()
                                 } else {
@@ -176,10 +175,10 @@ impl SessionDatabase {
 
                     session_data
                         .collection_id
-                        .update(session_row.get(), collection_id);
+                        .update(session_row, collection_id);
                     session_data
                         .operation
-                        .update(session_row.get(), SessionOperation::Update);
+                        .update(session_row, SessionOperation::Update);
                     session_data.update(
                         session_dir,
                         session_row,
@@ -195,11 +194,13 @@ impl SessionDatabase {
                     match depends {
                         Depends::Default => {
                             if in_session {
-                                session_data.relation.from_session_row(row, session_row);
+                                session_data.relation.from_session_row(*row, session_row);
                             } else {
-                                for i in self.relation().read().unwrap().index_pend().iter_by(|v| {
-                                    v.cmp(&CollectionRow::new(collection_id, row.get()))
-                                }) {
+                                for i in
+                                    self.relation().read().unwrap().index_pend().iter_by(|v| {
+                                        v.cmp(&CollectionRow::new(collection_id, *row))
+                                    })
+                                {
                                     if let Some(depend) = self.relation().read().unwrap().depend(i)
                                     {
                                         let key = unsafe { self.relation().read().unwrap().key(i) }
@@ -224,11 +225,14 @@ impl SessionDatabase {
                         }
                     }
                     temporary_collection
-                        .entry(if in_session {
-                            -(row.get() as i64)
-                        } else {
-                            row.get() as i64
-                        })
+                        .entry(
+                            NonZeroI64::new(if in_session {
+                                -(row.get() as i64)
+                            } else {
+                                row.get() as i64
+                            })
+                            .unwrap(),
+                        )
                         .or_insert(TemporaryDataEntity {
                             activity: record.activity,
                             term_begin,
@@ -259,11 +263,11 @@ impl SessionDatabase {
                 SessionRecord::Delete { collection_id, row } => {
                     session_data
                         .collection_id
-                        .update(session_row.get(), *collection_id);
-                    session_data.row.update(session_row.get(), *row);
+                        .update(session_row, *collection_id);
+                    session_data.row.update(session_row, row.get());
                     session_data
                         .operation
-                        .update(session_row.get(), SessionOperation::Delete);
+                        .update(session_row, SessionOperation::Delete);
                 }
             }
         }

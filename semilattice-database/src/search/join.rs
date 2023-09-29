@@ -48,10 +48,7 @@ impl Join {
                                 .relation
                                 .read()
                                 .unwrap()
-                                .pends(
-                                    key,
-                                    &CollectionRow::new(parent_collection_id, parent_row.get()),
-                                )
+                                .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
                                 .iter()
                                 .filter(|r| r.collection_id() == self.collection_id)
                                 .map(|v| v.row())

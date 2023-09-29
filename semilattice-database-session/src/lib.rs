@@ -170,38 +170,38 @@ impl SessionDatabase {
                     {
                         block_on(async {
                             futures::join!(
-                                session_data.relation.delete(session_row.get()),
+                                session_data.relation.delete(session_row),
                                 async {
-                                    session_data.collection_id.delete(session_row.get());
+                                    session_data.collection_id.delete(session_row);
                                 },
                                 async {
-                                    session_data.row.delete(session_row.get());
+                                    session_data.row.delete(session_row);
                                 },
                                 async {
-                                    session_data.operation.delete(session_row.get());
+                                    session_data.operation.delete(session_row);
                                 },
                                 async {
-                                    session_data.activity.delete(session_row.get());
+                                    session_data.activity.delete(session_row);
                                 },
                                 async {
-                                    session_data.term_begin.delete(session_row.get());
+                                    session_data.term_begin.delete(session_row);
                                 },
                                 async {
-                                    session_data.term_end.delete(session_row.get());
+                                    session_data.term_end.delete(session_row);
                                 },
                                 async {
-                                    session_data.uuid.delete(session_row.get());
+                                    session_data.uuid.delete(session_row);
                                 },
                                 async {
                                     let mut fs = vec![];
                                     for (_field_name, field_data) in session_data.fields.iter_mut()
                                     {
-                                        fs.push(async { field_data.delete(session_row.get()) });
+                                        fs.push(async { field_data.delete(session_row) });
                                     }
                                     futures::future::join_all(fs).await;
                                 },
                                 async {
-                                    session_data.sequence.delete(session_row.get());
+                                    session_data.sequence.delete(session_row);
                                 }
                             );
                         });
@@ -226,7 +226,7 @@ impl SessionDatabase {
         &self,
         key: Option<&str>,
         pend_collection_id: NonZeroI32,
-        pend_row: u32,
+        pend_row: NonZeroU32,
         session: Option<&Session>,
     ) -> Vec<Depend> {
         if pend_collection_id.get() > 0 {
@@ -239,9 +239,7 @@ impl SessionDatabase {
                 .collect()
         } else {
             if let Some(session) = session {
-                if let Some(session_depends) =
-                    session.depends(key, NonZeroU32::new(pend_row).unwrap())
-                {
+                if let Some(session_depends) = session.depends(key, pend_row) {
                     return session_depends;
                 }
             }

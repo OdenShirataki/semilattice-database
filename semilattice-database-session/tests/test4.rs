@@ -40,7 +40,7 @@ fn test4() {
             },
             depends: Depends::Overwrite(vec![(
                 "field".to_owned(),
-                CollectionRow::new(-collection_widget, 1),
+                CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
             )]),
             pends: vec![],
         }],
@@ -55,7 +55,7 @@ fn test4() {
             },
             depends: Depends::Overwrite(vec![(
                 "field".to_owned(),
-                CollectionRow::new(-collection_widget, 1),
+                CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
             )]),
             pends: vec![],
         }],
@@ -70,7 +70,7 @@ fn test4() {
             },
             depends: Depends::Overwrite(vec![(
                 "field".to_owned(),
-                CollectionRow::new(-collection_widget, 1),
+                CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
             )]),
             pends: vec![],
         }],
@@ -88,7 +88,7 @@ fn test4() {
             },
             depends: Depends::Overwrite(vec![(
                 "field".to_owned(),
-                CollectionRow::new(-collection_widget, 1),
+                CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
             )]),
             pends: vec![],
         }],
@@ -99,7 +99,7 @@ fn test4() {
         .begin_search(collection_field)
         .search(semilattice_database::Condition::Depend(
             Some("field".to_owned()),
-            CollectionRow::new(-collection_widget, 1),
+            CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
         ))
         .search_activity(Activity::Active);
     for r in search.result(&database, &vec![]) {

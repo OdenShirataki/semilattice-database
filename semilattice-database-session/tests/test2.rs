@@ -43,7 +43,7 @@ fn test2() {
             &mut sess,
             vec![SessionRecord::Delete {
                 collection_id: collection_bbs,
-                row: 1,
+                row: 1.try_into().unwrap(),
             }],
         );
         database.commit(&mut sess);
