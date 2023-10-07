@@ -1,5 +1,3 @@
-use std::sync::{Arc, RwLock};
-
 use async_recursion::async_recursion;
 use futures::future;
 
@@ -10,7 +8,7 @@ use versatile_data::{
 
 use crate::{Collection, CollectionRow, RelationIndex, Search};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Condition {
     Activity(Activity),
     Term(Term),
@@ -24,11 +22,7 @@ pub enum Condition {
 }
 impl Condition {
     #[async_recursion]
-    pub(crate) async fn result(
-        &self,
-        collection: &Collection,
-        relation: &Arc<RwLock<RelationIndex>>,
-    ) -> RowSet {
+    pub(crate) async fn result(&self, collection: &Collection, relation: &RelationIndex) -> RowSet {
         match self {
             Self::Activity(c) => {
                 VersatileDataSearch::result_condition(
@@ -75,8 +69,6 @@ impl Condition {
             Self::Depend(key, collection_row) => {
                 let collection_id = collection.id();
                 relation
-                    .read()
-                    .unwrap()
                     .pends(key, collection_row)
                     .iter()
                     .filter_map(|r| (r.collection_id() == collection_id).then(|| r.row()))

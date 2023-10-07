@@ -19,7 +19,7 @@ use hashbrown::HashMap;
 
 use versatile_data::Activity;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Search {
     collection_id: NonZeroI32,
     conditions: Vec<Condition>,
@@ -53,13 +53,13 @@ impl Search {
     }
 
     #[inline(always)]
-    pub fn search(&mut self, condition: Condition) -> &mut Self {
+    pub fn search(mut self, condition: Condition) -> Self {
         self.conditions.push(condition);
         self
     }
 
     #[inline(always)]
-    pub fn default(&mut self) -> &mut Self {
+    pub fn default(mut self) -> Self {
         self.conditions.push(Condition::Term(Term::default()));
         self.conditions.push(Condition::Activity(Activity::Active));
         self

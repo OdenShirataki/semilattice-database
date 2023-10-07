@@ -3,6 +3,7 @@ pub mod search;
 mod collection;
 mod relation;
 
+use async_recursion::async_recursion;
 pub use binary_set::BinarySet;
 pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
@@ -12,12 +13,7 @@ pub use versatile_data::{
     IdxBinary, IdxFile, KeyValue, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
 };
 
-use std::{
-    collections::BTreeMap,
-    num::NonZeroI32,
-    path::PathBuf,
-    sync::{Arc, RwLock},
-};
+use std::{collections::BTreeMap, num::NonZeroI32, path::PathBuf};
 
 use hashbrown::HashMap;
 
@@ -25,7 +21,7 @@ pub struct Database {
     collections_dir: PathBuf,
     collections_map: HashMap<String, NonZeroI32>,
     collections: BTreeMap<NonZeroI32, Collection>,
-    relation: Arc<RwLock<RelationIndex>>,
+    relation: RelationIndex,
     collection_settings: std::collections::HashMap<String, DataOption>,
 }
 impl Database {
@@ -40,7 +36,7 @@ impl Database {
             collections_dir,
             collections: BTreeMap::new(),
             collections_map: HashMap::new(),
-            relation: Arc::new(RwLock::new(RelationIndex::new(&dir))),
+            relation: RelationIndex::new(&dir),
             collection_settings: collection_settings.unwrap_or(std::collections::HashMap::new()),
         };
         if db.collections_dir.exists() {
@@ -62,40 +58,33 @@ impl Database {
         db
     }
 
-    pub fn delete_recursive(&mut self, target: &CollectionRow) {
+    #[async_recursion]
+    pub async fn delete_recursive(&mut self, target: &CollectionRow) {
         let rows = self
             .relation
-            .read()
-            .unwrap()
             .index_depend()
             .iter_by(|v| v.cmp(target))
             .collect::<Vec<_>>();
         for relation_row in rows {
-            let collection_row = self
-                .relation
-                .read()
-                .unwrap()
-                .index_pend()
-                .value(relation_row)
-                .cloned();
+            let collection_row = self.relation.index_pend().value(relation_row).cloned();
             if let Some(collection_row) = collection_row {
-                self.delete_recursive(&collection_row);
+                self.delete_recursive(&collection_row).await;
             }
         }
         let rows = self
             .relation
-            .read()
-            .unwrap()
             .index_pend()
             .iter_by(|v| v.cmp(target))
             .collect::<Vec<_>>();
         for relation_row in rows {
-            self.relation.write().unwrap().delete(relation_row);
+            self.relation.delete(relation_row).await;
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {
-            collection.update(&Operation::Delete {
-                row: target.row().get(),
-            });
+            collection
+                .update(&Operation::Delete {
+                    row: target.row().get(),
+                })
+                .await;
         }
     }
 }

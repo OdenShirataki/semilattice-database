@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database-session"
-version = "0.27.0"
+version = "0.28.0"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -17,4 +17,6 @@ license = "MIT/Apache-2.0"
 hashbrown.workspace = true
 serde = "1"
 futures = "0.3.28"
-semilattice-database = { version = "0.85" , path = "../semilattice-database" }
+async-recursion = "1.0"
+
+semilattice-database = { version = "0.86" , path = "../semilattice-database" }

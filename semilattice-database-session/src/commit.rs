@@ -10,10 +10,9 @@ use crate::{
 };
 
 impl SessionDatabase {
-    #[inline(always)]
-    pub fn commit(&mut self, session: &mut Session) -> Vec<CollectionRow> {
+    pub async fn commit(&mut self, session: &mut Session) -> Vec<CollectionRow> {
         if let Some(ref mut data) = session.session_data {
-            let r = self.commit_inner(data);
+            let r = self.commit_inner(data).await;
             self.session_clear(session);
             r
         } else {
@@ -21,8 +20,7 @@ impl SessionDatabase {
         }
     }
 
-    #[inline(always)]
-    fn commit_inner(&mut self, session_data: &SessionData) -> Vec<CollectionRow> {
+    async fn commit_inner(&mut self, session_data: &SessionData) -> Vec<CollectionRow> {
         let mut commit_rows = Vec::new();
 
         let mut session_collection_row_map: HashMap<CollectionRow, CollectionRow> = HashMap::new();
@@ -115,14 +113,13 @@ impl SessionDatabase {
                                                 },
                                             }
                                         })
+                                        .await
                                         .try_into()
                                         .unwrap(),
                                 );
                                 commit_rows.push(collection_row.clone());
-                                self.relation()
-                                    .write()
-                                    .unwrap()
-                                    .delete_pends_by_collection_row(&collection_row); //Delete once and re-register later
+                                self.relation_mut()
+                                    .delete_pends_by_collection_row(&collection_row).await; //Delete once and re-register later
 
                                 for relation_row in session_data
                                     .relation
@@ -159,13 +156,14 @@ impl SessionDatabase {
                                     if let Some(registered) =
                                         session_collection_row_map.get(&session_collection_row)
                                     {
-                                        self.delete_recursive(registered);
+                                        self.delete_recursive(registered).await;
                                     }
                                 } else {
                                     self.delete_recursive(&CollectionRow::new(
                                         main_collection_id,
                                         row,
-                                    ));
+                                    ))
+                                    .await;
                                 }
                                 session_collection_row_map.remove(&session_collection_row);
                             }
@@ -181,10 +179,12 @@ impl SessionDatabase {
                         depend,
                         pends,
                         &session_collection_row_map,
-                    );
+                    )
+                    .await;
                 }
             } else {
-                self.register_relations_with_session(&depend, pends, &session_collection_row_map);
+                self.register_relations_with_session(&depend, pends, &session_collection_row_map)
+                    .await;
             }
         }
         commit_rows

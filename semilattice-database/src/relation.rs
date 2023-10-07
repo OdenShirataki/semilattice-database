@@ -5,7 +5,6 @@ pub use index::RelationIndex;
 use std::{
     num::{NonZeroI32, NonZeroU32},
     ops::Deref,
-    sync::{Arc, RwLock},
 };
 
 use serde::{ser::SerializeStruct, Serialize};
@@ -52,32 +51,31 @@ impl Serialize for Depend {
 
 impl Database {
     #[inline(always)]
-    pub fn relation(&self) -> Arc<RwLock<RelationIndex>> {
-        self.relation.clone()
+    pub fn relation(&self) -> &RelationIndex {
+        &self.relation
     }
 
-    #[inline(always)]
-    pub fn register_relation(
+    pub fn relation_mut(&mut self) -> &mut RelationIndex {
+        &mut self.relation
+    }
+
+    pub async fn register_relation(
         &mut self,
         key_name: &str,
         depend: &CollectionRow,
         pend: CollectionRow,
     ) {
         let depend = depend.clone();
-        self.relation
-            .write()
-            .unwrap()
-            .insert(key_name, depend, pend)
+        self.relation.insert(key_name, depend, pend).await
     }
 
-    #[inline(always)]
-    pub fn register_relations(
+    pub async fn register_relations(
         &mut self,
         depend: &CollectionRow,
         pends: Vec<(String, CollectionRow)>,
     ) {
         for (key_name, pend) in pends {
-            self.register_relation(&key_name, depend, pend);
+            self.register_relation(&key_name, depend, pend).await;
         }
     }
 
@@ -89,8 +87,6 @@ impl Database {
         pend_row: NonZeroU32,
     ) -> Vec<Depend> {
         self.relation
-            .read()
-            .unwrap()
             .depends(key, &CollectionRow::new(pend_collection_id, pend_row))
             .iter()
             .cloned()

@@ -84,17 +84,20 @@ impl Database {
         }
     }
 
-    pub fn delete_collection(&mut self, name: &str) {
+    pub async fn delete_collection(&mut self, name: &str) {
         let collection_id = self.collections_map.get(name).map_or(0, |x| x.get());
         if collection_id > 0 {
             let collection_id = unsafe { NonZeroI32::new_unchecked(collection_id) };
             if let Some(collection) = self.collections.get(&collection_id) {
-                collection.data.all().iter().for_each(|row| {
-                    self.delete_recursive(&CollectionRow::new(collection_id, *row));
+                for row in collection.data.all().iter() {
+                    self.delete_recursive(&CollectionRow::new(collection_id, *row))
+                        .await;
                     if let Some(collection) = self.collection_mut(collection_id) {
-                        collection.update(&Operation::Delete { row: row.get() });
+                        collection
+                            .update(&Operation::Delete { row: row.get() })
+                            .await;
                     }
-                });
+                }
             }
             self.collections_map.remove(name);
             self.collections.remove(&collection_id);

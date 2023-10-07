@@ -10,10 +10,11 @@ pub use data::SessionData;
 pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 
 use std::{
+    collections::BTreeSet,
     io::Write,
     num::{NonZeroI32, NonZeroI64, NonZeroU32},
+    ops::Deref,
     path::Path,
-    sync::{Arc, RwLock},
 };
 
 use hashbrown::HashMap;
@@ -22,7 +23,7 @@ use crate::{Activity, Collection, CollectionRow, Depend, Field, IdxFile, Session
 
 use relation::SessionRelation;
 use search::SessionSearch;
-use semilattice_database::Search;
+use semilattice_database::{Condition, Database, Order, Search};
 use sequence::SequenceNumber;
 use serde::Serialize;
 
@@ -226,17 +227,165 @@ impl Session {
     }
 
     #[inline(always)]
-    pub fn begin_search(&self, collection_id: NonZeroI32) -> SessionSearch {
-        self.search(&Arc::new(RwLock::new(Search::new(
-            collection_id,
-            vec![],
-            HashMap::new(),
-        ))))
+    pub fn begin_search(&mut self, collection_id: NonZeroI32) -> SessionSearch {
+        self.search(Search::new(collection_id, vec![], HashMap::new()))
     }
 
     #[inline(always)]
-    pub fn search(&self, search: &Arc<RwLock<Search>>) -> SessionSearch {
-        SessionSearch::new(self, Arc::clone(search))
+    pub fn search(&mut self, search: Search) -> SessionSearch {
+        SessionSearch::new(self, search)
+    }
+
+    fn temporary_data_match(
+        row: NonZeroI64,
+        ent: &TemporaryDataEntity,
+        condition: &Condition,
+    ) -> bool {
+        match condition {
+            Condition::Row(cond) => match cond {
+                semilattice_database::search::Number::In(c) => c.contains(&(row.get() as isize)),
+                semilattice_database::search::Number::Max(c) => row.get() <= *c as i64,
+                semilattice_database::search::Number::Min(c) => row.get() >= *c as i64,
+                semilattice_database::search::Number::Range(c) => c.contains(&(row.get() as isize)),
+            },
+            Condition::Uuid(uuid) => uuid.contains(&ent.uuid),
+            Condition::Activity(activity) => ent.activity == *activity,
+            Condition::Term(cond) => match cond {
+                semilattice_database::search::Term::In(c) => {
+                    ent.term_begin < *c && (ent.term_end == 0 || ent.term_end > *c)
+                }
+                semilattice_database::search::Term::Past(c) => ent.term_end >= *c,
+                semilattice_database::search::Term::Future(c) => ent.term_begin >= *c,
+            },
+            Condition::Field(key, cond) => ent.fields.get(key).map_or(false, |f| match cond {
+                semilattice_database::search::Field::Match(v) => f == v,
+                semilattice_database::search::Field::Range(min, max) => min <= f && max >= f,
+                semilattice_database::search::Field::Min(min) => min <= f,
+                semilattice_database::search::Field::Max(max) => max >= f,
+                semilattice_database::search::Field::Forward(v) => {
+                    unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v.as_ref())
+                }
+                semilattice_database::search::Field::Partial(v) => {
+                    unsafe { std::str::from_utf8_unchecked(f) }.contains(v.as_ref())
+                }
+                semilattice_database::search::Field::Backward(v) => {
+                    unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v.as_ref())
+                }
+                semilattice_database::search::Field::ValueForward(v) => {
+                    v.starts_with(unsafe { std::str::from_utf8_unchecked(f) })
+                }
+                semilattice_database::search::Field::ValueBackward(v) => {
+                    v.ends_with(unsafe { std::str::from_utf8_unchecked(f) })
+                }
+                semilattice_database::search::Field::ValuePartial(v) => {
+                    v.contains(unsafe { std::str::from_utf8_unchecked(f) })
+                }
+            }),
+            Condition::Narrow(conditions) => {
+                let mut is_match = true;
+                for c in conditions {
+                    is_match &= Self::temporary_data_match(row, ent, c);
+                    if !is_match {
+                        break;
+                    }
+                }
+                is_match
+            }
+            Condition::Wide(conditions) => {
+                let mut is_match = false;
+                for c in conditions {
+                    is_match |= Self::temporary_data_match(row, ent, c);
+                    if is_match {
+                        break;
+                    }
+                }
+                is_match
+            }
+            Condition::Depend(key, collection_row) => {
+                let mut is_match = true;
+                for depend in &ent.depends {
+                    is_match = key.as_ref().map_or(true, |key| key == depend.key())
+                        && collection_row == depend.deref();
+                    if is_match {
+                        break;
+                    }
+                }
+                is_match
+            }
+            Condition::LastUpdated(_) => true,
+        }
+    }
+
+    #[inline(always)]
+    fn temprary_data_match_conditions(
+        search: &Vec<Condition>,
+        row: NonZeroI64,
+        ent: &TemporaryDataEntity,
+    ) -> bool {
+        for c in search {
+            if !Self::temporary_data_match(row, ent, c) {
+                return false;
+            }
+        }
+        true
+    }
+
+    //TODO : Supports join for session data. overwrite result data by session datas.
+    pub async fn result_with(
+        &mut self,
+        search: &mut Search,
+        database: &Database,
+        orders: &Vec<Order>,
+    ) -> Vec<NonZeroI64> {
+        let collection_id = search.collection_id();
+        if let Some(collection) = database.collection(collection_id) {
+            let conditions = search.conditions().clone();
+            let result = search.result(database).await;
+            if let Some(tmp) = self.temporary_data.get(&collection_id) {
+                let mut tmp_rows: BTreeSet<NonZeroI64> = BTreeSet::new();
+                if let Some(result) = result.read().unwrap().deref() {
+                    for row in result.rows() {
+                        let row = NonZeroI64::from(*row);
+                        if let Some(ent) = tmp.get(&row) {
+                            if ent.operation != SessionOperation::Delete {
+                                if Self::temprary_data_match_conditions(&conditions, row, ent) {
+                                    tmp_rows.insert(row);
+                                }
+                            }
+                        } else {
+                            tmp_rows.insert(row);
+                        }
+                    }
+                }
+                for (row, _) in tmp {
+                    //session new data
+                    if row.get() < 0 {
+                        if let Some(ent) = tmp.get(row) {
+                            if ent.operation != SessionOperation::Delete {
+                                if Self::temprary_data_match_conditions(&conditions, *row, ent) {
+                                    tmp_rows.insert(*row);
+                                }
+                            }
+                        }
+                    }
+                }
+                let mut new_rows = tmp_rows.into_iter().collect();
+                if orders.len() > 0 {
+                    sort::sort(&mut new_rows, orders, collection, tmp);
+                }
+                return new_rows;
+            } else {
+                if let Some(result) = result.read().unwrap().deref() {
+                    return result
+                        .sort(database, orders)
+                        .into_iter()
+                        .map(|x| x.into())
+                        .collect();
+                }
+            }
+        }
+
+        vec![]
     }
 
     #[inline(always)]

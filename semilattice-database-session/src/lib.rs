@@ -10,12 +10,11 @@ pub use session::{Depends, Pend, Session, SessionRecord};
 
 use std::{
     io::Read,
-    num::{NonZeroI32, NonZeroU32},
+    num::{NonZeroI32, NonZeroI64},
     path::PathBuf,
     time::{self, UNIX_EPOCH},
 };
 
-use futures::executor::block_on;
 use hashbrown::HashMap;
 use semilattice_database::{idx_binary, BinarySet, Database, Field, FileMmap, IdxFile};
 use session::SessionInfo;
@@ -24,6 +23,7 @@ pub struct SessionDatabase {
     database: Database,
     sessions_dir: PathBuf,
 }
+
 impl std::ops::Deref for SessionDatabase {
     type Target = Database;
     fn deref(&self) -> &Self::Target {
@@ -152,7 +152,11 @@ impl SessionDatabase {
         session.temporary_data = temporary_data;
     }
 
-    pub fn update(&self, session: &mut Session, records: Vec<SessionRecord>) -> Vec<CollectionRow> {
+    pub async fn update(
+        &self,
+        session: &mut Session,
+        records: Vec<SessionRecord>,
+    ) -> Vec<CollectionRow> {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
         if let None = session.session_data {
@@ -168,56 +172,56 @@ impl SessionDatabase {
                         .iter_by(|v| v.cmp(&row))
                         .collect::<Vec<_>>()
                     {
-                        block_on(async {
-                            futures::join!(
-                                session_data.relation.delete(session_row),
-                                async {
-                                    session_data.collection_id.delete(session_row);
-                                },
-                                async {
-                                    session_data.row.delete(session_row);
-                                },
-                                async {
-                                    session_data.operation.delete(session_row);
-                                },
-                                async {
-                                    session_data.activity.delete(session_row);
-                                },
-                                async {
-                                    session_data.term_begin.delete(session_row);
-                                },
-                                async {
-                                    session_data.term_end.delete(session_row);
-                                },
-                                async {
-                                    session_data.uuid.delete(session_row);
-                                },
-                                async {
-                                    let mut fs = vec![];
-                                    for (_field_name, field_data) in session_data.fields.iter_mut()
-                                    {
-                                        fs.push(async { field_data.delete(session_row) });
-                                    }
-                                    futures::future::join_all(fs).await;
-                                },
-                                async {
-                                    session_data.sequence.delete(session_row);
+                        futures::join!(
+                            session_data.relation.delete(session_row),
+                            async {
+                                session_data.collection_id.delete(session_row);
+                            },
+                            async {
+                                session_data.row.delete(session_row);
+                            },
+                            async {
+                                session_data.operation.delete(session_row);
+                            },
+                            async {
+                                session_data.activity.delete(session_row);
+                            },
+                            async {
+                                session_data.term_begin.delete(session_row);
+                            },
+                            async {
+                                session_data.term_end.delete(session_row);
+                            },
+                            async {
+                                session_data.uuid.delete(session_row);
+                            },
+                            {
+                                let mut fs = vec![];
+                                for (_field_name, field_data) in session_data.fields.iter_mut() {
+                                    fs.push(async { field_data.delete(session_row) });
                                 }
-                            );
-                        });
+                                futures::future::join_all(fs)
+                            },
+                            async {
+                                session_data.sequence.delete(session_row);
+                            }
+                        );
                     }
                 }
             }
 
             let sequence = session_data.sequence_number.next();
-            ret.extend(self.update_recursive(
-                session_data,
-                &mut session.temporary_data,
-                &session_dir,
-                sequence,
-                &records,
-                None,
-            ));
+            ret.extend(
+                self.update_recursive(
+                    session_data,
+                    &mut session.temporary_data,
+                    &session_dir,
+                    sequence,
+                    &records,
+                    None,
+                )
+                .await,
+            );
         }
         ret
     }
@@ -226,20 +230,30 @@ impl SessionDatabase {
         &self,
         key: Option<&str>,
         pend_collection_id: NonZeroI32,
-        pend_row: NonZeroU32,
+        pend_row: NonZeroI64,
         session: Option<&Session>,
     ) -> Vec<Depend> {
-        if pend_collection_id.get() > 0 {
+        if pend_row.get() < 0 {
             self.relation()
-                .read()
-                .unwrap()
-                .depends(key, &CollectionRow::new(pend_collection_id, pend_row))
+                .depends(
+                    key,
+                    &CollectionRow::new(pend_collection_id, (-pend_row).try_into().unwrap()),
+                )
+                .iter()
+                .cloned()
+                .collect()
+        } else if pend_collection_id.get() > 0 {
+            self.relation()
+                .depends(
+                    key,
+                    &CollectionRow::new(pend_collection_id, pend_row.try_into().unwrap()),
+                )
                 .iter()
                 .cloned()
                 .collect()
         } else {
             if let Some(session) = session {
-                if let Some(session_depends) = session.depends(key, pend_row) {
+                if let Some(session_depends) = session.depends(key, pend_row.try_into().unwrap()) {
                     return session_depends;
                 }
             }
@@ -247,7 +261,7 @@ impl SessionDatabase {
         }
     }
 
-    pub fn register_relations_with_session(
+    pub async fn register_relations_with_session(
         &mut self,
         depend: &CollectionRow,
         pends: Vec<(String, CollectionRow)>,
@@ -256,10 +270,11 @@ impl SessionDatabase {
         for (key_name, pend) in pends {
             if pend.collection_id().get() < 0 {
                 if let Some(pend) = row_map.get(&pend) {
-                    self.register_relation(&key_name, depend, pend.clone());
+                    self.register_relation(&key_name, depend, pend.clone())
+                        .await;
                 }
             } else {
-                self.register_relation(&key_name, depend, pend);
+                self.register_relation(&key_name, depend, pend).await;
             }
         }
     }

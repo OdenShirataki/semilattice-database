@@ -27,8 +27,7 @@ pub struct SessionData {
 }
 
 impl SessionData {
-    #[inline(always)]
-    pub fn update(
+    pub async fn update(
         &mut self,
         session_dir: &Path,
         session_row: NonZeroU32,
@@ -39,12 +38,14 @@ impl SessionData {
         uuid: u128,
         fields: &Vec<KeyValue>,
     ) {
-        //TODO: multi thread
-        self.row.update(session_row, row);
-        self.activity.update(session_row, *activity as u8);
-        self.term_begin.update(session_row, term_begin);
-        self.term_end.update(session_row, term_end);
-        self.uuid.update(session_row, uuid);
+        futures::join!(
+            self.row.update(session_row, row),
+            self.activity.update(session_row, *activity as u8),
+            self.term_begin.update(session_row, term_begin),
+            self.term_end.update(session_row, term_end),
+            self.uuid.update(session_row, uuid)
+        );
+
         for kv in fields {
             let key = kv.key();
             let field = if self.fields.contains_key(key) {
@@ -60,30 +61,32 @@ impl SessionData {
                 }
                 self.fields.get_mut(key).unwrap()
             };
-            field.update(session_row, kv.value());
+            //TODO: multi thread
+            field.update(session_row, kv.value()).await;
         }
     }
 
-    #[inline(always)]
-    pub(crate) fn incidentally_depend(
+    pub(crate) async fn incidentally_depend(
         &mut self,
         pend_session_row: NonZeroU32,
         relation_key: &str,
         depend_session_row: NonZeroU32,
     ) {
         let row = *self.row.value(depend_session_row).unwrap();
-        self.relation.insert(
-            relation_key,
-            pend_session_row,
-            CollectionRow::new(
-                *self.collection_id.value(depend_session_row).unwrap(),
-                if row == 0 {
-                    depend_session_row
-                } else {
-                    unsafe { NonZeroU32::new_unchecked(row) }
-                },
-            ),
-        );
+        self.relation
+            .insert(
+                relation_key,
+                pend_session_row,
+                CollectionRow::new(
+                    *self.collection_id.value(depend_session_row).unwrap(),
+                    if row == 0 {
+                        depend_session_row
+                    } else {
+                        unsafe { NonZeroU32::new_unchecked(row) }
+                    },
+                ),
+            )
+            .await;
     }
 
     #[inline(always)]

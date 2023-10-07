@@ -9,13 +9,13 @@ use crate::{CollectionRow, Database};
 
 use super::SearchResult;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum JoinCondition {
     Pends { key: Option<String> },
     Field(String, versatile_data::search::Field),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Join {
     collection_id: NonZeroI32,
     conditions: Vec<JoinCondition>,
@@ -46,8 +46,6 @@ impl Join {
                         async {
                             database
                                 .relation
-                                .read()
-                                .unwrap()
                                 .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
                                 .iter()
                                 .filter(|r| r.collection_id() == self.collection_id)
@@ -85,7 +83,6 @@ impl Join {
         SearchResult::new(self.collection_id, rows, join_nest)
     }
 
-    #[async_recursion]
     pub async fn result(
         &self,
         database: &Database,

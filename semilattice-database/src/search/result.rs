@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use futures::{executor::block_on, future};
+use futures::future;
 use hashbrown::HashMap;
 use versatile_data::{Order, RowSet};
 
@@ -46,13 +46,15 @@ impl SearchResult {
 
     #[inline(always)]
     pub fn sort(&self, database: &Database, orders: &[Order]) -> Vec<NonZeroU32> {
-        database.collection(self.collection_id).map_or(vec![], |c| {
+        if let Some(collection) = database.collection(self.collection_id) {
             if orders.len() > 0 {
-                c.data.sort(&self.rows, &orders)
+                collection.data.sort(&self.rows, &orders)
             } else {
                 self.rows.iter().cloned().collect()
             }
-        })
+        } else {
+            vec![]
+        }
     }
 }
 
@@ -62,11 +64,10 @@ impl Search {
         Arc::clone(&self.result)
     }
 
-    #[inline(always)]
     pub(crate) async fn result_conditions(
         collection: &Collection,
         conditions: &Vec<Condition>,
-        relation: &Arc<RwLock<RelationIndex>>,
+        relation: &RelationIndex,
     ) -> RowSet {
         let mut fs = conditions
             .iter()
@@ -83,21 +84,16 @@ impl Search {
         rows
     }
 
-    #[inline(always)]
-    pub fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
+    pub async fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
         if let Some(collection) = database.collection(self.collection_id) {
             let rows = if self.conditions.len() > 0 {
-                block_on(Self::result_conditions(
-                    collection,
-                    &self.conditions,
-                    &database.relation,
-                ))
+                Self::result_conditions(collection, &self.conditions, &database.relation).await
             } else {
                 collection.data.all()
             };
 
-            let join_result = block_on(async {
-                let mut join_result = HashMap::new();
+            let mut join_result = HashMap::new();
+            {
                 let mut fs: Vec<_> = self
                     .join
                     .iter()
@@ -115,8 +111,7 @@ impl Search {
                     join_result.insert(ret.0, ret.1.await);
                     fs = remaining;
                 }
-                join_result
-            });
+            }
             *self.result.write().unwrap() = Some(SearchResult {
                 collection_id: self.collection_id,
                 rows,

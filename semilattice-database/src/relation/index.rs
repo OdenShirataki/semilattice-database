@@ -1,7 +1,6 @@
 use std::{num::NonZeroU32, path::Path};
 
 use binary_set::BinarySet;
-use futures::executor::block_on;
 use versatile_data::{IdxFile, RowFragment};
 
 use crate::{CollectionRow, Depend};
@@ -54,67 +53,48 @@ impl RelationIndex {
         }
     }
 
-    #[inline(always)]
-    pub fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
+    pub async fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes()).get();
-        block_on(async {
-            if let Some(row) = self.fragment.pop() {
-                futures::join!(
-                    async {
-                        self.rows.key.update(row, key_id);
-                    },
-                    async {
-                        self.rows.depend.update(row, depend);
-                    },
-                    async {
-                        self.rows.pend.update(row, pend);
-                    },
-                )
-            } else {
-                futures::join!(
-                    async {
-                        self.rows.key.insert(key_id);
-                    },
-                    async {
-                        self.rows.depend.insert(depend);
-                    },
-                    async {
-                        self.rows.pend.insert(pend);
-                    }
-                )
-            }
-        });
-    }
-
-    #[inline(always)]
-    pub fn delete(&mut self, row: NonZeroU32) {
-        block_on(async {
+        if let Some(row) = self.fragment.pop() {
             futures::join!(
-                async {
-                    self.rows.key.delete(row);
-                },
-                async {
-                    self.rows.depend.delete(row);
-                },
-                async {
-                    self.rows.pend.delete(row);
-                },
-                async {
-                    self.fragment.insert_blank(row);
-                },
-            )
-        });
+                self.rows.key.update(row, key_id),
+                self.rows.depend.update(row, depend),
+                self.rows.pend.update(row, pend)
+            );
+        } else {
+            futures::join!(
+                self.rows.key.insert(key_id),
+                self.rows.depend.insert(depend),
+                self.rows.pend.insert(pend)
+            );
+        }
     }
 
-    #[inline(always)]
-    pub fn delete_pends_by_collection_row(&mut self, collection_row: &CollectionRow) {
+    pub async fn delete(&mut self, row: NonZeroU32) {
+        futures::join!(
+            async {
+                self.rows.key.delete(row);
+            },
+            async {
+                self.rows.depend.delete(row);
+            },
+            async {
+                self.rows.pend.delete(row);
+            },
+            async {
+                self.fragment.insert_blank(row);
+            },
+        );
+    }
+
+    pub async fn delete_pends_by_collection_row(&mut self, collection_row: &CollectionRow) {
         for row in self
             .rows
             .pend
             .iter_by(|v| v.cmp(collection_row))
             .collect::<Vec<_>>()
         {
-            self.delete(row);
+            self.delete(row).await;
         }
     }
 

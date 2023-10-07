@@ -1,7 +1,5 @@
 use std::{num::NonZeroU32, path::Path};
 
-use futures::executor::block_on;
-
 use crate::{BinarySet, IdxFile};
 
 use super::{CollectionRow, Depend};
@@ -45,31 +43,22 @@ impl SessionRelation {
         }
     }
 
-    #[inline(always)]
-    pub(crate) fn insert(
+    pub(crate) async fn insert(
         &mut self,
         relation_key: &str,
         session_row: NonZeroU32,
         depend: CollectionRow,
     ) {
-        block_on(async {
-            futures::join!(
-                async {
-                    let key_id = self.key_names.row_or_insert(relation_key.as_bytes());
-                    self.rows.key.insert(key_id.get());
-                },
-                async {
-                    self.rows.session_row.insert(session_row.get());
-                },
-                async {
-                    self.rows.depend.insert(depend);
-                },
-            )
-        });
+        futures::join!(
+            self.rows
+                .key
+                .insert(self.key_names.row_or_insert(relation_key.as_bytes()).get()),
+            self.rows.session_row.insert(session_row.get()),
+            self.rows.depend.insert(depend)
+        );
     }
 
-    #[inline(always)]
-    pub(crate) fn from_session_row(
+    pub(crate) async fn from_session_row(
         &mut self,
         session_row: NonZeroU32,
         new_session_row: NonZeroU32,
@@ -87,29 +76,21 @@ impl SessionRelation {
             ) {
                 let key = *key;
                 let depend = depend.clone();
-                block_on(async {
-                    futures::join!(
-                        async {
-                            self.rows.key.insert(key);
-                        },
-                        async {
-                            self.rows.session_row.insert(new_session_row.get());
-                        },
-                        async {
-                            self.rows.depend.insert(depend.clone());
-                        },
-                        async {
-                            ret.push(Depend::new(
-                                unsafe {
-                                    std::str::from_utf8_unchecked(
-                                        self.key_names.bytes(NonZeroU32::new(key).unwrap()),
-                                    )
-                                },
-                                depend.clone(),
-                            ));
-                        }
-                    );
-                });
+                futures::join!(
+                    self.rows.key.insert(key),
+                    self.rows.session_row.insert(new_session_row.get()),
+                    self.rows.depend.insert(depend.clone()),
+                    async {
+                        ret.push(Depend::new(
+                            unsafe {
+                                std::str::from_utf8_unchecked(
+                                    self.key_names.bytes(NonZeroU32::new(key).unwrap()),
+                                )
+                            },
+                            depend.clone(),
+                        ));
+                    }
+                );
             }
         }
         ret

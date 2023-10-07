@@ -4,6 +4,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use async_recursion::async_recursion;
 use hashbrown::HashMap;
 
 use crate::{
@@ -12,18 +13,19 @@ use crate::{
 };
 
 impl SessionDatabase {
-    pub(super) fn update_recursive(
+    #[async_recursion]
+    pub(super) async fn update_recursive(
         &self,
         session_data: &mut SessionData,
         temporary_data: &mut TemporaryData,
         session_dir: &Path,
         sequence_number: usize,
         records: &Vec<SessionRecord>,
-        depend_by_pend: Option<(&str, NonZeroU32)>,
+        depend_by_pend: Option<(&'async_recursion str, NonZeroU32)>,
     ) -> Vec<CollectionRow> {
         let mut ret = vec![];
         for record in records {
-            let session_row = session_data.sequence.insert(sequence_number);
+            let session_row = session_data.sequence.insert(sequence_number).await;
 
             match record {
                 SessionRecord::New {
@@ -49,22 +51,26 @@ impl SessionDatabase {
                     };
                     let uuid = semilattice_database::create_uuid();
 
-                    session_data
-                        .collection_id
-                        .update(session_row, session_collection_id);
-                    session_data
-                        .operation
-                        .update(session_row, SessionOperation::New);
-                    session_data.update(
-                        session_dir,
-                        session_row,
-                        0,
-                        &record.activity,
-                        term_begin,
-                        term_end,
-                        uuid,
-                        &record.fields,
+                    futures::join!(
+                        session_data
+                            .collection_id
+                            .update(session_row, session_collection_id),
+                        session_data
+                            .operation
+                            .update(session_row, SessionOperation::New),
                     );
+                    session_data
+                        .update(
+                            session_dir,
+                            session_row,
+                            0,
+                            &record.activity,
+                            term_begin,
+                            term_end,
+                            uuid,
+                            &record.fields,
+                        )
+                        .await;
 
                     let temprary_collection = temporary_data
                         .entry(-session_collection_id)
@@ -87,7 +93,8 @@ impl SessionDatabase {
                                 for (key, depend) in depends {
                                     session_data
                                         .relation
-                                        .insert(key, session_row, depend.clone());
+                                        .insert(key, session_row, depend.clone())
+                                        .await;
                                     tmp.push(Depend::new(key, depend.clone()));
                                 }
                                 tmp
@@ -98,7 +105,9 @@ impl SessionDatabase {
                     );
 
                     if let Some((key, depend_session_row)) = depend_by_pend {
-                        session_data.incidentally_depend(session_row, key, depend_session_row);
+                        session_data
+                            .incidentally_depend(session_row, key, depend_session_row)
+                            .await;
                     }
                     for pend in pends {
                         self.update_recursive(
@@ -108,7 +117,8 @@ impl SessionDatabase {
                             sequence_number,
                             pend.records(),
                             Some((pend.key(), session_row)),
-                        );
+                        )
+                        .await;
                     }
                 }
                 SessionRecord::Update {
@@ -173,43 +183,47 @@ impl SessionDatabase {
                         }
                     };
 
-                    session_data
-                        .collection_id
-                        .update(session_row, collection_id);
-                    session_data
-                        .operation
-                        .update(session_row, SessionOperation::Update);
-                    session_data.update(
-                        session_dir,
-                        session_row,
-                        row.get(),
-                        &record.activity,
-                        term_begin,
-                        term_end,
-                        uuid,
-                        &record.fields,
+                    futures::join!(
+                        session_data
+                            .collection_id
+                            .update(session_row, collection_id),
+                        session_data
+                            .operation
+                            .update(session_row, SessionOperation::Update),
                     );
+                    session_data
+                        .update(
+                            session_dir,
+                            session_row,
+                            row.get(),
+                            &record.activity,
+                            term_begin,
+                            term_end,
+                            uuid,
+                            &record.fields,
+                        )
+                        .await;
 
                     let mut tmp_depends = vec![];
                     match depends {
                         Depends::Default => {
                             if in_session {
-                                session_data.relation.from_session_row(*row, session_row);
+                                session_data
+                                    .relation
+                                    .from_session_row(*row, session_row)
+                                    .await;
                             } else {
-                                for i in
-                                    self.relation().read().unwrap().index_pend().iter_by(|v| {
-                                        v.cmp(&CollectionRow::new(collection_id, *row))
-                                    })
+                                for i in self
+                                    .relation()
+                                    .index_pend()
+                                    .iter_by(|v| v.cmp(&CollectionRow::new(collection_id, *row)))
                                 {
-                                    if let Some(depend) = self.relation().read().unwrap().depend(i)
-                                    {
-                                        let key = unsafe { self.relation().read().unwrap().key(i) }
-                                            .to_owned();
-                                        session_data.relation.insert(
-                                            &key,
-                                            session_row,
-                                            depend.clone(),
-                                        );
+                                    if let Some(depend) = self.relation().depend(i) {
+                                        let key = unsafe { self.relation().key(i) }.to_owned();
+                                        session_data
+                                            .relation
+                                            .insert(&key, session_row, depend.clone())
+                                            .await;
                                         tmp_depends.push(Depend::new(key, depend.clone()));
                                     }
                                 }
@@ -219,7 +233,8 @@ impl SessionDatabase {
                             for (key, depend) in depends {
                                 session_data
                                     .relation
-                                    .insert(key, session_row, depend.clone());
+                                    .insert(key, session_row, depend.clone())
+                                    .await;
                                 tmp_depends.push(Depend::new(key, depend.clone()));
                             }
                         }
@@ -247,7 +262,9 @@ impl SessionDatabase {
                             depends: tmp_depends,
                         });
                     if let Some((key, depend_session_row)) = depend_by_pend {
-                        session_data.incidentally_depend(session_row, key, depend_session_row);
+                        session_data
+                            .incidentally_depend(session_row, key, depend_session_row)
+                            .await;
                     }
                     for pend in pends {
                         self.update_recursive(
@@ -257,17 +274,20 @@ impl SessionDatabase {
                             sequence_number,
                             pend.records(),
                             Some((pend.key(), session_row)),
-                        );
+                        )
+                        .await;
                     }
                 }
                 SessionRecord::Delete { collection_id, row } => {
-                    session_data
-                        .collection_id
-                        .update(session_row, *collection_id);
-                    session_data.row.update(session_row, row.get());
-                    session_data
-                        .operation
-                        .update(session_row, SessionOperation::Delete);
+                    futures::join!(
+                        session_data
+                            .collection_id
+                            .update(session_row, *collection_id),
+                        session_data.row.update(session_row, row.get()),
+                        session_data
+                            .operation
+                            .update(session_row, SessionOperation::Delete)
+                    );
                 }
             }
         }
