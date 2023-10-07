@@ -60,8 +60,8 @@ impl SearchResult {
 
 impl Search {
     #[inline(always)]
-    pub fn get_result(&self) -> Arc<RwLock<Option<SearchResult>>> {
-        Arc::clone(&self.result)
+    pub fn get_result(&self) -> &Arc<RwLock<Option<SearchResult>>> {
+        &self.result
     }
 
     pub(crate) async fn result_conditions(
