@@ -57,7 +57,9 @@ impl Join {
                 }
                 JoinCondition::Field(name, condition) => {
                     if let Some(collection) = database.collection(parent_collection_id) {
-                        fs.push(Search::result_field(collection, name, condition).boxed());
+                        fs.push(
+                            async { Search::result_field(collection, name, condition) }.boxed(),
+                        );
                     }
                 }
             }
