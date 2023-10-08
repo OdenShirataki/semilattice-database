@@ -28,6 +28,7 @@ impl Database {
     pub fn new(
         dir: PathBuf,
         collection_settings: Option<std::collections::HashMap<String, DataOption>>,
+        relation_allocation_lot: u32,
     ) -> Self {
         let mut collections_dir = dir.to_path_buf();
         collections_dir.push("collection");
@@ -36,7 +37,7 @@ impl Database {
             collections_dir,
             collections: BTreeMap::new(),
             collections_map: HashMap::new(),
-            relation: RelationIndex::new(&dir),
+            relation: RelationIndex::new(&dir, relation_allocation_lot),
             collection_settings: collection_settings.unwrap_or(std::collections::HashMap::new()),
         };
         if db.collections_dir.exists() {

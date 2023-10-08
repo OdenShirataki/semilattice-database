@@ -14,7 +14,7 @@ fn test() {
         std::fs::create_dir_all(dir).unwrap();
     }
     futures::executor::block_on(async {
-        let mut database = Database::new(dir.into(), None);
+        let mut database = Database::new(dir.into(), None, 10);
 
         let collection_person_id = database.collection_id_or_create("person");
         let collection_history_id = database.collection_id_or_create("history");

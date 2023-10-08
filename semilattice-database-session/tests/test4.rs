@@ -10,7 +10,7 @@ fn test4() {
     }
     std::fs::create_dir_all(dir).unwrap();
 
-    let mut database = SessionDatabase::new(dir.into(), None);
+    let mut database = SessionDatabase::new(dir.into(), None, 10);
     let collection_widget = database.collection_id_or_create("widget");
     let collection_field = database.collection_id_or_create("field");
     futures::executor::block_on(async {

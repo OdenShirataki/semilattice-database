@@ -169,7 +169,7 @@ impl Session {
             let path = p.path();
             if path.is_dir() {
                 if let Some(fname) = p.file_name().to_str() {
-                    let field = Field::new(path);
+                    let field = Field::new(path, 1);
                     fields.insert(fname.to_owned(), field);
                 }
             }
@@ -181,48 +181,72 @@ impl Session {
                 path.push("sequence_number.i");
                 path
             }),
-            sequence: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("sequence.i");
-                path
-            }),
-            collection_id: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("collection_id.i");
-                path
-            }),
-            row: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("row.i");
-                path
-            }),
-            operation: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("operation.i");
-                path
-            }),
-            activity: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("activity.i");
-                path
-            }),
-            term_begin: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("term_begin.i");
-                path
-            }),
-            term_end: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("term_end.i");
-                path
-            }),
-            uuid: IdxFile::new({
-                let mut path = session_dir.to_path_buf();
-                path.push("uuid.i");
-                path
-            }),
+            sequence: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("sequence.i");
+                    path
+                },
+                1,
+            ),
+            collection_id: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("collection_id.i");
+                    path
+                },
+                1,
+            ),
+            row: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("row.i");
+                    path
+                },
+                1,
+            ),
+            operation: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("operation.i");
+                    path
+                },
+                1,
+            ),
+            activity: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("activity.i");
+                    path
+                },
+                1,
+            ),
+            term_begin: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("term_begin.i");
+                    path
+                },
+                1,
+            ),
+            term_end: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("term_end.i");
+                    path
+                },
+                1,
+            ),
+            uuid: IdxFile::new(
+                {
+                    let mut path = session_dir.to_path_buf();
+                    path.push("uuid.i");
+                    path
+                },
+                1,
+            ),
             fields,
-            relation: SessionRelation::new(session_dir),
+            relation: SessionRelation::new(session_dir, 1),
         }
     }
 

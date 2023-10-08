@@ -16,39 +16,51 @@ pub struct RelationIndex {
     rows: RelationIndexRows,
 }
 impl RelationIndex {
-    pub fn new(root_dir: &Path) -> Self {
+    pub fn new(root_dir: &Path, allocation_lot: u32) -> Self {
         let mut dir = root_dir.to_path_buf();
         dir.push("relation");
         if !dir.exists() {
             std::fs::create_dir_all(&dir).unwrap();
         }
         Self {
-            key_names: BinarySet::new({
-                let mut path = dir.clone();
-                path.push("key_name");
-                path
-            }),
+            key_names: BinarySet::new(
+                {
+                    let mut path = dir.clone();
+                    path.push("key_name");
+                    path
+                },
+                1,
+            ),
             fragment: RowFragment::new({
                 let mut path = dir.clone();
                 path.push("fragment.f");
                 path
             }),
             rows: RelationIndexRows {
-                key: IdxFile::new({
-                    let mut path = dir.clone();
-                    path.push("key.i");
-                    path
-                }),
-                depend: IdxFile::new({
-                    let mut path = dir.clone();
-                    path.push("depend.i");
-                    path
-                }),
-                pend: IdxFile::new({
-                    let mut path = dir.clone();
-                    path.push("pend.i");
-                    path
-                }),
+                key: IdxFile::new(
+                    {
+                        let mut path = dir.clone();
+                        path.push("key.i");
+                        path
+                    },
+                    allocation_lot,
+                ),
+                depend: IdxFile::new(
+                    {
+                        let mut path = dir.clone();
+                        path.push("depend.i");
+                        path
+                    },
+                    allocation_lot,
+                ),
+                pend: IdxFile::new(
+                    {
+                        let mut path = dir.clone();
+                        path.push("pend.i");
+                        path
+                    },
+                    allocation_lot,
+                ),
             },
         }
     }

@@ -14,7 +14,7 @@ pub struct SessionRelation {
     pub(crate) rows: SessionRelationRows,
 }
 impl SessionRelation {
-    pub fn new<P: AsRef<Path>>(session_dir: P) -> Self {
+    pub fn new<P: AsRef<Path>>(session_dir: P, relation_allocation_lot: u32) -> Self {
         let mut relation_dir = session_dir.as_ref().to_path_buf();
         relation_dir.push("relation");
         if !relation_dir.exists() {
@@ -34,11 +34,11 @@ impl SessionRelation {
         path_depend.push("depend.i");
 
         Self {
-            key_names: BinarySet::new(path_key_name),
+            key_names: BinarySet::new(path_key_name, 1),
             rows: SessionRelationRows {
-                key: IdxFile::new(path_key),
-                session_row: IdxFile::new(path_session_row),
-                depend: IdxFile::new(path_depend),
+                key: IdxFile::new(path_key, relation_allocation_lot),
+                session_row: IdxFile::new(path_session_row, relation_allocation_lot),
+                depend: IdxFile::new(path_depend, relation_allocation_lot),
             },
         }
     }

@@ -12,7 +12,7 @@ fn test2() {
 
     futures::executor::block_on(async {
         {
-            let mut database = SessionDatabase::new(dir.into(), None);
+            let mut database = SessionDatabase::new(dir.into(), None, 10);
             let collection_bbs = database.collection_id_or_create("bbs");
 
             let mut sess = database.session("bbs", None);
@@ -39,7 +39,7 @@ fn test2() {
             database.commit(&mut sess).await;
         }
         {
-            let mut database = SessionDatabase::new(dir.into(), None);
+            let mut database = SessionDatabase::new(dir.into(), None, 10);
             let collection_bbs = database.collection_id_or_create("bbs");
             let mut sess = database.session("bbs", None);
             database
@@ -56,7 +56,7 @@ fn test2() {
             println!("OK1");
         }
         {
-            let mut database = SessionDatabase::new(dir.into(), None);
+            let mut database = SessionDatabase::new(dir.into(), None, 10);
             let collection_bbs = database.collection_id_or_create("bbs");
             let mut sess = database.session("bbs", None);
             database

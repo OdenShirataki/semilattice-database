@@ -12,7 +12,7 @@ fn test() {
     }
     std::fs::create_dir_all(dir).unwrap();
 
-    let mut database = SessionDatabase::new(dir.into(), None);
+    let mut database = SessionDatabase::new(dir.into(), None, 10);
 
     let collection_admin = database.collection_id_or_create("admin");
 

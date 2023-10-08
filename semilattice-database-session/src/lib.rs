@@ -40,8 +40,9 @@ impl SessionDatabase {
     pub fn new(
         dir: PathBuf,
         collection_settings: Option<std::collections::HashMap<String, DataOption>>,
+        relation_reserve_unit: u32,
     ) -> Self {
-        let database = Database::new(dir.clone(), collection_settings);
+        let database = Database::new(dir.clone(), collection_settings, relation_reserve_unit);
         let mut sessions_dir = dir.to_path_buf();
         sessions_dir.push("sessions");
         Self {
