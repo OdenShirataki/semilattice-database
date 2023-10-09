@@ -5,7 +5,7 @@ use std::{
 
 use serde::Serialize;
 
-#[derive(Clone, Debug, Serialize, Hash)]
+#[derive(Clone, Copy, Debug, Serialize, Hash)]
 pub struct CollectionRow {
     collection_id: NonZeroI32,
     row: NonZeroU32,
