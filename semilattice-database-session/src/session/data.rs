@@ -39,11 +39,13 @@ impl SessionData {
         fields: &Vec<KeyValue>,
     ) {
         futures::join!(
-            self.row.update(session_row, row),
-            self.activity.update(session_row, *activity as u8),
-            self.term_begin.update(session_row, term_begin),
-            self.term_end.update(session_row, term_end),
-            self.uuid.update(session_row, uuid)
+            self.row.update_with_allocate(session_row, row),
+            self.activity
+                .update_with_allocate(session_row, *activity as u8),
+            self.term_begin
+                .update_with_allocate(session_row, term_begin),
+            self.term_end.update_with_allocate(session_row, term_end),
+            self.uuid.update_with_allocate(session_row, uuid)
         );
 
         for kv in fields {
