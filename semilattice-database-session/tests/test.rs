@@ -188,7 +188,7 @@ fn test() {
         ) {
             let mut search = database.search(collection_person);
             let result = search.result(&database).await;
-            let person_rows = if let Some(r) = result.read().unwrap().deref() {
+            let person_rows = if let Some(r) = result.read().deref() {
                 r.sort(
                     &database,
                     &vec![Order::Asc(OrderKey::Field("birthday".to_owned()))],
@@ -208,7 +208,7 @@ fn test() {
                         Some("history".to_owned()),
                         CollectionRow::new(collection_person, i),
                     ));
-                if let Some(result) = search.result(&database).await.read().unwrap().deref() {
+                if let Some(result) = search.result(&database).await.read().deref() {
                     for h in result.rows() {
                         println!(
                             " {} : {}",

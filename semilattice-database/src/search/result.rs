@@ -1,10 +1,11 @@
 use std::{
     num::{NonZeroI32, NonZeroU32},
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 use futures::future;
 use hashbrown::HashMap;
+use parking_lot::RwLock;
 use versatile_data::{Order, RowSet};
 
 use crate::{Collection, Condition, Database, RelationIndex, Search};
@@ -112,7 +113,7 @@ impl Search {
                     fs = remaining;
                 }
             }
-            *self.result.write().unwrap() = Some(SearchResult {
+            *self.result.write() = Some(SearchResult {
                 collection_id: self.collection_id,
                 rows,
                 join: join_result,

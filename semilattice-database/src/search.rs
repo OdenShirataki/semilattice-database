@@ -10,12 +10,10 @@ pub use versatile_data::search::{Field, Number, Term};
 
 use crate::Database;
 
-use std::{
-    num::NonZeroI32,
-    sync::{Arc, RwLock},
-};
+use std::{num::NonZeroI32, sync::Arc};
 
 use hashbrown::HashMap;
+use parking_lot::RwLock;
 
 use versatile_data::Activity;
 

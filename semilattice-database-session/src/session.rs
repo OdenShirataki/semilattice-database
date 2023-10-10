@@ -367,7 +367,7 @@ impl Session {
             let result = search.result(database).await;
             if let Some(tmp) = self.temporary_data.get(&collection_id) {
                 let mut tmp_rows: BTreeSet<NonZeroI64> = BTreeSet::new();
-                if let Some(result) = result.read().unwrap().deref() {
+                if let Some(result) = result.read().deref() {
                     for row in result.rows() {
                         let row = NonZeroI64::from(*row);
                         if let Some(ent) = tmp.get(&row) {
@@ -399,7 +399,7 @@ impl Session {
                 }
                 return new_rows;
             } else {
-                if let Some(result) = result.read().unwrap().deref() {
+                if let Some(result) = result.read().deref() {
                     return result
                         .sort(database, orders)
                         .into_iter()

@@ -79,7 +79,7 @@ fn test() {
             database.collection(collection_history_id),
         ) {
             let mut search = database.search(collection_person_id);
-            if let Some(result) = search.result(&database).await.read().unwrap().deref() {
+            if let Some(result) = search.result(&database).await.read().deref() {
                 for row in result.rows() {
                     println!(
                         "{},{}",
@@ -93,13 +93,7 @@ fn test() {
                                 Some("history".to_owned()),
                                 CollectionRow::new(collection_person_id, *row),
                             ));
-                    if let Some(result) = search_history
-                        .result(&database)
-                        .await
-                        .read()
-                        .unwrap()
-                        .deref()
-                    {
+                    if let Some(result) = search_history.result(&database).await.read().deref() {
                         for h in result.rows() {
                             println!(
                                 " {} : {}",
