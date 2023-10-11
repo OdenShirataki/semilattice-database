@@ -70,19 +70,17 @@ impl Search {
         conditions: &Vec<Condition>,
         relation: &RelationIndex,
     ) -> RowSet {
-        let mut fs = conditions
-            .iter()
-            .map(|c| c.result(collection, relation))
-            .collect();
-        let (ret, _index, remaining) = future::select_all(fs).await;
-        let mut rows = ret;
-        fs = remaining;
-        while !fs.is_empty() {
-            let (ret, _index, remaining) = future::select_all(fs).await;
-            rows = rows.intersection(&ret).cloned().collect();
-            fs = remaining;
-        }
-        rows
+        future::join_all(
+            conditions
+                .iter()
+                .map(|c| c.result(collection, relation))
+                .collect::<Vec<_>>(),
+        )
+        .await
+        .iter()
+        .flat_map(|v| v)
+        .cloned()
+        .collect::<RowSet>()
     }
 
     pub async fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
@@ -93,26 +91,24 @@ impl Search {
                 collection.data.all()
             };
 
-            let mut join_result = HashMap::new();
-            {
-                let mut fs: Vec<_> = self
-                    .join
+            let join_result = future::join_all(
+                self.join
                     .iter()
                     .map(|(name, join)| {
                         Box::pin(async {
                             (
                                 name.to_owned(),
-                                join.result(database, self.collection_id, &rows),
+                                join.result(database, self.collection_id, &rows).await,
                             )
                         })
                     })
-                    .collect();
-                while !fs.is_empty() {
-                    let (ret, _index, remaining) = future::select_all(fs).await;
-                    join_result.insert(ret.0, ret.1.await);
-                    fs = remaining;
-                }
-            }
+                    .collect::<Vec<_>>(),
+            )
+            .await
+            .iter()
+            .cloned()
+            .collect::<HashMap<String, HashMap<NonZeroU32, SearchResult>>>();
+
             *self.result.write() = Some(SearchResult {
                 collection_id: self.collection_id,
                 rows,

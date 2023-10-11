@@ -77,21 +77,17 @@ impl Condition {
             Self::Narrow(conditions) => {
                 Search::result_conditions(collection, conditions, relation).await
             }
-            Self::Wide(conditions) => {
-                let mut fs = conditions
+            Self::Wide(conditions) => future::join_all(
+                conditions
                     .iter()
                     .map(|c| c.result(collection, relation))
-                    .collect();
-                let (ret, _index, remaining) = future::select_all(fs).await;
-                let mut tmp = ret;
-                fs = remaining;
-                while !fs.is_empty() {
-                    let (ret, _index, remaining) = future::select_all(fs).await;
-                    tmp.extend(ret);
-                    fs = remaining;
-                }
-                tmp
-            }
+                    .collect::<Vec<_>>(),
+            )
+            .await
+            .iter()
+            .flat_map(|v| v)
+            .cloned()
+            .collect::<RowSet>(),
         }
     }
 }

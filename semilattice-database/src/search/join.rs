@@ -65,23 +65,29 @@ impl Join {
             }
         }
 
-        let (ret, _index, remaining) = future::select_all(fs).await;
-        let mut rows = ret;
-        fs = remaining;
-        while !fs.is_empty() {
-            let (ret, _index, remaining) = future::select_all(fs).await;
-            rows = rows.intersection(&ret).cloned().collect();
-            fs = remaining;
-        }
+        let rows = future::join_all(fs)
+            .await
+            .iter()
+            .flat_map(|v| v)
+            .cloned()
+            .collect::<RowSet>();
 
-        //TODO: optimize , multithreading
-        let mut join_nest = HashMap::new();
-        for (key, join) in &self.join {
-            join_nest.insert(
-                key.to_owned(),
-                join.result(database, self.collection_id, &rows).await,
-            );
-        }
+        let join_nest = future::join_all(
+            self.join
+                .iter()
+                .map(|(key, join)| async {
+                    (
+                        key.to_owned(),
+                        join.result(database, self.collection_id, &rows).await,
+                    )
+                })
+                .collect::<Vec<_>>(),
+        )
+        .await
+        .iter()
+        .cloned()
+        .collect::<HashMap<String, HashMap<_, _>>>();
+
         SearchResult::new(self.collection_id, rows, join_nest)
     }
 
@@ -91,25 +97,23 @@ impl Join {
         parent_collection_id: NonZeroI32,
         parent_rows: &RowSet,
     ) -> HashMap<NonZeroU32, SearchResult> {
-        let mut r = HashMap::new();
-
-        let mut fs: Vec<_> = parent_rows
-            .iter()
-            .map(|parent_row| {
-                Box::pin(async {
-                    (
-                        *parent_row,
-                        self.result_row(database, parent_collection_id, *parent_row)
-                            .await,
-                    )
+        future::join_all(
+            parent_rows
+                .iter()
+                .map(|parent_row| {
+                    Box::pin(async {
+                        (
+                            *parent_row,
+                            self.result_row(database, parent_collection_id, *parent_row)
+                                .await,
+                        )
+                    })
                 })
-            })
-            .collect();
-        while !fs.is_empty() {
-            let (ret, _index, remaining) = future::select_all(fs).await;
-            r.insert(ret.0, ret.1);
-            fs = remaining;
-        }
-        r
+                .collect::<Vec<_>>(),
+        )
+        .await
+        .iter()
+        .cloned()
+        .collect::<HashMap<NonZeroU32, SearchResult>>()
     }
 }
