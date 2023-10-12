@@ -72,12 +72,12 @@ impl Database {
                 self.delete_recursive(&collection_row).await;
             }
         }
-        let rows = self
+        for relation_row in self
             .relation
             .index_pend()
             .iter_by(|v| v.cmp(target))
-            .collect::<Vec<_>>();
-        for relation_row in rows {
+            .collect::<Vec<_>>()
+        {
             self.relation.delete(relation_row).await;
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {

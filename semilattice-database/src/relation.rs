@@ -65,8 +65,7 @@ impl Database {
         depend: &CollectionRow,
         pend: CollectionRow,
     ) {
-        let depend = depend.clone();
-        self.relation.insert(key_name, depend, pend).await
+        self.relation.insert(key_name, depend.clone(), pend).await
     }
 
     pub async fn register_relations(

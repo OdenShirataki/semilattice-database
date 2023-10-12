@@ -48,8 +48,9 @@ impl Join {
                                 .relation
                                 .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
                                 .iter()
-                                .filter(|r| r.collection_id() == self.collection_id)
-                                .map(|v| v.row())
+                                .filter_map(|r| {
+                                    (r.collection_id() == self.collection_id).then_some(r.row())
+                                })
                                 .collect::<RowSet>()
                         }
                         .boxed(),
@@ -68,8 +69,7 @@ impl Join {
         let rows = future::join_all(fs)
             .await
             .iter()
-            .flat_map(|v| v)
-            .cloned()
+            .flat_map(|v| v.clone())
             .collect::<RowSet>();
 
         let join_nest = future::join_all(
