@@ -86,18 +86,12 @@ impl Search {
                 collection.data.all()
             };
 
-            let join_result = future::join_all(
-                self.join
-                    .iter()
-                    .map(|(name, join)| {
-                        Box::pin(async {
-                            (
-                                name.to_owned(),
-                                join.result(database, self.collection_id, &rows).await,
-                            )
-                        })
-                    })
-            )
+            let join_result = future::join_all(self.join.iter().map(|(name, join)| async {
+                (
+                    name.to_owned(),
+                    join.result(database, self.collection_id, &rows).await,
+                )
+            }))
             .await
             .iter()
             .cloned()

@@ -91,14 +91,12 @@ impl Join {
         parent_collection_id: NonZeroI32,
         parent_rows: &RowSet,
     ) -> HashMap<NonZeroU32, SearchResult> {
-        future::join_all(parent_rows.iter().map(|parent_row| {
-            Box::pin(async {
-                (
-                    *parent_row,
-                    self.result_row(database, parent_collection_id, *parent_row)
-                        .await,
-                )
-            })
+        future::join_all(parent_rows.iter().map(|parent_row| async {
+            (
+                *parent_row,
+                self.result_row(database, parent_collection_id, *parent_row)
+                    .await,
+            )
         }))
         .await
         .iter()
