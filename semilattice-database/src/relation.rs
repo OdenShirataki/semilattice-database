@@ -87,8 +87,7 @@ impl Database {
     ) -> Vec<Depend> {
         self.relation
             .depends(key, &CollectionRow::new(pend_collection_id, pend_row))
-            .iter()
-            .cloned()
+            .into_iter()
             .collect()
     }
 }

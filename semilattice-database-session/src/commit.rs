@@ -32,10 +32,9 @@ impl SessionDatabase {
                 .sequence
                 .iter_by(|v| v.cmp(&sequence))
                 .collect::<Vec<_>>()
-                .iter()
+                .into_iter()
                 .rev()
             {
-                let session_row = *session_row;
                 if let (Some(op), Some(collection_id), Some(row)) = (
                     session_data.operation.value(session_row),
                     session_data.collection_id.value(session_row),

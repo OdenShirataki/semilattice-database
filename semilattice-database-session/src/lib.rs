@@ -240,8 +240,7 @@ impl SessionDatabase {
                     key,
                     &CollectionRow::new(pend_collection_id, (-pend_row).try_into().unwrap()),
                 )
-                .iter()
-                .cloned()
+                .into_iter()
                 .collect()
         } else if pend_collection_id.get() > 0 {
             self.relation()
@@ -249,8 +248,7 @@ impl SessionDatabase {
                     key,
                     &CollectionRow::new(pend_collection_id, pend_row.try_into().unwrap()),
                 )
-                .iter()
-                .cloned()
+                .into_iter()
                 .collect()
         } else {
             if let Some(session) = session {

@@ -70,8 +70,12 @@ impl Search {
         conditions: &Vec<Condition>,
         relation: &RelationIndex,
     ) -> RowSet {
-        let (mut rows, _index, fs) =
-            future::select_all(conditions.iter().map(|c| c.result(collection, relation))).await;
+        let (mut rows, _index, fs) = future::select_all(
+            conditions
+                .into_iter()
+                .map(|c| c.result(collection, relation)),
+        )
+        .await;
         for r in future::join_all(fs).await {
             rows = rows.intersection(&r).cloned().collect();
         }
@@ -93,9 +97,8 @@ impl Search {
                 )
             }))
             .await
-            .iter()
-            .cloned()
-            .collect::<HashMap<String, HashMap<NonZeroU32, SearchResult>>>();
+            .into_iter()
+            .collect();
 
             *self.result.write() = Some(SearchResult {
                 collection_id: self.collection_id,

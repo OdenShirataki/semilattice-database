@@ -70,23 +70,22 @@ impl Condition {
                 let collection_id = collection.id();
                 relation
                     .pends(key, collection_row)
-                    .iter()
+                    .into_iter()
                     .filter_map(|r| (r.collection_id() == collection_id).then(|| r.row()))
-                    .collect::<RowSet>()
+                    .collect()
             }
             Self::Narrow(conditions) => {
                 Search::result_conditions(collection, conditions, relation).await
             }
             Self::Wide(conditions) => future::join_all(
                 conditions
-                    .iter()
-                    .map(|c| c.result(collection, relation))
+                    .into_iter()
+                    .map(|c| c.result(collection, relation)),
             )
             .await
-            .iter()
-            .flat_map(|v| v)
-            .cloned()
-            .collect::<RowSet>(),
+            .into_iter()
+            .flatten()
+            .collect(),
         }
     }
 }

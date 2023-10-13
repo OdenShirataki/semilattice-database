@@ -47,11 +47,11 @@ impl Join {
                             database
                                 .relation
                                 .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
-                                .iter()
+                                .into_iter()
                                 .filter_map(|r| {
                                     (r.collection_id() == self.collection_id).then_some(r.row())
                                 })
-                                .collect::<RowSet>()
+                                .collect()
                         }
                         .boxed(),
                     );
@@ -78,9 +78,8 @@ impl Join {
             )
         }))
         .await
-        .iter()
-        .cloned()
-        .collect::<HashMap<String, HashMap<_, _>>>();
+        .into_iter()
+        .collect();
 
         SearchResult::new(self.collection_id, rows, join_nest)
     }
@@ -91,7 +90,7 @@ impl Join {
         parent_collection_id: NonZeroI32,
         parent_rows: &RowSet,
     ) -> HashMap<NonZeroU32, SearchResult> {
-        future::join_all(parent_rows.iter().map(|parent_row| async {
+        future::join_all(parent_rows.into_iter().map(|parent_row| async {
             (
                 *parent_row,
                 self.result_row(database, parent_collection_id, *parent_row)
@@ -99,8 +98,7 @@ impl Join {
             )
         }))
         .await
-        .iter()
-        .cloned()
-        .collect::<HashMap<NonZeroU32, SearchResult>>()
+        .into_iter()
+        .collect()
     }
 }
