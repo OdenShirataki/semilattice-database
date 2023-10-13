@@ -66,23 +66,17 @@ impl Join {
             }
         }
 
-        let rows = future::join_all(fs)
-            .await
-            .iter()
-            .flat_map(|v| v.clone())
-            .collect::<RowSet>();
+        let (mut rows, _index, fs) = future::select_all(fs).await;
+        for r in future::join_all(fs).await {
+            rows = rows.intersection(&r).cloned().collect();
+        }
 
-        let join_nest = future::join_all(
-            self.join
-                .iter()
-                .map(|(key, join)| async {
-                    (
-                        key.to_owned(),
-                        join.result(database, self.collection_id, &rows).await,
-                    )
-                })
-                .collect::<Vec<_>>(),
-        )
+        let join_nest = future::join_all(self.join.iter().map(|(key, join)| async {
+            (
+                key.to_owned(),
+                join.result(database, self.collection_id, &rows).await,
+            )
+        }))
         .await
         .iter()
         .cloned()
@@ -97,20 +91,15 @@ impl Join {
         parent_collection_id: NonZeroI32,
         parent_rows: &RowSet,
     ) -> HashMap<NonZeroU32, SearchResult> {
-        future::join_all(
-            parent_rows
-                .iter()
-                .map(|parent_row| {
-                    Box::pin(async {
-                        (
-                            *parent_row,
-                            self.result_row(database, parent_collection_id, *parent_row)
-                                .await,
-                        )
-                    })
-                })
-                .collect::<Vec<_>>(),
-        )
+        future::join_all(parent_rows.iter().map(|parent_row| {
+            Box::pin(async {
+                (
+                    *parent_row,
+                    self.result_row(database, parent_collection_id, *parent_row)
+                        .await,
+                )
+            })
+        }))
         .await
         .iter()
         .cloned()

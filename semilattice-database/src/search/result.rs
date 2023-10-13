@@ -70,17 +70,12 @@ impl Search {
         conditions: &Vec<Condition>,
         relation: &RelationIndex,
     ) -> RowSet {
-        future::join_all(
-            conditions
-                .iter()
-                .map(|c| c.result(collection, relation))
-                .collect::<Vec<_>>(),
-        )
-        .await
-        .iter()
-        .flat_map(|v| v)
-        .cloned()
-        .collect::<RowSet>()
+        let (mut rows, _index, fs) =
+            future::select_all(conditions.iter().map(|c| c.result(collection, relation))).await;
+        for r in future::join_all(fs).await {
+            rows = rows.intersection(&r).cloned().collect();
+        }
+        rows
     }
 
     pub async fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
@@ -102,7 +97,6 @@ impl Search {
                             )
                         })
                     })
-                    .collect::<Vec<_>>(),
             )
             .await
             .iter()

@@ -81,7 +81,6 @@ impl Condition {
                 conditions
                     .iter()
                     .map(|c| c.result(collection, relation))
-                    .collect::<Vec<_>>(),
             )
             .await
             .iter()
