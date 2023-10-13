@@ -5,6 +5,7 @@
 ```rust
 use std::ops::Deref;
 
+use hashbrown::HashMap;
 use semilattice_database_session::*;
 
 let dir = "./sl-test/";
@@ -26,10 +27,10 @@ futures::executor::block_on(async {
             vec![SessionRecord::New {
                 collection_id: collection_admin,
                 record: Record {
-                    fields: vec![
-                        KeyValue::new("id", "test".to_owned()),
-                        KeyValue::new("password", "test".to_owned()),
-                    ],
+                    fields: HashMap::from([
+                        ("id".into(), b"test".to_vec()),
+                        ("password".into(), b"test".to_vec()),
+                    ]),
                     ..Record::default()
                 },
                 depends: Depends::Overwrite(vec![]),
@@ -52,7 +53,7 @@ futures::executor::block_on(async {
                 vec![SessionRecord::New {
                     collection_id: collection_login,
                     record: Record {
-                        fields: vec![],
+                        fields: HashMap::new(),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![(
@@ -104,23 +105,23 @@ futures::executor::block_on(async {
                 SessionRecord::New {
                     collection_id: collection_person,
                     record: Record {
-                        fields: vec![
-                            KeyValue::new("name", "Joe"),
-                            KeyValue::new("birthday", "1972-08-02"),
-                        ],
+                        fields: HashMap::from([
+                            ("name".into(), "Joe".into()),
+                            ("birthday".into(), "1972-08-02".into()),
+                        ]),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![]),
-                    pends: vec![Pend::new(
-                        "history",
-                        vec![
+                    pends: vec![Pend {
+                        key: "history".to_owned(),
+                        records: vec![
                             SessionRecord::New {
                                 collection_id: collection_history,
                                 record: Record {
-                                    fields: vec![
-                                        KeyValue::new("date", "1972-08-02"),
-                                        KeyValue::new("event", "Birth"),
-                                    ],
+                                    fields: HashMap::from([
+                                        ("date".into(), "1972-08-02".into()),
+                                        ("event".into(), "Birth".into()),
+                                    ]),
                                     ..Record::default()
                                 },
                                 depends: Depends::Default,
@@ -129,51 +130,51 @@ futures::executor::block_on(async {
                             SessionRecord::New {
                                 collection_id: collection_history,
                                 record: Record {
-                                    fields: vec![
-                                        KeyValue::new("date", "1999-12-31"),
-                                        KeyValue::new("event", "Mariage"),
-                                    ],
+                                    fields: HashMap::from([
+                                        ("date".into(), "1999-12-31".into()),
+                                        ("event".into(), "Mariage".into()),
+                                    ]),
                                     ..Record::default()
                                 },
                                 depends: Depends::Default,
                                 pends: vec![],
                             },
                         ],
-                    )],
+                    }],
                 },
                 SessionRecord::New {
                     collection_id: collection_person,
                     record: Record {
-                        fields: vec![
-                            KeyValue::new("name", "Tom"),
-                            KeyValue::new("birthday", "2000-12-12"),
-                        ],
+                        fields: HashMap::from([
+                            ("name".into(), "Tom".into()),
+                            ("birthday".into(), "2000-12-12".into()),
+                        ]),
                         ..Record::default()
                     },
                     depends: Depends::Default,
-                    pends: vec![Pend::new(
-                        "history",
-                        vec![SessionRecord::New {
+                    pends: vec![Pend {
+                        key: "history".to_owned(),
+                        records: vec![SessionRecord::New {
                             collection_id: collection_history,
                             record: Record {
-                                fields: vec![
-                                    KeyValue::new("date", "2000-12-12"),
-                                    KeyValue::new("event", "Birth"),
-                                ],
+                                fields: HashMap::from([
+                                    ("date".into(), "2000-12-12".into()),
+                                    ("event".into(), "Birth".into()),
+                                ]),
                                 ..Record::default()
                             },
                             depends: Depends::Default,
                             pends: vec![],
                         }],
-                    )],
+                    }],
                 },
                 SessionRecord::New {
                     collection_id: collection_person,
                     record: Record {
-                        fields: vec![
-                            KeyValue::new("name", "Billy"),
-                            KeyValue::new("birthday", "1982-03-03"),
-                        ],
+                        fields: HashMap::from([
+                            ("name".into(), "Billy".into()),
+                            ("birthday".into(), "1982-03-03".into()),
+                        ]),
                         ..Record::default()
                     },
                     depends: Depends::Default,
@@ -229,7 +230,7 @@ futures::executor::block_on(async {
                 collection_id: collection_person,
                 row: 1.try_into().unwrap(),
                 record: Record {
-                    fields: vec![KeyValue::new("name", "Renamed Joe")],
+                    fields: HashMap::from([("name".into(), "Renamed Joe".into())]),
                     ..Record::default()
                 },
                 depends: Depends::Default,
@@ -263,10 +264,10 @@ futures::executor::block_on(async {
                 vec![SessionRecord::New {
                     collection_id: test1,
                     record: Record {
-                        fields: vec![
-                            KeyValue::new("num", i.to_string()),
-                            KeyValue::new("num_by3", (i * 3).to_string()),
-                        ],
+                        fields: HashMap::from([
+                            ("num".into(), i.to_string().into()),
+                            ("num_by3".into(), (i * 3).to_string().into()),
+                        ]),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![]),
@@ -285,7 +286,7 @@ futures::executor::block_on(async {
                 collection_id: test1,
                 row: 3.try_into().unwrap(),
                 record: Record {
-                    fields: vec![],
+                    fields: HashMap::new(),
                     ..Record::default()
                 },
                 depends: Depends::Overwrite(vec![]),

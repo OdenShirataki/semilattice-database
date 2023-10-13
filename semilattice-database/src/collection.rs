@@ -94,7 +94,7 @@ impl Database {
                         .await;
                     if let Some(collection) = self.collection_mut(collection_id) {
                         collection
-                            .update(&Operation::Delete { row: row.get() })
+                            .update(Operation::Delete { row: row.get() })
                             .await;
                     }
                 }

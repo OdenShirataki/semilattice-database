@@ -115,8 +115,8 @@ impl SessionDatabase {
                             temporary_data,
                             session_dir,
                             sequence_number,
-                            pend.records(),
-                            Some((pend.key(), session_row)),
+                            &pend.records,
+                            Some((&pend.key, session_row)),
                         )
                         .await;
                     }
@@ -272,8 +272,8 @@ impl SessionDatabase {
                             temporary_data,
                             session_dir,
                             sequence_number,
-                            pend.records(),
-                            Some((pend.key(), session_row)),
+                            &pend.records,
+                            Some((&pend.key, session_row)),
                         )
                         .await;
                     }

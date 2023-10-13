@@ -110,9 +110,9 @@ fn test() {
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),
-                        pends: vec![Pend::new(
-                            "history",
-                            vec![
+                        pends: vec![Pend {
+                            key: "history".to_owned(),
+                            records: vec![
                                 SessionRecord::New {
                                     collection_id: collection_history,
                                     record: Record {
@@ -138,7 +138,7 @@ fn test() {
                                     pends: vec![],
                                 },
                             ],
-                        )],
+                        }],
                     },
                     SessionRecord::New {
                         collection_id: collection_person,
@@ -150,9 +150,9 @@ fn test() {
                             ..Record::default()
                         },
                         depends: Depends::Default,
-                        pends: vec![Pend::new(
-                            "history",
-                            vec![SessionRecord::New {
+                        pends: vec![Pend {
+                            key: "history".to_owned(),
+                            records: vec![SessionRecord::New {
                                 collection_id: collection_history,
                                 record: Record {
                                     fields: HashMap::from([
@@ -164,7 +164,7 @@ fn test() {
                                 depends: Depends::Default,
                                 pends: vec![],
                             }],
-                        )],
+                        }],
                     },
                     SessionRecord::New {
                         collection_id: collection_person,

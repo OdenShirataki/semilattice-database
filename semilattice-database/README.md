@@ -5,6 +5,7 @@
 ```rust
 use std::{num::NonZeroU32, ops::Deref};
 
+use hashbrown::HashMap;
 use semilattice_database::*;
 
 let dir = "./sl-test/";
@@ -22,14 +23,14 @@ futures::executor::block_on(async {
     let collection_history_id = database.collection_id_or_create("history");
     if let Some(collection_person) = database.collection_mut(collection_person_id) {
         let row = collection_person
-            .update(&Operation::New(Record {
+            .update(Operation::New(Record {
                 activity: Activity::Active,
                 term_begin: Term::Default,
                 term_end: Term::Default,
-                fields: vec![
-                    KeyValue::new("name", "Joe"),
-                    KeyValue::new("birthday", "1972-08-02"),
-                ],
+                fields: HashMap::from([
+                    ("name".into(), "Joe".into()),
+                    ("birthday".into(), "1972-08-02".into()),
+                ]),
             }))
             .await;
 
@@ -37,14 +38,14 @@ futures::executor::block_on(async {
         let mut pends = vec![];
         if let Some(collection_history) = database.collection_mut(collection_history_id) {
             let history_row = collection_history
-                .update(&Operation::New(Record {
+                .update(Operation::New(Record {
                     activity: Activity::Active,
                     term_begin: Term::Default,
                     term_end: Term::Default,
-                    fields: vec![
-                        KeyValue::new("date", "1972-08-02"),
-                        KeyValue::new("event", "Birth"),
-                    ],
+                    fields: HashMap::from([
+                        ("date".into(), "1972-08-02".into()),
+                        ("event".into(), "Birth".into()),
+                    ]),
                 }))
                 .await;
             pends.push((
@@ -55,14 +56,14 @@ futures::executor::block_on(async {
                 ),
             ));
             let history_row = collection_history
-                .update(&Operation::New(Record {
+                .update(Operation::New(Record {
                     activity: Activity::Active,
                     term_begin: Term::Default,
                     term_end: Term::Default,
-                    fields: vec![
-                        KeyValue::new("date", "1999-12-31"),
-                        KeyValue::new("event", "Mariage"),
-                    ],
+                    fields: HashMap::from([
+                        ("date".into(), "1999-12-31".into()),
+                        ("event".into(), "Mariage".into()),
+                    ]),
                 }))
                 .await;
             pends.push((

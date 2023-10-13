@@ -79,7 +79,7 @@ impl SessionRelation {
                 futures::join!(
                     self.rows.key.insert(key),
                     self.rows.session_row.insert(new_session_row.get()),
-                    self.rows.depend.insert(depend.clone()),
+                    self.rows.depend.insert(depend),
                     async {
                         ret.push(Depend::new(
                             unsafe {
@@ -87,7 +87,7 @@ impl SessionRelation {
                                     self.key_names.bytes(NonZeroU32::new(key).unwrap()),
                                 )
                             },
-                            depend.clone(),
+                            depend,
                         ));
                     }
                 );

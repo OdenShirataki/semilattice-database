@@ -84,7 +84,7 @@ impl SessionDatabase {
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
                                     collection
-                                        .update(&if *op == SessionOperation::New {
+                                        .update(if *op == SessionOperation::New {
                                             Operation::New(Record {
                                                 activity,
                                                 term_begin,
@@ -116,7 +116,7 @@ impl SessionDatabase {
                                         .try_into()
                                         .unwrap(),
                                 );
-                                commit_rows.push(collection_row.clone());
+                                commit_rows.push(collection_row);
                                 self.relation_mut()
                                     .delete_pends_by_collection_row(&collection_row)
                                     .await; //Delete once and re-register later
@@ -144,7 +144,7 @@ impl SessionDatabase {
                                                     )
                                                 }
                                                 .to_owned(),
-                                                session_collection_row.clone(),
+                                                session_collection_row,
                                             ));
                                     }
                                 }

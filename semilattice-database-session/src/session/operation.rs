@@ -17,27 +17,8 @@ pub enum Depends {
 
 #[derive(Debug)]
 pub struct Pend {
-    key: String,
-    records: Vec<SessionRecord>,
-}
-impl Pend {
-    #[inline(always)]
-    pub fn new(key: impl Into<String>, records: Vec<SessionRecord>) -> Pend {
-        Pend {
-            key: key.into(),
-            records,
-        }
-    }
-
-    #[inline(always)]
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-
-    #[inline(always)]
-    pub fn records(&self) -> &Vec<SessionRecord> {
-        &self.records
-    }
+    pub key: String,
+    pub records: Vec<SessionRecord>,
 }
 
 #[derive(Debug)]

@@ -21,7 +21,7 @@ fn test() {
         let collection_history_id = database.collection_id_or_create("history");
         if let Some(collection_person) = database.collection_mut(collection_person_id) {
             let row = collection_person
-                .update(&Operation::New(Record {
+                .update(Operation::New(Record {
                     activity: Activity::Active,
                     term_begin: Term::Default,
                     term_end: Term::Default,
@@ -36,7 +36,7 @@ fn test() {
             let mut pends = vec![];
             if let Some(collection_history) = database.collection_mut(collection_history_id) {
                 let history_row = collection_history
-                    .update(&Operation::New(Record {
+                    .update(Operation::New(Record {
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
@@ -54,7 +54,7 @@ fn test() {
                     ),
                 ));
                 let history_row = collection_history
-                    .update(&Operation::New(Record {
+                    .update(Operation::New(Record {
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
