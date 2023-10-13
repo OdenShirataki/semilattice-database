@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use semilattice_database::{Activity, KeyValue, Operation, Record, Term};
+use semilattice_database::{Activity, Operation, Record, Term};
 
 use hashbrown::HashMap;
 
@@ -54,7 +54,7 @@ impl SessionDatabase {
                         unsafe { NonZeroU32::new_unchecked(*row) }
                     };
                     let fields = if *op == SessionOperation::Delete {
-                        vec![]
+                        HashMap::new()
                     } else {
                         session_data
                             .fields
@@ -62,9 +62,9 @@ impl SessionDatabase {
                             .filter_map(|(key, field_data)| {
                                 field_data
                                     .bytes(session_row)
-                                    .map(|val| KeyValue::new(key, val))
+                                    .map(|val| (key.to_owned(), val.to_owned()))
                             })
-                            .collect()
+                            .collect::<HashMap<_, _>>()
                     };
                     if let Some(collection) = self.collection_mut(main_collection_id) {
                         let session_collection_row = CollectionRow::new(*collection_id, row);
@@ -119,7 +119,8 @@ impl SessionDatabase {
                                 );
                                 commit_rows.push(collection_row.clone());
                                 self.relation_mut()
-                                    .delete_pends_by_collection_row(&collection_row).await; //Delete once and re-register later
+                                    .delete_pends_by_collection_row(&collection_row)
+                                    .await; //Delete once and re-register later
 
                                 for relation_row in session_data
                                     .relation

@@ -3,6 +3,7 @@
 fn test() {
     use std::{num::NonZeroU32, ops::Deref};
 
+    use hashbrown::HashMap;
     use semilattice_database::*;
 
     let dir = "./sl-test/";
@@ -24,10 +25,10 @@ fn test() {
                     activity: Activity::Active,
                     term_begin: Term::Default,
                     term_end: Term::Default,
-                    fields: vec![
-                        KeyValue::new("name", "Joe"),
-                        KeyValue::new("birthday", "1972-08-02"),
-                    ],
+                    fields: HashMap::from([
+                        ("name".into(), "Joe".into()),
+                        ("birthday".into(), "1972-08-02".into()),
+                    ]),
                 }))
                 .await;
 
@@ -39,10 +40,10 @@ fn test() {
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
-                        fields: vec![
-                            KeyValue::new("date", "1972-08-02"),
-                            KeyValue::new("event", "Birth"),
-                        ],
+                        fields: HashMap::from([
+                            ("date".into(), "1972-08-02".into()),
+                            ("event".into(), "Birth".into()),
+                        ]),
                     }))
                     .await;
                 pends.push((
@@ -57,10 +58,10 @@ fn test() {
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
-                        fields: vec![
-                            KeyValue::new("date", "1999-12-31"),
-                            KeyValue::new("event", "Mariage"),
-                        ],
+                        fields: HashMap::from([
+                            ("date".into(), "1999-12-31".into()),
+                            ("event".into(), "Mariage".into()),
+                        ]),
                     }))
                     .await;
                 pends.push((

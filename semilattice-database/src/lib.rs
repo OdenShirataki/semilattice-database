@@ -10,7 +10,7 @@ pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Join, JoinCondition, Search};
 pub use versatile_data::{
     create_uuid, idx_binary, uuid_string, Activity, CustomSort, DataOption, Field, FileMmap,
-    IdxBinary, IdxFile, KeyValue, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
+    IdxBinary, IdxFile, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
 };
 
 use std::{collections::BTreeMap, num::NonZeroI32, path::PathBuf};

@@ -5,7 +5,7 @@ use std::{
 
 use hashbrown::HashMap;
 
-use semilattice_database::{Activity, CollectionRow, Depend, Field, IdxFile, KeyValue};
+use semilattice_database::{Activity, CollectionRow, Depend, Field, IdxFile};
 
 use super::{
     relation::SessionRelation, sequence::SequenceNumber, SessionOperation, TemporaryData,
@@ -36,7 +36,7 @@ impl SessionData {
         term_begin: u64,
         term_end: u64,
         uuid: u128,
-        fields: &Vec<KeyValue>,
+        fields: &HashMap<String, Vec<u8>>,
     ) {
         futures::join!(
             self.row.update_with_allocate(session_row, row),
@@ -48,8 +48,7 @@ impl SessionData {
             self.uuid.update_with_allocate(session_row, uuid)
         );
 
-        for kv in fields {
-            let key = kv.key();
+        for (key, value) in fields {
             let field = if self.fields.contains_key(key) {
                 self.fields.get_mut(key).unwrap()
             } else {
@@ -64,7 +63,7 @@ impl SessionData {
                 self.fields.get_mut(key).unwrap()
             };
             //TODO: multi thread
-            field.update(session_row, kv.value()).await;
+            field.update(session_row, value).await;
         }
     }
 

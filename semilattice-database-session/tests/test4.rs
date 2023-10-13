@@ -1,6 +1,7 @@
 #[cfg(test)]
 #[test]
 fn test4() {
+    use hashbrown::HashMap;
     use semilattice_database_session::*;
 
     let dir = "./sl-test4/";
@@ -22,7 +23,7 @@ fn test4() {
                     vec![SessionRecord::New {
                         collection_id: collection_widget,
                         record: Record {
-                            fields: vec![KeyValue::new("name", "test".to_owned())],
+                            fields: HashMap::from([("name".into(), "test".into())]),
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),
@@ -38,7 +39,7 @@ fn test4() {
                 vec![SessionRecord::New {
                     collection_id: collection_field,
                     record: Record {
-                        fields: vec![KeyValue::new("name", "1".to_owned())],
+                        fields: HashMap::from([("name".into(), "1".into())]),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![(
@@ -55,7 +56,7 @@ fn test4() {
                 vec![SessionRecord::New {
                     collection_id: collection_field,
                     record: Record {
-                        fields: vec![KeyValue::new("name", "2".to_owned())],
+                        fields: HashMap::from([("name".into(), "2".into())]),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![(
@@ -72,7 +73,7 @@ fn test4() {
                 vec![SessionRecord::New {
                     collection_id: collection_field,
                     record: Record {
-                        fields: vec![KeyValue::new("name", "3".to_owned())],
+                        fields: HashMap::from([("name".into(), "3".into())]),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![(
@@ -92,7 +93,7 @@ fn test4() {
                 vec![SessionRecord::New {
                     collection_id: collection_field,
                     record: Record {
-                        fields: vec![KeyValue::new("name", "3-r".to_owned())],
+                        fields: HashMap::from([("name".into(), "3-r".into())]),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![(

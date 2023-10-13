@@ -1,6 +1,7 @@
 #[cfg(test)]
 #[test]
 fn test2() {
+    use hashbrown::HashMap;
     use semilattice_database_session::*;
 
     let dir = "./sl-test2/";
@@ -22,13 +23,13 @@ fn test2() {
                     vec![SessionRecord::New {
                         collection_id: collection_bbs,
                         record: Record {
-                            fields: vec![
-                                KeyValue::new("name", "test".to_owned()),
-                                KeyValue::new("text", "test".to_owned()),
-                                KeyValue::new("image_type", "application/octet-stream".to_owned()),
-                                KeyValue::new("image_name", "".to_owned()),
-                                KeyValue::new("image_data", "".to_owned()),
-                            ],
+                            fields: HashMap::from([
+                                ("name".into(), "test".into()),
+                                ("text".into(), "test".into()),
+                                ("image_type".into(), "application/octet-stream".into()),
+                                ("image_name".into(), "".into()),
+                                ("image_data".into(), "".into()),
+                            ]),
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),
@@ -65,13 +66,13 @@ fn test2() {
                     vec![SessionRecord::New {
                         collection_id: collection_bbs,
                         record: Record {
-                            fields: vec![
-                                KeyValue::new("name", "aa".to_owned()),
-                                KeyValue::new("text", "bb".to_owned()),
-                                KeyValue::new("image_type", "image/jpge".to_owned()),
-                                KeyValue::new("image_name", "hoge.jpg".to_owned()),
-                                KeyValue::new("image_data", "awdadadfaefaefawfafd".to_owned()),
-                            ],
+                            fields: HashMap::from([
+                                ("name".into(), "aa".into()),
+                                ("text".into(), "bb".into()),
+                                ("image_type".into(), "image/jpge".into()),
+                                ("image_name".into(), "hoge.jpg".into()),
+                                ("image_data".into(), "awdadadfaefaefawfafd".into()),
+                            ]),
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),

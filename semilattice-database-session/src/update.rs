@@ -86,7 +86,7 @@ impl SessionDatabase {
                             fields: record
                                 .fields
                                 .iter()
-                                .map(|kv| (kv.key().to_string(), kv.value().to_vec()))
+                                .map(|(key, value)| (key.to_string(), value.to_vec()))
                                 .collect(),
                             depends: if let Depends::Overwrite(depends) = depends {
                                 let mut tmp = vec![];
@@ -257,7 +257,7 @@ impl SessionDatabase {
                             fields: record
                                 .fields
                                 .iter()
-                                .map(|kv| (kv.key().into(), kv.value().into()))
+                                .map(|(key, value)| (key.into(), value.to_vec()))
                                 .collect(),
                             depends: tmp_depends,
                         });
@@ -283,7 +283,9 @@ impl SessionDatabase {
                         session_data
                             .collection_id
                             .update_with_allocate(session_row, *collection_id),
-                        session_data.row.update_with_allocate(session_row, row.get()),
+                        session_data
+                            .row
+                            .update_with_allocate(session_row, row.get()),
                         session_data
                             .operation
                             .update_with_allocate(session_row, SessionOperation::Delete)
