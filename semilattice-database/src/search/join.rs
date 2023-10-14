@@ -38,11 +38,11 @@ impl Join {
         parent_collection_id: NonZeroI32,
         parent_row: NonZeroU32,
     ) -> SearchResult {
-        let mut fs: Vec<_> = vec![];
+        let mut futs = vec![];
         for condition in &self.conditions {
             match condition {
                 JoinCondition::Pends { key } => {
-                    fs.push(
+                    futs.push(
                         async {
                             database
                                 .relation
@@ -58,7 +58,7 @@ impl Join {
                 }
                 JoinCondition::Field(name, condition) => {
                     if let Some(collection) = database.collection(parent_collection_id) {
-                        fs.push(
+                        futs.push(
                             async { Search::result_field(collection, name, condition) }.boxed(),
                         );
                     }
@@ -66,9 +66,9 @@ impl Join {
             }
         }
 
-        let (mut rows, _index, fs) = future::select_all(fs).await;
-        for r in future::join_all(fs).await {
-            rows = rows.intersection(&r).cloned().collect();
+        let (mut rows, _index, futs) = future::select_all(futs).await;
+        for r in future::join_all(futs).await {
+            rows.retain(|v| r.contains(v));
         }
 
         let join_nest = future::join_all(self.join.iter().map(|(key, join)| async {
