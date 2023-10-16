@@ -58,7 +58,7 @@ impl SessionData {
                 std::fs::create_dir_all(&dir).unwrap();
                 if dir.exists() {
                     let field = Field::new(dir, 1);
-                    self.fields.entry(String::from(key)).or_insert(field);
+                    self.fields.entry(key.into()).or_insert(field);
                 }
                 self.fields.get_mut(key).unwrap()
             };

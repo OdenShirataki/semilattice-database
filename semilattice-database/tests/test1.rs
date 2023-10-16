@@ -3,7 +3,6 @@
 fn test() {
     use std::{num::NonZeroU32, ops::Deref};
 
-    use hashbrown::HashMap;
     use semilattice_database::*;
 
     let dir = "./sl-test/";
@@ -25,10 +24,11 @@ fn test() {
                     activity: Activity::Active,
                     term_begin: Term::Default,
                     term_end: Term::Default,
-                    fields: HashMap::from([
+                    fields: [
                         ("name".into(), "Joe".into()),
                         ("birthday".into(), "1972-08-02".into()),
-                    ]),
+                    ]
+                    .into(),
                 }))
                 .await;
 
@@ -40,10 +40,11 @@ fn test() {
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
-                        fields: HashMap::from([
+                        fields: [
                             ("date".into(), "1972-08-02".into()),
                             ("event".into(), "Birth".into()),
-                        ]),
+                        ]
+                        .into(),
                     }))
                     .await;
                 pends.push((
@@ -58,10 +59,11 @@ fn test() {
                         activity: Activity::Active,
                         term_begin: Term::Default,
                         term_end: Term::Default,
-                        fields: HashMap::from([
+                        fields: [
                             ("date".into(), "1999-12-31".into()),
                             ("event".into(), "Mariage".into()),
-                        ]),
+                        ]
+                        .into(),
                     }))
                     .await;
                 pends.push((

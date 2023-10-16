@@ -1,7 +1,6 @@
 #[cfg(test)]
 #[test]
 fn test2() {
-    use hashbrown::HashMap;
     use semilattice_database_session::*;
 
     let dir = "./sl-test2/";
@@ -23,13 +22,14 @@ fn test2() {
                     vec![SessionRecord::New {
                         collection_id: collection_bbs,
                         record: Record {
-                            fields: HashMap::from([
+                            fields: [
                                 ("name".into(), "test".into()),
                                 ("text".into(), "test".into()),
                                 ("image_type".into(), "application/octet-stream".into()),
                                 ("image_name".into(), "".into()),
                                 ("image_data".into(), "".into()),
-                            ]),
+                            ]
+                            .into(),
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),
@@ -66,13 +66,14 @@ fn test2() {
                     vec![SessionRecord::New {
                         collection_id: collection_bbs,
                         record: Record {
-                            fields: HashMap::from([
+                            fields: [
                                 ("name".into(), "aa".into()),
                                 ("text".into(), "bb".into()),
                                 ("image_type".into(), "image/jpge".into()),
                                 ("image_name".into(), "hoge.jpg".into()),
                                 ("image_data".into(), "awdadadfaefaefawfafd".into()),
-                            ]),
+                            ]
+                            .into(),
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),

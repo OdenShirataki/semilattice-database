@@ -25,10 +25,11 @@ fn test() {
                 vec![SessionRecord::New {
                     collection_id: collection_admin,
                     record: Record {
-                        fields: HashMap::from([
+                        fields: [
                             ("id".into(), b"test".to_vec()),
                             ("password".into(), b"test".to_vec()),
-                        ]),
+                        ]
+                        .into(),
                         ..Record::default()
                     },
                     depends: Depends::Overwrite(vec![]),
@@ -103,10 +104,11 @@ fn test() {
                     SessionRecord::New {
                         collection_id: collection_person,
                         record: Record {
-                            fields: HashMap::from([
+                            fields: [
                                 ("name".into(), "Joe".into()),
                                 ("birthday".into(), "1972-08-02".into()),
-                            ]),
+                            ]
+                            .into(),
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),
@@ -116,10 +118,11 @@ fn test() {
                                 SessionRecord::New {
                                     collection_id: collection_history,
                                     record: Record {
-                                        fields: HashMap::from([
+                                        fields: [
                                             ("date".into(), "1972-08-02".into()),
                                             ("event".into(), "Birth".into()),
-                                        ]),
+                                        ]
+                                        .into(),
                                         ..Record::default()
                                     },
                                     depends: Depends::Default,
@@ -128,10 +131,11 @@ fn test() {
                                 SessionRecord::New {
                                     collection_id: collection_history,
                                     record: Record {
-                                        fields: HashMap::from([
+                                        fields: [
                                             ("date".into(), "1999-12-31".into()),
                                             ("event".into(), "Mariage".into()),
-                                        ]),
+                                        ]
+                                        .into(),
                                         ..Record::default()
                                     },
                                     depends: Depends::Default,
@@ -143,10 +147,11 @@ fn test() {
                     SessionRecord::New {
                         collection_id: collection_person,
                         record: Record {
-                            fields: HashMap::from([
+                            fields: [
                                 ("name".into(), "Tom".into()),
                                 ("birthday".into(), "2000-12-12".into()),
-                            ]),
+                            ]
+                            .into(),
                             ..Record::default()
                         },
                         depends: Depends::Default,
@@ -155,10 +160,11 @@ fn test() {
                             records: vec![SessionRecord::New {
                                 collection_id: collection_history,
                                 record: Record {
-                                    fields: HashMap::from([
+                                    fields: [
                                         ("date".into(), "2000-12-12".into()),
                                         ("event".into(), "Birth".into()),
-                                    ]),
+                                    ]
+                                    .into(),
                                     ..Record::default()
                                 },
                                 depends: Depends::Default,
@@ -169,10 +175,11 @@ fn test() {
                     SessionRecord::New {
                         collection_id: collection_person,
                         record: Record {
-                            fields: HashMap::from([
+                            fields: [
                                 ("name".into(), "Billy".into()),
                                 ("birthday".into(), "1982-03-03".into()),
-                            ]),
+                            ]
+                            .into(),
                             ..Record::default()
                         },
                         depends: Depends::Default,
@@ -228,7 +235,7 @@ fn test() {
                     collection_id: collection_person,
                     row: 1.try_into().unwrap(),
                     record: Record {
-                        fields: HashMap::from([("name".into(), "Renamed Joe".into())]),
+                        fields: [("name".into(), "Renamed Joe".into())].into(),
                         ..Record::default()
                     },
                     depends: Depends::Default,
@@ -262,10 +269,11 @@ fn test() {
                     vec![SessionRecord::New {
                         collection_id: test1,
                         record: Record {
-                            fields: HashMap::from([
+                            fields: [
                                 ("num".into(), i.to_string().into()),
                                 ("num_by3".into(), (i * 3).to_string().into()),
-                            ]),
+                            ]
+                            .into(),
                             ..Record::default()
                         },
                         depends: Depends::Overwrite(vec![]),
