@@ -69,6 +69,7 @@ impl SessionRelation {
             .session_row
             .iter_by(|v| v.cmp(&session_row.get()))
             .collect::<Vec<_>>()
+            .into_iter()
         {
             if let (Some(key), Some(depend)) = (
                 self.rows.key.value(session_relation_row),
@@ -103,6 +104,7 @@ impl SessionRelation {
             .session_row
             .iter_by(|v| v.cmp(&session_row.get()))
             .collect::<Vec<_>>()
+            .into_iter()
         {
             futures::join!(
                 async {

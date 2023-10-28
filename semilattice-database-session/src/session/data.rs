@@ -148,7 +148,7 @@ impl SessionData {
                                 .or_insert(HashMap::new());
                             self.fields.iter().for_each(|(key, val)| {
                                 if let Some(v) = val.bytes(session_row) {
-                                    row_fields.insert(key.to_string(), v.to_vec());
+                                    row_fields.insert(key.into(), v.into());
                                 }
                             });
                             temporary_collection.insert(

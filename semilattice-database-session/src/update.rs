@@ -86,7 +86,7 @@ impl SessionDatabase {
                             fields: record
                                 .fields
                                 .iter()
-                                .map(|(key, value)| (key.to_string(), value.to_vec()))
+                                .map(|(key, value)| (key.into(), value.to_vec()))
                                 .collect(),
                             depends: if let Depends::Overwrite(depends) = depends {
                                 let mut tmp = vec![];

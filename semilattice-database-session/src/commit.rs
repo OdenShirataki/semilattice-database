@@ -63,7 +63,7 @@ impl SessionDatabase {
                                     .bytes(session_row)
                                     .map(|val| (key.to_owned(), val.to_owned()))
                             })
-                            .collect::<HashMap<_, _>>()
+                            .collect()
                     };
                     if let Some(collection) = self.collection_mut(main_collection_id) {
                         let session_collection_row = CollectionRow::new(*collection_id, row);

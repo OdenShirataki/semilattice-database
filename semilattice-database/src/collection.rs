@@ -132,7 +132,7 @@ impl Database {
                 let d = d.unwrap();
                 if d.file_type().unwrap().is_dir() {
                     if let Some(fname) = d.file_name().to_str() {
-                        let s: Vec<&str> = fname.split("_").collect();
+                        let s: Vec<_> = fname.split("_").collect();
                         if s.len() > 1 {
                             if let Ok(i) = s[0].parse() {
                                 max_id = std::cmp::max(max_id, i);
