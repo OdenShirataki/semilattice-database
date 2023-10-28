@@ -73,7 +73,7 @@ impl Database {
         depend: &CollectionRow,
         pends: Vec<(String, CollectionRow)>,
     ) {
-        for (key_name, pend) in pends {
+        for (key_name, pend) in pends.into_iter() {
             self.register_relation(&key_name, depend, pend).await;
         }
     }

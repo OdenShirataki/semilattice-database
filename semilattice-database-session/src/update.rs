@@ -24,7 +24,7 @@ impl SessionDatabase {
         depend_by_pend: Option<(&'async_recursion str, NonZeroU32)>,
     ) -> Vec<CollectionRow> {
         let mut ret = vec![];
-        for record in records {
+        for record in records.into_iter() {
             let session_row = session_data.sequence.insert(sequence_number).await;
 
             match record {
@@ -90,7 +90,7 @@ impl SessionDatabase {
                                 .collect(),
                             depends: if let Depends::Overwrite(depends) = depends {
                                 let mut tmp = vec![];
-                                for (key, depend) in depends {
+                                for (key, depend) in depends.into_iter() {
                                     session_data
                                         .relation
                                         .insert(key, session_row, depend.clone())
@@ -109,7 +109,7 @@ impl SessionDatabase {
                             .incidentally_depend(session_row, key, depend_session_row)
                             .await;
                     }
-                    for pend in pends {
+                    for pend in pends.into_iter() {
                         self.update_recursive(
                             session_data,
                             temporary_data,
@@ -230,7 +230,7 @@ impl SessionDatabase {
                             }
                         }
                         Depends::Overwrite(depends) => {
-                            for (key, depend) in depends {
+                            for (key, depend) in depends.into_iter() {
                                 session_data
                                     .relation
                                     .insert(key, session_row, depend.clone())
@@ -266,7 +266,7 @@ impl SessionDatabase {
                             .incidentally_depend(session_row, key, depend_session_row)
                             .await;
                     }
-                    for pend in pends {
+                    for pend in pends.into_iter() {
                         self.update_recursive(
                             session_data,
                             temporary_data,

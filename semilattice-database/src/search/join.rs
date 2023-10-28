@@ -67,7 +67,7 @@ impl Join {
         }
 
         let (mut rows, _index, futs) = future::select_all(futs).await;
-        for r in future::join_all(futs).await {
+        for r in future::join_all(futs).await.into_iter() {
             rows.retain(|v| r.contains(v));
         }
 

@@ -105,6 +105,7 @@ impl RelationIndex {
             .pend
             .iter_by(|v| v.cmp(collection_row))
             .collect::<Vec<_>>()
+            .into_iter()
         {
             self.delete(row).await;
         }

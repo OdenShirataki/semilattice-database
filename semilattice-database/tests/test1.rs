@@ -83,7 +83,7 @@ fn test() {
         ) {
             let mut search = database.search(collection_person_id);
             if let Some(result) = search.result(&database).await.read().deref() {
-                for row in result.rows() {
+                for row in result.rows().into_iter() {
                     println!(
                         "{},{}",
                         std::str::from_utf8(person.field_bytes(*row, "name")).unwrap(),
@@ -97,7 +97,7 @@ fn test() {
                                 CollectionRow::new(collection_person_id, *row),
                             ));
                     if let Some(result) = search_history.result(&database).await.read().deref() {
-                        for h in result.rows() {
+                        for h in result.rows().into_iter() {
                             println!(
                                 " {} : {}",
                                 std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),

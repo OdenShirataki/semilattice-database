@@ -76,7 +76,7 @@ impl Search {
                 .map(|c| c.result(collection, relation)),
         )
         .await;
-        for r in future::join_all(fs).await {
+        for r in future::join_all(fs).await.into_iter() {
             rows.retain(|v| r.contains(v));
         }
         rows

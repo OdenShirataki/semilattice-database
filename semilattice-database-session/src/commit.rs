@@ -172,7 +172,7 @@ impl SessionDatabase {
                 }
             }
         }
-        for (depend, pends) in relation_temporary {
+        for (depend, pends) in relation_temporary.into_iter() {
             if depend.collection_id().get() < 0 {
                 if let Some(depend) = session_collection_row_map.get(&depend) {
                     self.register_relations_with_session(

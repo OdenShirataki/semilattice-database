@@ -164,7 +164,7 @@ impl Session {
         if !fields_dir.exists() {
             std::fs::create_dir_all(&fields_dir.to_owned()).unwrap();
         }
-        for p in fields_dir.read_dir().unwrap() {
+        for p in fields_dir.read_dir().unwrap().into_iter() {
             let p = p.unwrap();
             let path = p.path();
             if path.is_dir() {
@@ -307,7 +307,7 @@ impl Session {
             }),
             Condition::Narrow(conditions) => {
                 let mut is_match = true;
-                for c in conditions {
+                for c in conditions.into_iter() {
                     is_match &= Self::temporary_data_match(row, ent, c);
                     if !is_match {
                         break;
@@ -317,7 +317,7 @@ impl Session {
             }
             Condition::Wide(conditions) => {
                 let mut is_match = false;
-                for c in conditions {
+                for c in conditions.into_iter() {
                     is_match |= Self::temporary_data_match(row, ent, c);
                     if is_match {
                         break;
@@ -346,7 +346,7 @@ impl Session {
         row: NonZeroI64,
         ent: &TemporaryDataEntity,
     ) -> bool {
-        for c in search {
+        for c in search.into_iter() {
             if !Self::temporary_data_match(row, ent, c) {
                 return false;
             }
@@ -368,7 +368,7 @@ impl Session {
             if let Some(tmp) = self.temporary_data.get(&collection_id) {
                 let mut tmp_rows: BTreeSet<NonZeroI64> = BTreeSet::new();
                 if let Some(result) = result.read().deref() {
-                    for row in result.rows() {
+                    for row in result.rows().into_iter() {
                         let row = NonZeroI64::from(*row);
                         if let Some(ent) = tmp.get(&row) {
                             if ent.operation != SessionOperation::Delete {
@@ -381,7 +381,7 @@ impl Session {
                         }
                     }
                 }
-                for (row, _) in tmp {
+                for (row, _) in tmp.into_iter() {
                     //session new data
                     if row.get() < 0 {
                         if let Some(ent) = tmp.get(row) {

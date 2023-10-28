@@ -66,7 +66,7 @@ impl Database {
             .index_depend()
             .iter_by(|v| v.cmp(target))
             .collect::<Vec<_>>();
-        for relation_row in rows {
+        for relation_row in rows.into_iter() {
             let collection_row = self.relation.index_pend().value(relation_row).cloned();
             if let Some(collection_row) = collection_row {
                 self.delete_recursive(&collection_row).await;
@@ -77,6 +77,7 @@ impl Database {
             .index_pend()
             .iter_by(|v| v.cmp(target))
             .collect::<Vec<_>>()
+            .into_iter()
         {
             self.relation.delete(relation_row).await;
         }

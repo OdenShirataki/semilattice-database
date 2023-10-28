@@ -128,7 +128,7 @@ impl Database {
     fn collection_by_name_or_create(&mut self, name: &str) -> NonZeroI32 {
         let mut max_id = 0;
         if self.collections_dir.exists() {
-            for d in self.collections_dir.read_dir().unwrap() {
+            for d in self.collections_dir.read_dir().unwrap().into_iter() {
                 let d = d.unwrap();
                 if d.file_type().unwrap().is_dir() {
                     if let Some(fname) = d.file_name().to_str() {

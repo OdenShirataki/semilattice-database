@@ -86,7 +86,7 @@ impl SessionDatabase {
         sessions
     }
     pub fn session_gc(&self, default_expire_interval_sec: i64) {
-        for session in self.sessions() {
+        for session in self.sessions().into_iter() {
             let expire = if session.expire < 0 {
                 default_expire_interval_sec
             } else {
@@ -118,7 +118,7 @@ impl SessionDatabase {
         dir
     }
     fn delete_dir(dir: PathBuf) {
-        for d in dir.read_dir().unwrap() {
+        for d in dir.read_dir().unwrap().into_iter() {
             let d = d.unwrap();
             if d.file_type().unwrap().is_dir() {
                 let dir = d.path();
@@ -172,6 +172,7 @@ impl SessionDatabase {
                         .sequence
                         .iter_by(|v| v.cmp(&row))
                         .collect::<Vec<_>>()
+                        .into_iter()
                     {
                         futures::join!(
                             session_data.relation.delete(session_row),
@@ -266,7 +267,7 @@ impl SessionDatabase {
         pends: Vec<(String, CollectionRow)>,
         row_map: &HashMap<CollectionRow, CollectionRow>,
     ) {
-        for (key_name, pend) in pends {
+        for (key_name, pend) in pends.into_iter() {
             if pend.collection_id().get() < 0 {
                 if let Some(pend) = row_map.get(&pend) {
                     self.register_relation(&key_name, depend, pend.clone())

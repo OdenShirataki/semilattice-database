@@ -48,7 +48,7 @@ impl SessionData {
             self.uuid.update_with_allocate(session_row, uuid)
         );
 
-        for (key, value) in fields {
+        for (key, value) in fields.into_iter() {
             let field = if self.fields.contains_key(key) {
                 self.fields.get_mut(key).unwrap()
             } else {
