@@ -10,10 +10,9 @@ pub use versatile_data::search::{Field, Number, Term};
 
 use crate::Database;
 
-use std::{num::NonZeroI32, sync::Arc};
+use std::num::NonZeroI32;
 
 use hashbrown::HashMap;
-use parking_lot::RwLock;
 
 use versatile_data::Activity;
 
@@ -22,7 +21,6 @@ pub struct Search {
     collection_id: NonZeroI32,
     conditions: Vec<Condition>,
     join: HashMap<String, Join>,
-    result: Arc<RwLock<Option<SearchResult>>>,
 }
 
 impl Search {
@@ -36,7 +34,6 @@ impl Search {
             collection_id,
             conditions,
             join,
-            result: Arc::new(RwLock::new(None)),
         }
     }
 

@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[test]
 fn test() {
-    use std::{num::NonZeroU32, ops::Deref};
+    use std::num::NonZeroU32;
 
     use semilattice_database::*;
 
@@ -81,30 +81,32 @@ fn test() {
             database.collection(collection_person_id),
             database.collection(collection_history_id),
         ) {
-            let mut search = database.search(collection_person_id);
-            if let Some(result) = search.result(&database).await.read().deref() {
-                for row in result.rows().into_iter() {
+            let result = database
+                .search(collection_person_id)
+                .result(&database)
+                .await;
+            for row in result.rows().into_iter() {
+                println!(
+                    "{},{}",
+                    std::str::from_utf8(person.field_bytes(*row, "name")).unwrap(),
+                    std::str::from_utf8(person.field_bytes(*row, "birthday")).unwrap()
+                );
+                for h in database
+                    .search(collection_history_id)
+                    .search(Condition::Depend(
+                        Some("history".to_owned()),
+                        CollectionRow::new(collection_person_id, *row),
+                    ))
+                    .result(&database)
+                    .await
+                    .rows()
+                    .into_iter()
+                {
                     println!(
-                        "{},{}",
-                        std::str::from_utf8(person.field_bytes(*row, "name")).unwrap(),
-                        std::str::from_utf8(person.field_bytes(*row, "birthday")).unwrap()
+                        " {} : {}",
+                        std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),
+                        std::str::from_utf8(history.field_bytes(*h, "event")).unwrap()
                     );
-                    let mut search_history =
-                        database
-                            .search(collection_history_id)
-                            .search(Condition::Depend(
-                                Some("history".to_owned()),
-                                CollectionRow::new(collection_person_id, *row),
-                            ));
-                    if let Some(result) = search_history.result(&database).await.read().deref() {
-                        for h in result.rows().into_iter() {
-                            println!(
-                                " {} : {}",
-                                std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),
-                                std::str::from_utf8(history.field_bytes(*h, "event")).unwrap()
-                            );
-                        }
-                    }
                 }
             }
         }

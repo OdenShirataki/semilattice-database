@@ -5,7 +5,6 @@ use std::{
 
 use futures::future;
 use hashbrown::HashMap;
-use parking_lot::RwLock;
 use versatile_data::{Order, RowSet};
 
 use crate::{Collection, Condition, Database, RelationIndex, Search};
@@ -14,14 +13,14 @@ use crate::{Collection, Condition, Database, RelationIndex, Search};
 pub struct SearchResult {
     collection_id: NonZeroI32,
     rows: RowSet,
-    join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
+    join: HashMap<String, HashMap<NonZeroU32, Arc<SearchResult>>>,
 }
 impl SearchResult {
     #[inline(always)]
     pub fn new(
         collection_id: NonZeroI32,
         rows: RowSet,
-        join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
+        join: HashMap<String, HashMap<NonZeroU32, Arc<SearchResult>>>,
     ) -> Self {
         Self {
             collection_id,
@@ -41,7 +40,7 @@ impl SearchResult {
     }
 
     #[inline(always)]
-    pub fn join(&self) -> &HashMap<String, HashMap<NonZeroU32, SearchResult>> {
+    pub fn join(&self) -> &HashMap<String, HashMap<NonZeroU32, Arc<SearchResult>>> {
         &self.join
     }
 
@@ -60,11 +59,6 @@ impl SearchResult {
 }
 
 impl Search {
-    #[inline(always)]
-    pub fn get_result(&self) -> &Arc<RwLock<Option<SearchResult>>> {
-        &self.result
-    }
-
     pub(crate) async fn result_conditions(
         collection: &Collection,
         conditions: &Vec<Condition>,
@@ -82,7 +76,7 @@ impl Search {
         rows
     }
 
-    pub async fn result(&mut self, database: &Database) -> Arc<RwLock<Option<SearchResult>>> {
+    pub async fn result(&self, database: &Database) -> SearchResult {
         if let Some(collection) = database.collection(self.collection_id) {
             let rows = if self.conditions.len() > 0 {
                 Self::result_conditions(collection, &self.conditions, &database.relation).await
@@ -100,12 +94,17 @@ impl Search {
             .into_iter()
             .collect();
 
-            *self.result.write() = Some(SearchResult {
+            SearchResult {
                 collection_id: self.collection_id,
                 rows,
                 join: join_result,
-            });
+            }
+        } else {
+            SearchResult {
+                collection_id: self.collection_id,
+                rows: Default::default(),
+                join: Default::default(),
+            }
         }
-        Arc::clone(&self.result)
     }
 }

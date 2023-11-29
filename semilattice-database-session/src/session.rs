@@ -23,7 +23,7 @@ use crate::{Activity, Collection, CollectionRow, Depend, Field, IdxFile, Session
 
 use relation::SessionRelation;
 use search::SessionSearch;
-use semilattice_database::{Condition, Database, Order, Search};
+use semilattice_database::{search::SearchResult, Condition, Database, Order, Search};
 use sequence::SequenceNumber;
 use serde::Serialize;
 
@@ -342,11 +342,11 @@ impl Session {
 
     #[inline(always)]
     fn temprary_data_match_conditions(
-        search: &Vec<Condition>,
+        conditions: &Vec<Condition>,
         row: NonZeroI64,
         ent: &TemporaryDataEntity,
     ) -> bool {
-        for c in search.into_iter() {
+        for c in conditions.into_iter() {
             if !Self::temporary_data_match(row, ent, c) {
                 return false;
             }
@@ -356,29 +356,26 @@ impl Session {
 
     //TODO : Supports join for session data. overwrite result data by session datas.
     pub async fn result_with(
-        &mut self,
-        search: &mut Search,
+        &self,
+        result: &SearchResult,
         database: &Database,
+        conditions: &Vec<Condition>,
         orders: &Vec<Order>,
     ) -> Vec<NonZeroI64> {
-        let collection_id = search.collection_id();
+        let collection_id = result.collection_id();
         if let Some(collection) = database.collection(collection_id) {
-            let conditions = search.conditions().clone();
-            let result = search.result(database).await;
             if let Some(tmp) = self.temporary_data.get(&collection_id) {
                 let mut tmp_rows: BTreeSet<NonZeroI64> = BTreeSet::new();
-                if let Some(result) = result.read().deref() {
-                    for row in result.rows().into_iter() {
-                        let row = NonZeroI64::from(*row);
-                        if let Some(ent) = tmp.get(&row) {
-                            if ent.operation != SessionOperation::Delete {
-                                if Self::temprary_data_match_conditions(&conditions, row, ent) {
-                                    tmp_rows.insert(row);
-                                }
+                for row in result.rows().into_iter() {
+                    let row = NonZeroI64::from(*row);
+                    if let Some(ent) = tmp.get(&row) {
+                        if ent.operation != SessionOperation::Delete {
+                            if Self::temprary_data_match_conditions(conditions, row, ent) {
+                                tmp_rows.insert(row);
                             }
-                        } else {
-                            tmp_rows.insert(row);
                         }
+                    } else {
+                        tmp_rows.insert(row);
                     }
                 }
                 for (row, _) in tmp.into_iter() {
@@ -386,7 +383,7 @@ impl Session {
                     if row.get() < 0 {
                         if let Some(ent) = tmp.get(row) {
                             if ent.operation != SessionOperation::Delete {
-                                if Self::temprary_data_match_conditions(&conditions, *row, ent) {
+                                if Self::temprary_data_match_conditions(conditions, *row, ent) {
                                     tmp_rows.insert(*row);
                                 }
                             }
@@ -397,19 +394,17 @@ impl Session {
                 if orders.len() > 0 {
                     sort::sort(&mut new_rows, orders, collection, tmp);
                 }
-                return new_rows;
+                new_rows
             } else {
-                if let Some(result) = result.read().deref() {
-                    return result
-                        .sort(database, orders)
-                        .into_iter()
-                        .map(|x| x.into())
-                        .collect();
-                }
+                result
+                    .sort(database, orders)
+                    .into_iter()
+                    .map(|x| x.into())
+                    .collect()
             }
+        } else {
+            vec![]
         }
-
-        vec![]
     }
 
     #[inline(always)]

@@ -105,7 +105,7 @@ fn test4() {
             .await;
 
         let mut sess = database.session("widget", None);
-        let mut search = sess
+        let search = sess
             .begin_search(collection_field)
             .search(semilattice_database::Condition::Depend(
                 Some("field".to_owned()),

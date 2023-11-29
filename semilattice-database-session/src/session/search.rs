@@ -47,9 +47,14 @@ impl<'a> SessionSearch<'a> {
         self
     }
 
-    pub async fn result(&mut self, database: &Database, orders: &Vec<Order>) -> Vec<NonZeroI64> {
+    pub async fn result(&self, database: &Database, orders: &Vec<Order>) -> Vec<NonZeroI64> {
         self.session
-            .result_with(&mut self.search, database, orders)
+            .result_with(
+                &self.search.result(database).await,
+                database,
+                self.search.conditions(),
+                orders,
+            )
             .await
     }
 }

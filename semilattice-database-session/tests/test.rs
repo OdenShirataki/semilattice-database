@@ -1,8 +1,6 @@
 #[cfg(test)]
 #[test]
 fn test() {
-    use std::ops::Deref;
-
     use hashbrown::HashMap;
     use semilattice_database_session::*;
 
@@ -41,7 +39,7 @@ fn test() {
 
         let collection_login = database.collection_id_or_create("login");
         let mut sess = database.session("login", None);
-        let mut search = sess
+        let search = sess
             .begin_search(collection_admin)
             .search_field("id", search::Field::Match(b"test".to_vec()))
             .search_field("password", search::Field::Match(b"test".to_vec()));
@@ -65,7 +63,7 @@ fn test() {
                 .await;
         }
         let mut sess = database.session("login", None);
-        let mut search = sess.begin_search(collection_login);
+        let search = sess.begin_search(collection_login);
         for row in search.result(&database, &vec![]).await {
             println!("depends_with_session {} {}", collection_login, row);
             let depends = database.depends_with_session(
@@ -77,7 +75,7 @@ fn test() {
             for d in depends {
                 let collection_id = d.collection_id();
                 if let Some(collection) = database.collection(collection_id) {
-                    let mut search = sess
+                    let search = sess
                         .begin_search(collection_id)
                         .search_row(search::Number::In(vec![d.row().get() as isize]));
                     for row in search.result(&database, &vec![]).await {
@@ -194,36 +192,35 @@ fn test() {
             database.collection(collection_person),
             database.collection(collection_history),
         ) {
-            let mut search = database.search(collection_person);
-            let result = search.result(&database).await;
-            let person_rows = if let Some(r) = result.read().deref() {
-                r.sort(
+            let person_rows = database
+                .search(collection_person)
+                .result(&database)
+                .await
+                .sort(
                     &database,
                     &vec![Order::Asc(OrderKey::Field("birthday".to_owned()))],
-                )
-            } else {
-                vec![]
-            };
+                );
             for i in person_rows {
                 println!(
                     "{},{}",
                     std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
                     std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
                 );
-                let mut search = database
+                for h in database
                     .search(collection_history)
                     .search(Condition::Depend(
                         Some("history".to_owned()),
                         CollectionRow::new(collection_person, i),
-                    ));
-                if let Some(result) = search.result(&database).await.read().deref() {
-                    for h in result.rows() {
-                        println!(
-                            " {} : {}",
-                            std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),
-                            std::str::from_utf8(history.field_bytes(*h, "event")).unwrap()
-                        );
-                    }
+                    ))
+                    .result(&database)
+                    .await
+                    .rows()
+                {
+                    println!(
+                        " {} : {}",
+                        std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),
+                        std::str::from_utf8(history.field_bytes(*h, "event")).unwrap()
+                    );
                 }
             }
         }
@@ -245,7 +242,7 @@ fn test() {
             .await;
 
         let mut sess = database.session("test", None);
-        let mut search = sess
+        let search = sess
             .begin_search(collection_person)
             .search_activity(Activity::Active);
         for r in search.result(&database, &vec![]).await {
