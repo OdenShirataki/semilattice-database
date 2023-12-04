@@ -9,5 +9,6 @@ members = [
 serde = "1"
 futures = "0.3"
 async-recursion = "1.0"
-
 hashbrown = "0.14.0"
+
+semilattice-database = "0"

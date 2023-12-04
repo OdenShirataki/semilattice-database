@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database-session"
-version = "0.35.0"
+version = "0.35.1"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -19,4 +19,4 @@ serde.workspace = true
 futures.workspace = true
 async-recursion.workspace = true
 
-semilattice-database = { version = "0.93" , path = "../semilattice-database" }
+semilattice-database.workspace = true
