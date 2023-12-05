@@ -6,9 +6,9 @@ members = [
 ]
 
 [workspace.dependencies]
-serde = "1"
-futures = "0.3"
-async-recursion = "1.0"
-hashbrown = "0.14.0"
+serde = "1.0.193"
+futures = "0.3.29"
+async-recursion = "1.0.5"
+hashbrown = "0.14.3"
 
-semilattice-database = "0"
+semilattice-database = { vrsion="0" , path = "semilattice-database"}
