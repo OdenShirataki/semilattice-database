@@ -11,4 +11,4 @@ futures = "0.3.29"
 async-recursion = "1.0.5"
 hashbrown = "0.14.3"
 
-semilattice-database = { vrsion="0" , path = "semilattice-database"}
+semilattice-database = { version="0" , path = "semilattice-database"}
