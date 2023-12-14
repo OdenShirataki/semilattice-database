@@ -1,7 +1,4 @@
-use std::{
-    num::{NonZeroI32, NonZeroU32},
-    sync::Arc,
-};
+use std::num::{NonZeroI32, NonZeroU32};
 
 use async_recursion::async_recursion;
 use futures::{future, FutureExt};
@@ -92,14 +89,12 @@ impl Join {
         database: &Database,
         parent_collection_id: NonZeroI32,
         parent_rows: &RowSet,
-    ) -> HashMap<NonZeroU32, Arc<SearchResult>> {
+    ) -> HashMap<NonZeroU32, SearchResult> {
         future::join_all(parent_rows.into_iter().map(|parent_row| async {
             (
                 *parent_row,
-                Arc::new(
-                    self.result_row(database, parent_collection_id, *parent_row)
-                        .await,
-                ),
+                self.result_row(database, parent_collection_id, *parent_row)
+                    .await,
             )
         }))
         .await

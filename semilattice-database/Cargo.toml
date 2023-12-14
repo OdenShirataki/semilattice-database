@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.93.0"
+version = "0.93.1"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -9,8 +9,8 @@ description = "Data is connected by a directed graph, and each node has an arbit
 
 repository = "https://github.com/OdenShirataki/semilattice-database"
 
-keywords = ["database","library"]
-categories = ["database","database-implementations"]
+keywords = ["database", "library"]
+categories = ["database", "database-implementations"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
@@ -19,8 +19,8 @@ serde.workspace = true
 futures.workspace = true
 async-recursion.workspace = true
 
-parking_lot = "0.12"
-toml = "0.7"
+parking_lot = "0.12.1"
+toml = "0.8.8"
 
-versatile-data = { version = "0.101" , path = "../../versatile-data" }
-binary_set = { version = "0.9" , path = "../../binary_set" }
+versatile-data = "0.101"
+binary_set = "0.9"

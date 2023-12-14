@@ -7,7 +7,7 @@ use async_recursion::async_recursion;
 pub use binary_set::BinarySet;
 pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
-pub use search::{Condition, Join, JoinCondition, Search};
+pub use search::{Condition, Join, JoinCondition, Search, SearchResult};
 pub use versatile_data::{
     create_uuid, idx_binary, uuid_string, Activity, CustomSort, DataOption, Field, FileMmap,
     IdxBinary, IdxFile, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,

@@ -4,7 +4,7 @@ mod update;
 
 pub use semilattice_database::{
     search, Activity, Collection, CollectionRow, Condition, CustomSort, DataOption, Depend,
-    Operation, Order, OrderKey, Record, Term, Uuid,
+    Operation, Order, OrderKey, Record, SearchResult, Term, Uuid,
 };
 pub use session::{Depends, Pend, Session, SessionRecord};
 

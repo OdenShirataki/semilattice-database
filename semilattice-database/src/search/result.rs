@@ -1,7 +1,4 @@
-use std::{
-    num::{NonZeroI32, NonZeroU32},
-    sync::Arc,
-};
+use std::num::{NonZeroI32, NonZeroU32};
 
 use futures::future;
 use hashbrown::HashMap;
@@ -9,18 +6,19 @@ use versatile_data::{Order, RowSet};
 
 use crate::{Collection, Condition, Database, RelationIndex, Search};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SearchResult {
     collection_id: NonZeroI32,
     rows: RowSet,
-    join: HashMap<String, HashMap<NonZeroU32, Arc<SearchResult>>>,
+    join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
 }
+
 impl SearchResult {
     #[inline(always)]
     pub fn new(
         collection_id: NonZeroI32,
         rows: RowSet,
-        join: HashMap<String, HashMap<NonZeroU32, Arc<SearchResult>>>,
+        join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
     ) -> Self {
         Self {
             collection_id,
@@ -40,7 +38,7 @@ impl SearchResult {
     }
 
     #[inline(always)]
-    pub fn join(&self) -> &HashMap<String, HashMap<NonZeroU32, Arc<SearchResult>>> {
+    pub fn join(&self) -> &HashMap<String, HashMap<NonZeroU32, SearchResult>> {
         &self.join
     }
 
@@ -84,7 +82,7 @@ impl Search {
                 collection.data.all()
             };
 
-            let join_result = future::join_all(self.join.iter().map(|(name, join)| async {
+            let join = future::join_all(self.join.iter().map(|(name, join)| async {
                 (
                     name.to_owned(),
                     join.result(database, self.collection_id, &rows).await,
@@ -97,7 +95,7 @@ impl Search {
             SearchResult {
                 collection_id: self.collection_id,
                 rows,
-                join: join_result,
+                join,
             }
         } else {
             SearchResult {
