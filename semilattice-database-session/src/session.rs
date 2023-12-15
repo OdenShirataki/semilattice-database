@@ -287,13 +287,13 @@ impl Session {
                 semilattice_database::search::Field::Min(min) => min <= f,
                 semilattice_database::search::Field::Max(max) => max >= f,
                 semilattice_database::search::Field::Forward(v) => {
-                    unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v.as_ref())
+                    unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v)
                 }
                 semilattice_database::search::Field::Partial(v) => {
-                    unsafe { std::str::from_utf8_unchecked(f) }.contains(v.as_ref())
+                    unsafe { std::str::from_utf8_unchecked(f) }.contains(v)
                 }
                 semilattice_database::search::Field::Backward(v) => {
-                    unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v.as_ref())
+                    unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v)
                 }
                 semilattice_database::search::Field::ValueForward(v) => {
                     v.starts_with(unsafe { std::str::from_utf8_unchecked(f) })
