@@ -9,13 +9,13 @@ use crate::{CollectionRow, Database};
 
 use super::SearchResult;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum JoinCondition {
     Pends { key: Option<String> },
     Field(String, versatile_data::search::Field),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Join {
     collection_id: NonZeroI32,
     conditions: Vec<JoinCondition>,

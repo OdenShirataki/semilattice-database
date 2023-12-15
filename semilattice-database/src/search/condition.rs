@@ -8,7 +8,7 @@ use versatile_data::{
 
 use crate::{Collection, CollectionRow, RelationIndex, Search};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Condition {
     Activity(Activity),
     Term(Term),

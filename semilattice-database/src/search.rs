@@ -16,7 +16,7 @@ use hashbrown::HashMap;
 
 use versatile_data::Activity;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Search {
     collection_id: NonZeroI32,
     conditions: Vec<Condition>,
