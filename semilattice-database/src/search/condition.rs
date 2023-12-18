@@ -19,6 +19,8 @@ pub enum Condition {
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
     Depend(Option<String>, CollectionRow),
+    JoinPends { key: Option<String> },
+    JoinField(String, versatile_data::search::Field),
 }
 impl Condition {
     #[async_recursion]
@@ -26,42 +28,42 @@ impl Condition {
         match self {
             Self::Activity(c) => {
                 VersatileDataSearch::result_condition(
-                    &collection.data,
+                    &collection.data(),
                     &VersatileDataCondition::Activity(*c),
                 )
                 .await
             }
             Self::Term(c) => {
                 VersatileDataSearch::result_condition(
-                    &collection.data,
+                    &collection.data(),
                     &VersatileDataCondition::Term(c.clone()),
                 )
                 .await
             }
             Self::Row(c) => {
                 VersatileDataSearch::result_condition(
-                    &collection.data,
+                    &collection.data(),
                     &VersatileDataCondition::Row(c),
                 )
                 .await
             }
             Self::Uuid(c) => {
                 VersatileDataSearch::result_condition(
-                    &collection.data,
+                    &collection.data(),
                     &VersatileDataCondition::Uuid(c),
                 )
                 .await
             }
             Self::LastUpdated(c) => {
                 VersatileDataSearch::result_condition(
-                    &collection.data,
+                    &collection.data(),
                     &VersatileDataCondition::LastUpdated(c),
                 )
                 .await
             }
             Self::Field(key, condition) => {
                 VersatileDataSearch::result_condition(
-                    &collection.data,
+                    &collection.data(),
                     &VersatileDataCondition::Field(key, condition),
                 )
                 .await
@@ -86,6 +88,7 @@ impl Condition {
             .into_iter()
             .flatten()
             .collect(),
+            _ => RowSet::default(),
         }
     }
 }

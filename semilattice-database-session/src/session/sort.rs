@@ -1,14 +1,158 @@
-use std::{
-    cmp::Ordering,
-    num::{NonZeroI64, NonZeroU32},
-};
+use std::{cmp::Ordering, fmt::Debug, num::NonZeroI64};
 
 use hashbrown::HashMap;
 
 use super::TemporaryDataEntity;
-use crate::{idx_binary, Collection, Order, OrderKey};
+use crate::{idx_binary, Collection, Session};
 
-#[inline(always)]
+pub trait SessionCustomOrder {
+    fn compare(&self, a: NonZeroI64, b: NonZeroI64) -> Ordering;
+    fn asc(&self) -> Vec<NonZeroI64>;
+    fn desc(&self) -> Vec<NonZeroI64>;
+}
+impl Debug for dyn SessionCustomOrder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "SessionCustomOrder")?;
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub enum SessionOrderKey {
+    Serial,
+    Row,
+    TermBegin,
+    TermEnd,
+    LastUpdated,
+    Field(String),
+    Custom(Box<dyn SessionCustomOrder>),
+}
+
+#[derive(Debug)]
+pub enum SessionOrder {
+    Asc(SessionOrderKey),
+    Desc(SessionOrderKey),
+}
+
+impl Session {
+    pub fn sort(
+        &self,
+        collection: &Collection,
+        mut rows: Vec<NonZeroI64>,
+        orders: &Vec<SessionOrder>,
+    ) -> Vec<NonZeroI64> {
+        if orders.len() > 0 {
+            let collection_id = collection.id();
+            if let Some(tmp) = self.temporary_data.get(&collection_id) {
+                rows.sort_by(|a, b| {
+                    for i in 0..orders.len() {
+                        match &orders[i] {
+                            SessionOrder::Asc(order_key) => match order_key {
+                                SessionOrderKey::Serial => {
+                                    let (a, b) = serial(collection, *a, *b);
+                                    let ord = a.cmp(&b);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::Row => return a.cmp(b),
+                                SessionOrderKey::TermBegin => {
+                                    let (a, b) = term_begin(tmp, collection, *a, *b);
+                                    let ord = a.cmp(&b);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::TermEnd => {
+                                    let (a, b) = term_end(tmp, collection, *a, *b);
+                                    let ord = a.cmp(&b);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::LastUpdated => {
+                                    let (a, b) = last_updated(collection, *a, *b);
+                                    let ord = a.cmp(&b);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::Field(field_name) => {
+                                    let ord = idx_binary::compare(
+                                        field(tmp, collection, *a, &field_name),
+                                        field(tmp, collection, *b, &field_name),
+                                    );
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::Custom(custom_order) => {
+                                    if a.get() > 0 && b.get() > 0 {
+                                        let ord = custom_order.compare(*a, *b);
+                                        if ord != Ordering::Equal {
+                                            return ord;
+                                        }
+                                    }
+                                }
+                            },
+                            SessionOrder::Desc(order_key) => match order_key {
+                                SessionOrderKey::Serial => {
+                                    let (a, b) = serial(collection, *a, *b);
+                                    let ord = b.cmp(&a);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::Row => {
+                                    return b.cmp(a);
+                                }
+                                SessionOrderKey::TermBegin => {
+                                    let (a, b) = term_begin(tmp, collection, *a, *b);
+                                    let ord = b.cmp(&a);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::TermEnd => {
+                                    let (a, b) = term_end(tmp, collection, *a, *b);
+                                    let ord = b.cmp(&a);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::LastUpdated => {
+                                    let (a, b) = last_updated(collection, *a, *b);
+                                    let ord = b.cmp(&a);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::Field(field_name) => {
+                                    let ord = idx_binary::compare(
+                                        field(tmp, collection, *b, &field_name),
+                                        field(tmp, collection, *a, &field_name),
+                                    );
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                                SessionOrderKey::Custom(custom_order) => {
+                                    let ord = custom_order.compare(*b, *a);
+                                    if ord != Ordering::Equal {
+                                        return ord;
+                                    }
+                                }
+                            },
+                        }
+                    }
+                    Ordering::Equal
+                });
+            }
+        }
+        rows
+    }
+}
+
 fn serial(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u32, u32) {
     let a = if a.get() < 0 {
         0
@@ -23,7 +167,6 @@ fn serial(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u32, u32) {
     (a, b)
 }
 
-#[inline(always)]
 fn term_begin(
     temporary_collection: &HashMap<NonZeroI64, TemporaryDataEntity>,
     collection: &Collection,
@@ -43,7 +186,6 @@ fn term_begin(
     (a, b)
 }
 
-#[inline(always)]
 fn term_end(
     temporary_collection: &HashMap<NonZeroI64, TemporaryDataEntity>,
     collection: &Collection,
@@ -63,7 +205,6 @@ fn term_end(
     (a, b)
 }
 
-#[inline(always)]
 fn last_updated(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u64, u64) {
     let a = if a.get() < 0 {
         0
@@ -78,7 +219,6 @@ fn last_updated(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u64, 
     (a, b)
 }
 
-#[inline(always)]
 fn field<'a>(
     temporary_collection: &'a HashMap<NonZeroI64, TemporaryDataEntity>,
     collection: &'a Collection,
@@ -95,125 +235,4 @@ fn field<'a>(
     } else {
         collection.field_bytes(row.try_into().unwrap(), field_name)
     }
-}
-
-//TODO : Supports session data for OrderKey::Custom
-#[inline(always)]
-pub fn sort(
-    rows: &mut Vec<NonZeroI64>,
-    orders: &Vec<Order>,
-    collection: &Collection,
-    temporary_collection: &HashMap<NonZeroI64, TemporaryDataEntity>,
-) {
-    rows.sort_by(|a, b| {
-        for i in 0..orders.len() {
-            match &orders[i] {
-                Order::Asc(order_key) => match order_key {
-                    OrderKey::Serial => {
-                        let (a, b) = serial(collection, *a, *b);
-                        let ord = a.cmp(&b);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::Row => return a.cmp(b),
-                    OrderKey::TermBegin => {
-                        let (a, b) = term_begin(temporary_collection, collection, *a, *b);
-                        let ord = a.cmp(&b);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::TermEnd => {
-                        let (a, b) = term_end(temporary_collection, collection, *a, *b);
-                        let ord = a.cmp(&b);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::LastUpdated => {
-                        let (a, b) = last_updated(collection, *a, *b);
-                        let ord = a.cmp(&b);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::Field(field_name) => {
-                        let ord = idx_binary::compare(
-                            field(temporary_collection, collection, *a, &field_name),
-                            field(temporary_collection, collection, *b, &field_name),
-                        );
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::Custom(custom_order) => {
-                        if a.get() > 0 && b.get() > 0 {
-                            let ord = custom_order.compare(
-                                unsafe { NonZeroU32::new_unchecked(a.get() as u32) },
-                                unsafe { NonZeroU32::new_unchecked(b.get() as u32) },
-                            );
-                            if ord != Ordering::Equal {
-                                return ord;
-                            }
-                        }
-                    }
-                },
-                Order::Desc(order_key) => match order_key {
-                    OrderKey::Serial => {
-                        let (a, b) = serial(collection, *a, *b);
-                        let ord = b.cmp(&a);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::Row => {
-                        return b.cmp(a);
-                    }
-                    OrderKey::TermBegin => {
-                        let (a, b) = term_begin(temporary_collection, collection, *a, *b);
-                        let ord = b.cmp(&a);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::TermEnd => {
-                        let (a, b) = term_end(temporary_collection, collection, *a, *b);
-                        let ord = b.cmp(&a);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::LastUpdated => {
-                        let (a, b) = last_updated(collection, *a, *b);
-                        let ord = b.cmp(&a);
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::Field(field_name) => {
-                        let ord = idx_binary::compare(
-                            field(temporary_collection, collection, *b, &field_name),
-                            field(temporary_collection, collection, *a, &field_name),
-                        );
-                        if ord != Ordering::Equal {
-                            return ord;
-                        }
-                    }
-                    OrderKey::Custom(custom_order) => {
-                        if a.get() > 0 && b.get() > 0 {
-                            let ord = custom_order.compare(
-                                unsafe { NonZeroU32::new_unchecked(b.get() as u32) },
-                                unsafe { NonZeroU32::new_unchecked(b.get() as u32) },
-                            );
-                            if ord != Ordering::Equal {
-                                return ord;
-                            }
-                        }
-                    }
-                },
-            }
-        }
-        Ordering::Equal
-    });
 }

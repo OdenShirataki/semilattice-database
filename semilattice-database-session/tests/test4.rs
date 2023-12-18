@@ -104,18 +104,22 @@ fn test4() {
             )
             .await;
 
-        let mut sess = database.session("widget", None);
-        let search = sess
-            .begin_search(collection_field)
+        let sess = database.session("widget", None);
+        let search = database
+            .search(collection_field)
             .search(semilattice_database::Condition::Depend(
                 Some("field".to_owned()),
                 CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
             ))
             .search_activity(Activity::Active);
-        for r in search.result(&database, &vec![]).await {
+        for r in sess
+            .result_with(&search.result(&database).await)
+            .await
+            .rows()
+        {
             println!(
                 "session_search : {}",
-                std::str::from_utf8(sess.field_bytes(&database, collection_field, r, "name"))
+                std::str::from_utf8(sess.field_bytes(&database, collection_field, *r, "name"))
                     .unwrap()
             );
         }

@@ -3,36 +3,15 @@ use std::num::{NonZeroI32, NonZeroU32};
 use async_recursion::async_recursion;
 use futures::{future, FutureExt};
 use hashbrown::HashMap;
-use versatile_data::{RowSet, Search};
+use versatile_data::RowSet;
 
-use crate::{CollectionRow, Database};
+use crate::{CollectionRow, Condition, Database, Search};
 
 use super::SearchResult;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum JoinCondition {
-    Pends { key: Option<String> },
-    Field(String, versatile_data::search::Field),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Join {
-    collection_id: NonZeroI32,
-    conditions: Vec<JoinCondition>,
-    join: HashMap<String, Join>,
-}
-impl Join {
-    #[inline(always)]
-    pub fn new(collection_id: NonZeroI32, conditions: Vec<JoinCondition>) -> Self {
-        Self {
-            collection_id,
-            conditions,
-            join: HashMap::new(),
-        }
-    }
-
+impl Search {
     #[async_recursion]
-    async fn result_row(
+    async fn join_result_row(
         &self,
         database: &Database,
         parent_collection_id: NonZeroI32,
@@ -41,7 +20,7 @@ impl Join {
         let mut futs = vec![];
         for condition in &self.conditions {
             match condition {
-                JoinCondition::Pends { key } => {
+                Condition::JoinPends { key } => {
                     futs.push(
                         async {
                             database
@@ -56,13 +35,17 @@ impl Join {
                         .boxed(),
                     );
                 }
-                JoinCondition::Field(name, condition) => {
+                Condition::JoinField(name, condition) => {
                     if let Some(collection) = database.collection(parent_collection_id) {
                         futs.push(
-                            async { Search::result_field(collection, name, condition) }.boxed(),
+                            async {
+                                versatile_data::Search::result_field(collection, name, condition)
+                            }
+                            .boxed(),
                         );
                     }
                 }
+                _ => {}
             }
         }
 
@@ -74,17 +57,17 @@ impl Join {
         let join_nest = future::join_all(self.join.iter().map(|(key, join)| async {
             (
                 key.to_owned(),
-                join.result(database, self.collection_id, &rows).await,
+                join.join_result(database, self.collection_id, &rows).await,
             )
         }))
         .await
         .into_iter()
         .collect();
 
-        SearchResult::new(self.collection_id, rows, join_nest)
+        SearchResult::new(None, rows, join_nest)
     }
 
-    pub async fn result(
+    pub async fn join_result(
         &self,
         database: &Database,
         parent_collection_id: NonZeroI32,
@@ -93,7 +76,7 @@ impl Join {
         future::join_all(parent_rows.into_iter().map(|parent_row| async {
             (
                 *parent_row,
-                self.result_row(database, parent_collection_id, *parent_row)
+                self.join_result_row(database, parent_collection_id, *parent_row)
                     .await,
             )
         }))

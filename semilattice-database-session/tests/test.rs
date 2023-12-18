@@ -39,11 +39,17 @@ fn test() {
 
         let collection_login = database.collection_id_or_create("login");
         let mut sess = database.session("login", None);
-        let search = sess
-            .begin_search(collection_admin)
+
+        let search = database
+            .search(collection_admin)
             .search_field("id", search::Field::Match(b"test".to_vec()))
             .search_field("password", search::Field::Match(b"test".to_vec()));
-        for row in search.result(&database, &vec![]).await {
+
+        for row in sess
+            .result_with(&search.result(&database).await)
+            .await
+            .rows()
+        {
             database
                 .update(
                     &mut sess,
@@ -55,34 +61,42 @@ fn test() {
                         },
                         depends: Depends::Overwrite(vec![(
                             "admin".to_owned(),
-                            CollectionRow::new(collection_admin, row.try_into().unwrap()),
+                            CollectionRow::new(collection_admin, (*row).try_into().unwrap()),
                         )]),
                         pends: vec![],
                     }],
                 )
                 .await;
         }
-        let mut sess = database.session("login", None);
-        let search = sess.begin_search(collection_login);
-        for row in search.result(&database, &vec![]).await {
+        let sess = database.session("login", None);
+        let search = database.search(collection_login);
+        for row in sess
+            .result_with(&search.result(&database).await)
+            .await
+            .rows()
+        {
             println!("depends_with_session {} {}", collection_login, row);
             let depends = database.depends_with_session(
                 Some("admin"),
                 collection_login,
-                row.try_into().unwrap(),
+                (*row).try_into().unwrap(),
                 Some(&sess),
             );
             for d in depends {
                 let collection_id = d.collection_id();
                 if let Some(collection) = database.collection(collection_id) {
-                    let search = sess
-                        .begin_search(collection_id)
+                    let search = database
+                        .search(collection_id)
                         .search_row(search::Number::In(vec![d.row().get() as isize]));
-                    for row in search.result(&database, &vec![]).await {
+                    for row in sess
+                        .result_with(&search.result(&database).await)
+                        .await
+                        .rows()
+                    {
                         println!(
                             "login id : {}",
                             std::str::from_utf8(
-                                collection.field_bytes(row.try_into().unwrap(), "id")
+                                collection.field_bytes((*row).try_into().unwrap(), "id")
                             )
                             .unwrap()
                         );
@@ -242,15 +256,19 @@ fn test() {
             .await;
 
         let mut sess = database.session("test", None);
-        let search = sess
-            .begin_search(collection_person)
+        let search = database
+            .search(collection_person)
             .search_activity(Activity::Active);
-        for r in search.result(&database, &vec![]).await {
+        for r in sess
+            .result_with(&search.result(&database).await)
+            .await
+            .rows()
+        {
             println!(
                 "session_search : {},{}",
-                std::str::from_utf8(sess.field_bytes(&database, collection_person, r, "name"))
+                std::str::from_utf8(sess.field_bytes(&database, collection_person, *r, "name"))
                     .unwrap(),
-                std::str::from_utf8(sess.field_bytes(&database, collection_person, r, "birthday"))
+                std::str::from_utf8(sess.field_bytes(&database, collection_person, *r, "birthday"))
                     .unwrap()
             );
         }

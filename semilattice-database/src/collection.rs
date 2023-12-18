@@ -13,12 +13,11 @@ use versatile_data::{Data, DataOption, Operation};
 use crate::Database;
 
 pub struct Collection {
-    pub(crate) data: Data,
+    data: Data,
     id: NonZeroI32,
     name: String,
 }
 impl Collection {
-    #[inline(always)]
     pub fn new(data: Data, id: NonZeroI32, name: impl Into<String>) -> Self {
         Self {
             data,
@@ -27,14 +26,16 @@ impl Collection {
         }
     }
 
-    #[inline(always)]
     pub fn id(&self) -> NonZeroI32 {
         self.id
     }
 
-    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn data(&self) -> &Data {
+        &self.data
     }
 }
 impl Deref for Collection {
