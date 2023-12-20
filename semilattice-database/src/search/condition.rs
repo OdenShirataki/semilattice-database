@@ -19,8 +19,6 @@ pub enum Condition {
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
     Depend(Option<String>, CollectionRow),
-    JoinPends { key: Option<String> },
-    JoinField(String, versatile_data::search::Field),
 }
 impl Condition {
     #[async_recursion]
@@ -71,7 +69,10 @@ impl Condition {
             Self::Depend(key, collection_row) => {
                 let collection_id = collection.id();
                 relation
-                    .pends(key, collection_row)
+                    .pends(
+                        if let Some(key) = key { Some(key) } else { None },
+                        collection_row,
+                    )
                     .into_iter()
                     .filter_map(|r| (r.collection_id() == collection_id).then(|| r.row()))
                     .collect()
@@ -88,7 +89,6 @@ impl Condition {
             .into_iter()
             .flatten()
             .collect(),
-            _ => RowSet::default(),
         }
     }
 }

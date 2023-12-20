@@ -107,7 +107,6 @@ impl Session {
                 is_match
             }
             Condition::LastUpdated(_) => true,
-            _ => true,
         }
     }
 

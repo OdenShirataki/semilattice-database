@@ -9,7 +9,28 @@ use crate::{CollectionRow, Condition, Database, Search};
 
 use super::SearchResult;
 
-impl Search {
+#[derive(Debug, Clone, PartialEq)]
+pub struct SearchJoin {
+    collection_id: NonZeroI32,
+    relation_key: Option<String>,
+    conditions: Vec<Condition>,
+    join: HashMap<String, SearchJoin>,
+}
+
+impl SearchJoin {
+    pub fn new(
+        collection_id: NonZeroI32,
+        conditions: Vec<Condition>,
+        relation_key: Option<String>,
+        join: HashMap<String, SearchJoin>,
+    ) -> Self {
+        Self {
+            collection_id,
+            conditions,
+            relation_key,
+            join,
+        }
+    }
     #[async_recursion]
     async fn join_result_row(
         &self,
@@ -18,34 +39,33 @@ impl Search {
         parent_row: NonZeroU32,
     ) -> SearchResult {
         let mut futs = vec![];
-        for condition in &self.conditions {
-            match condition {
-                Condition::JoinPends { key } => {
-                    futs.push(
-                        async {
-                            database
-                                .relation
-                                .pends(key, &CollectionRow::new(parent_collection_id, parent_row))
-                                .into_iter()
-                                .filter_map(|r| {
-                                    (r.collection_id() == self.collection_id).then_some(r.row())
-                                })
-                                .collect()
-                        }
-                        .boxed(),
-                    );
+        if let Some(key) = &self.relation_key {
+            futs.push(
+                async {
+                    database
+                        .relation
+                        .pends(
+                            Some(key),
+                            &CollectionRow::new(parent_collection_id, parent_row),
+                        )
+                        .into_iter()
+                        .filter_map(|r| {
+                            (r.collection_id() == self.collection_id).then_some(r.row())
+                        })
+                        .collect()
                 }
-                Condition::JoinField(name, condition) => {
-                    if let Some(collection) = database.collection(parent_collection_id) {
-                        futs.push(
-                            async {
-                                versatile_data::Search::result_field(collection, name, condition)
-                            }
-                            .boxed(),
-                        );
+                .boxed(),
+            );
+        }
+        if self.conditions.len() > 0 {
+            if let Some(collection) = database.collection(self.collection_id) {
+                futs.push(
+                    async {
+                        Search::result_conditions(collection, &self.conditions, &database.relation)
+                            .await
                     }
-                }
-                _ => {}
+                    .boxed(),
+                );
             }
         }
 

@@ -111,8 +111,7 @@ impl RelationIndex {
         }
     }
 
-    #[inline(always)]
-    pub fn pends(&self, key: &Option<String>, depend: &CollectionRow) -> Vec<CollectionRow> {
+    pub fn pends(&self, key: Option<&str>, depend: &CollectionRow) -> Vec<CollectionRow> {
         key.as_ref().map_or_else(
             || {
                 self.rows
@@ -141,7 +140,6 @@ impl RelationIndex {
         )
     }
 
-    #[inline(always)]
     pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {
         key.map_or_else(
             || {
@@ -189,22 +187,18 @@ impl RelationIndex {
         )
     }
 
-    #[inline(always)]
     pub fn index_depend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.depend
     }
 
-    #[inline(always)]
     pub fn index_pend(&self) -> &IdxFile<CollectionRow> {
         &self.rows.pend
     }
 
-    #[inline(always)]
     pub fn depend(&self, row: NonZeroU32) -> Option<&CollectionRow> {
         self.rows.depend.value(row)
     }
 
-    #[inline(always)]
     pub unsafe fn key(&self, row: NonZeroU32) -> &str {
         self.rows.key.value(row).map_or("", |key_row| {
             std::str::from_utf8_unchecked(self.key_names.bytes(NonZeroU32::new(*key_row).unwrap()))

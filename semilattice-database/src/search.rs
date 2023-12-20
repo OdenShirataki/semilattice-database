@@ -2,6 +2,7 @@ mod condition;
 mod join;
 mod result;
 
+pub use self::join::SearchJoin;
 pub use condition::Condition;
 pub use result::SearchResult;
 
@@ -19,14 +20,14 @@ use versatile_data::Activity;
 pub struct Search {
     collection_id: NonZeroI32,
     conditions: Vec<Condition>,
-    join: HashMap<String, Search>,
+    join: HashMap<String, SearchJoin>,
 }
 
 impl Search {
     pub fn new(
         collection_id: NonZeroI32,
         conditions: Vec<Condition>,
-        join: HashMap<String, Search>,
+        join: HashMap<String, SearchJoin>,
     ) -> Self {
         Self {
             collection_id,
