@@ -72,9 +72,10 @@ impl Condition {
                     .pends(
                         if let Some(key) = key { Some(key) } else { None },
                         collection_row,
+                        Some(collection_id),
                     )
                     .into_iter()
-                    .filter_map(|r| (r.collection_id() == collection_id).then(|| r.row()))
+                    .map(|r| r.row())
                     .collect()
             }
             Self::Narrow(conditions) => {

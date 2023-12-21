@@ -1,4 +1,7 @@
-use std::{num::NonZeroU32, path::Path};
+use std::{
+    num::{NonZeroI32, NonZeroU32},
+    path::Path,
+};
 
 use binary_set::BinarySet;
 use versatile_data::{IdxFile, RowFragment};
@@ -111,33 +114,77 @@ impl RelationIndex {
         }
     }
 
-    pub fn pends(&self, key: Option<&str>, depend: &CollectionRow) -> Vec<CollectionRow> {
-        key.as_ref().map_or_else(
-            || {
-                self.rows
-                    .depend
-                    .iter_by(|v| v.cmp(depend))
-                    .filter_map(|row| self.rows.pend.value(row).cloned())
-                    .collect()
-            },
-            |key| {
-                self.key_names.row(key.as_bytes()).map_or(vec![], |key| {
+    pub fn pends(
+        &self,
+        key: Option<&str>,
+        depend: &CollectionRow,
+        pend_collection_id: Option<NonZeroI32>,
+    ) -> Vec<&CollectionRow> {
+        if let Some(pend_collection_id) = pend_collection_id {
+            key.as_ref().map_or_else(
+                || {
                     self.rows
                         .depend
                         .iter_by(|v| v.cmp(depend))
                         .filter_map(|row| {
-                            if let (Some(key_row), Some(collection_row)) =
-                                (self.rows.key.value(row), self.rows.pend.value(row))
-                            {
-                                (*key_row == key.get()).then_some(collection_row.clone())
-                            } else {
-                                None
+                            if let Some(v) = self.rows.pend.value(row) {
+                                if v.collection_id() == pend_collection_id {
+                                    return Some(v);
+                                }
                             }
+                            None
                         })
                         .collect()
-                })
-            },
-        )
+                },
+                |key| {
+                    self.key_names.row(key.as_bytes()).map_or(vec![], |key| {
+                        self.rows
+                            .depend
+                            .iter_by(|v| v.cmp(depend))
+                            .filter_map(|row| {
+                                if let (Some(key_row), Some(collection_row)) =
+                                    (self.rows.key.value(row), self.rows.pend.value(row))
+                                {
+                                    if *key_row == key.get() {
+                                        if collection_row.collection_id() == pend_collection_id {
+                                            return Some(collection_row);
+                                        }
+                                    }
+                                }
+                                None
+                            })
+                            .collect()
+                    })
+                },
+            )
+        } else {
+            key.as_ref().map_or_else(
+                || {
+                    self.rows
+                        .depend
+                        .iter_by(|v| v.cmp(depend))
+                        .filter_map(|row| self.rows.pend.value(row))
+                        .collect()
+                },
+                |key| {
+                    self.key_names.row(key.as_bytes()).map_or(vec![], |key| {
+                        self.rows
+                            .depend
+                            .iter_by(|v| v.cmp(depend))
+                            .filter_map(|row| {
+                                if let (Some(key_row), Some(collection_row)) =
+                                    (self.rows.key.value(row), self.rows.pend.value(row))
+                                {
+                                    (*key_row == key.get()).then_some(collection_row)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect()
+                    })
+                },
+            )
+        }
     }
 
     pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {

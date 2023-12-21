@@ -47,11 +47,10 @@ impl SearchJoin {
                         .pends(
                             Some(key),
                             &CollectionRow::new(parent_collection_id, parent_row),
+                            Some(self.collection_id),
                         )
                         .into_iter()
-                        .filter_map(|r| {
-                            (r.collection_id() == self.collection_id).then_some(r.row())
-                        })
+                        .map(|r| r.row())
                         .collect()
                 }
                 .boxed(),
