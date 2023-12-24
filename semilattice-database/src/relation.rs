@@ -50,7 +50,6 @@ impl Serialize for Depend {
 }
 
 impl Database {
-    #[inline(always)]
     pub fn relation(&self) -> &RelationIndex {
         &self.relation
     }
@@ -78,7 +77,6 @@ impl Database {
         }
     }
 
-    #[inline(always)]
     pub fn depends(
         &self,
         key: Option<&str>,

@@ -17,7 +17,6 @@ impl PartialOrd for CollectionRow {
     }
 }
 impl Ord for CollectionRow {
-    #[inline(always)]
     fn cmp(&self, other: &CollectionRow) -> Ordering {
         if self.collection_id == other.collection_id {
             self.row.cmp(&other.row)
@@ -29,7 +28,6 @@ impl Ord for CollectionRow {
     }
 }
 impl PartialEq for CollectionRow {
-    #[inline(always)]
     fn eq(&self, other: &CollectionRow) -> bool {
         self.collection_id == other.collection_id && self.row == other.row
     }
@@ -37,17 +35,14 @@ impl PartialEq for CollectionRow {
 impl Eq for CollectionRow {}
 
 impl CollectionRow {
-    #[inline(always)]
     pub fn new(collection_id: NonZeroI32, row: NonZeroU32) -> Self {
         Self { collection_id, row }
     }
 
-    #[inline(always)]
     pub fn collection_id(&self) -> NonZeroI32 {
         self.collection_id
     }
 
-    #[inline(always)]
     pub fn row(&self) -> NonZeroU32 {
         self.row
     }

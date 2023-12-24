@@ -31,7 +31,8 @@ impl SearchJoin {
             join,
         }
     }
-    #[async_recursion]
+
+    #[async_recursion(?Send)]
     async fn join_result_row(
         &self,
         database: &Database,
@@ -53,7 +54,7 @@ impl SearchJoin {
                         .map(|r| r.row())
                         .collect()
                 }
-                .boxed(),
+                .boxed_local(),
             );
         }
         if self.conditions.len() > 0 {
@@ -63,7 +64,7 @@ impl SearchJoin {
                         Search::result_conditions(collection, &self.conditions, &database.relation)
                             .await
                     }
-                    .boxed(),
+                    .boxed_local(),
                 );
             }
         }

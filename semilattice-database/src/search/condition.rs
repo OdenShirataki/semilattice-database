@@ -21,7 +21,7 @@ pub enum Condition {
     Depend(Option<String>, CollectionRow),
 }
 impl Condition {
-    #[async_recursion]
+    #[async_recursion(?Send)]
     pub(crate) async fn result(&self, collection: &Collection, relation: &RelationIndex) -> RowSet {
         match self {
             Self::Activity(c) => {

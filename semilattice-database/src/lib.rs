@@ -59,7 +59,7 @@ impl Database {
         db
     }
 
-    #[async_recursion]
+    #[async_recursion(?Send)]
     pub async fn delete_recursive(&mut self, target: &CollectionRow) {
         let rows: Vec<_> = self
             .relation

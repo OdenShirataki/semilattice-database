@@ -13,7 +13,7 @@ use crate::{
 };
 
 impl SessionDatabase {
-    #[async_recursion]
+    #[async_recursion(?Send)]
     pub(super) async fn update_recursive(
         &self,
         session_data: &mut SessionData,

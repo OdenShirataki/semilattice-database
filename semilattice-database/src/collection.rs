@@ -51,7 +51,6 @@ impl DerefMut for Collection {
 }
 
 impl Database {
-    #[inline(always)]
     pub fn collections(&self) -> Vec<String> {
         self.collections
             .iter()
@@ -59,24 +58,20 @@ impl Database {
             .collect()
     }
 
-    #[inline(always)]
     pub fn collection(&self, id: NonZeroI32) -> Option<&Collection> {
         self.collections.get(&id)
     }
 
-    #[inline(always)]
     pub fn collection_mut(&mut self, id: NonZeroI32) -> Option<&mut Collection> {
         self.collections.get_mut(&id)
     }
 
-    #[inline(always)]
     pub fn collection_id(&self, name: &str) -> Option<NonZeroI32> {
         self.collections_map
             .contains_key(name)
             .then(|| *self.collections_map.get(name).unwrap())
     }
 
-    #[inline(always)]
     pub fn collection_id_or_create(&mut self, name: &str) -> NonZeroI32 {
         if self.collections_map.contains_key(name) {
             *self.collections_map.get(name).unwrap()
@@ -109,7 +104,6 @@ impl Database {
         }
     }
 
-    #[inline(always)]
     pub(super) fn create_collection(&mut self, id: NonZeroI32, name: &str, dir: PathBuf) {
         let collection = Collection::new(
             Data::new(
@@ -125,7 +119,6 @@ impl Database {
         self.collections.insert(id, collection);
     }
 
-    #[inline(always)]
     fn collection_by_name_or_create(&mut self, name: &str) -> NonZeroI32 {
         let mut max_id = 0;
         if self.collections_dir.exists() {
