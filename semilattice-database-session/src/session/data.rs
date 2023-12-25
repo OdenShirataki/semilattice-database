@@ -177,9 +177,13 @@ impl SessionData {
                                                     Some(Depend::new(
                                                         unsafe {
                                                             std::str::from_utf8_unchecked(
-                                                                self.relation.key_names.bytes(
-                                                                    NonZeroU32::new(*key).unwrap(),
-                                                                ),
+                                                                self.relation
+                                                                    .key_names
+                                                                    .bytes(
+                                                                        NonZeroU32::new(*key)
+                                                                            .unwrap(),
+                                                                    )
+                                                                    .unwrap(),
                                                             )
                                                         },
                                                         depend.clone(),

@@ -269,7 +269,8 @@ impl Session {
                                                 session_data
                                                     .relation
                                                     .key_names
-                                                    .bytes(NonZeroU32::new(*key).unwrap()),
+                                                    .bytes(NonZeroU32::new(*key).unwrap())
+                                                    .unwrap(),
                                             )
                                         },
                                         depend.clone(),

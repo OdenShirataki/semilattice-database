@@ -200,7 +200,9 @@ impl RelationIndex {
                             Some(Depend::new(
                                 unsafe {
                                     std::str::from_utf8_unchecked(
-                                        self.key_names.bytes(NonZeroU32::new(*key).unwrap()),
+                                        self.key_names
+                                            .bytes(NonZeroU32::new(*key).unwrap())
+                                            .unwrap(),
                                     )
                                 },
                                 collection_row.clone(),
@@ -246,9 +248,13 @@ impl RelationIndex {
         self.rows.depend.value(row)
     }
 
-    pub unsafe fn key(&self, row: NonZeroU32) -> &str {
-        self.rows.key.value(row).map_or("", |key_row| {
-            std::str::from_utf8_unchecked(self.key_names.bytes(NonZeroU32::new(*key_row).unwrap()))
+    pub fn key(&self, row: NonZeroU32) -> &str {
+        self.rows.key.value(row).map_or("", |key_row| unsafe {
+            std::str::from_utf8_unchecked(
+                self.key_names
+                    .bytes(NonZeroU32::new(*key_row).unwrap())
+                    .unwrap(),
+            )
         })
     }
 }

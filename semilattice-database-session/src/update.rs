@@ -219,7 +219,7 @@ impl SessionDatabase {
                                     .iter_by(|v| v.cmp(&CollectionRow::new(collection_id, *row)))
                                 {
                                     if let Some(depend) = self.relation().depend(i) {
-                                        let key = unsafe { self.relation().key(i) }.to_owned();
+                                        let key = self.relation().key(i).to_owned();
                                         session_data
                                             .relation
                                             .insert(&key, session_row, depend.clone())

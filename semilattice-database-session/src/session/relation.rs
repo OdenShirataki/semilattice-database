@@ -85,7 +85,7 @@ impl SessionRelation {
                         ret.push(Depend::new(
                             unsafe {
                                 std::str::from_utf8_unchecked(
-                                    self.key_names.bytes(NonZeroU32::new(key).unwrap()),
+                                    self.key_names.bytes(NonZeroU32::new(key).unwrap()).unwrap(),
                                 )
                             },
                             depend,
