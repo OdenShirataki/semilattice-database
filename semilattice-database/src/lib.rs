@@ -83,9 +83,7 @@ impl Database {
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {
             collection
-                .update(Operation::Delete {
-                    row: target.row().get(),
-                })
+                .update(Operation::Delete { row: target.row() })
                 .await;
         }
     }

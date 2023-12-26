@@ -3,8 +3,6 @@
 ## Example
 
 ```rust
-use std::num::NonZeroU32;
-
 use semilattice_database::*;
 
 let dir = "./sl-test/";
@@ -32,9 +30,10 @@ futures::executor::block_on(async {
                 ]
                 .into(),
             }))
-            .await;
+            .await
+            .unwrap();
 
-        let depend = CollectionRow::new(collection_person_id, NonZeroU32::new(row).unwrap());
+        let depend = CollectionRow::new(collection_person_id, row);
         let mut pends = vec![];
         if let Some(collection_history) = database.collection_mut(collection_history_id) {
             let history_row = collection_history
@@ -48,13 +47,11 @@ futures::executor::block_on(async {
                     ]
                     .into(),
                 }))
-                .await;
+                .await
+                .unwrap();
             pends.push((
                 "history".to_owned(),
-                CollectionRow::new(
-                    collection_history_id,
-                    NonZeroU32::new(history_row).unwrap(),
-                ),
+                CollectionRow::new(collection_history_id, history_row),
             ));
             let history_row = collection_history
                 .update(Operation::New(Record {
@@ -67,13 +64,11 @@ futures::executor::block_on(async {
                     ]
                     .into(),
                 }))
-                .await;
+                .await
+                .unwrap();
             pends.push((
                 "history".to_owned(),
-                CollectionRow::new(
-                    collection_history_id,
-                    NonZeroU32::new(history_row).unwrap(),
-                ),
+                CollectionRow::new(collection_history_id, history_row),
             ));
         }
         database.register_relations(&depend, pends).await;

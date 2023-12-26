@@ -3,7 +3,7 @@ use futures::future;
 
 use versatile_data::{
     search::{Field, Number, Term},
-    Activity, Condition as VersatileDataCondition, RowSet, Search as VersatileDataSearch,
+    Activity, Condition as VersatileDataCondition, RowSet,
 };
 
 use crate::{Collection, CollectionRow, RelationIndex, Search};
@@ -25,46 +25,40 @@ impl Condition {
     pub(crate) async fn result(&self, collection: &Collection, relation: &RelationIndex) -> RowSet {
         match self {
             Self::Activity(c) => {
-                VersatileDataSearch::result_condition(
-                    &collection.data(),
-                    &VersatileDataCondition::Activity(*c),
-                )
-                .await
+                collection
+                    .data()
+                    .result_condition(&VersatileDataCondition::Activity(*c))
+                    .await
             }
             Self::Term(c) => {
-                VersatileDataSearch::result_condition(
-                    &collection.data(),
-                    &VersatileDataCondition::Term(c.clone()),
-                )
-                .await
+                collection
+                    .data()
+                    .result_condition(&VersatileDataCondition::Term(c.clone()))
+                    .await
             }
             Self::Row(c) => {
-                VersatileDataSearch::result_condition(
-                    &collection.data(),
-                    &VersatileDataCondition::Row(c),
-                )
-                .await
+                collection
+                    .data()
+                    .result_condition(&VersatileDataCondition::Row(c))
+                    .await
             }
             Self::Uuid(c) => {
-                VersatileDataSearch::result_condition(
-                    &collection.data(),
-                    &VersatileDataCondition::Uuid(c),
-                )
-                .await
+                collection
+                    .data()
+                    .result_condition(&VersatileDataCondition::Uuid(c))
+                    .await
             }
             Self::LastUpdated(c) => {
-                VersatileDataSearch::result_condition(
-                    &collection.data(),
-                    &VersatileDataCondition::LastUpdated(c),
-                )
-                .await
+                collection
+                    .data()
+                    .result_condition(&VersatileDataCondition::LastUpdated(c))
+                    .await
             }
             Self::Field(key, condition) => {
-                VersatileDataSearch::result_condition(
-                    &collection.data(),
-                    &VersatileDataCondition::Field(key, condition),
-                )
-                .await
+                collection
+                    .data()
+                    .result_condition(&VersatileDataCondition::Field(key, condition))
+                    .await
             }
             Self::Depend(key, collection_row) => {
                 let collection_id = collection.id();

@@ -102,8 +102,7 @@ impl SessionDatabase {
                                                     main_collection_row.row()
                                                 } else {
                                                     row
-                                                }
-                                                .get(),
+                                                },
                                                 record: Record {
                                                     activity,
                                                     term_begin,
@@ -113,7 +112,6 @@ impl SessionDatabase {
                                             }
                                         })
                                         .await
-                                        .try_into()
                                         .unwrap(),
                                 );
                                 commit_rows.push(collection_row);
