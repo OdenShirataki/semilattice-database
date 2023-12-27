@@ -9,8 +9,8 @@ description = "Data is connected by a directed graph, with each node having arbi
 
 repository = "https://github.com/OdenShirataki/semilattice-database"
 
-keywords = ["database","library"]
-categories = ["database","database-implementations"]
+keywords = ["database", "library"]
+categories = ["database", "database-implementations"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
@@ -19,4 +19,4 @@ serde.workspace = true
 futures.workspace = true
 async-recursion.workspace = true
 
-semilattice-database.workspace = true
+semilattice-database = { version = "0.98", path = "../semilattice-database" }
