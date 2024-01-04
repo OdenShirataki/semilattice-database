@@ -80,7 +80,7 @@ impl SessionRelation {
                 futures::join!(
                     self.rows.key.insert(key),
                     self.rows.session_row.insert(new_session_row.get()),
-                    self.rows.depend.insert(depend),
+                    self.rows.depend.insert(depend.clone()),
                     async {
                         ret.push(Depend::new(
                             unsafe {

@@ -114,7 +114,7 @@ impl SessionDatabase {
                                         .await
                                         .unwrap(),
                                 );
-                                commit_rows.push(collection_row);
+                                commit_rows.push(collection_row.clone());
                                 self.relation_mut()
                                     .delete_pends_by_collection_row(&collection_row)
                                     .await; //Delete once and re-register later
@@ -143,7 +143,7 @@ impl SessionDatabase {
                                                     )
                                                 }
                                                 .to_owned(),
-                                                session_collection_row,
+                                                session_collection_row.clone(),
                                             ));
                                     }
                                 }
