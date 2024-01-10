@@ -1,4 +1,4 @@
-use std::{num::NonZeroU32, path::Path};
+use std::{num::NonZeroU32, ops::Deref, path::Path};
 
 use crate::{BinarySet, IdxFile};
 
@@ -72,11 +72,11 @@ impl SessionRelation {
             .into_iter()
         {
             if let (Some(key), Some(depend)) = (
-                self.rows.key.value(session_relation_row),
-                self.rows.depend.value(session_relation_row),
+                self.rows.key.get(session_relation_row),
+                self.rows.depend.get(session_relation_row),
             ) {
-                let key = *key;
-                let depend = depend.clone();
+                let key = *key.deref();
+                let depend = depend.deref().clone();
                 futures::join!(
                     self.rows.key.insert(key),
                     self.rows.session_row.insert(new_session_row.get()),

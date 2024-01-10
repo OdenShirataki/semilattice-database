@@ -5,10 +5,10 @@ use std::{
 
 use serde::Serialize;
 
-#[derive(Clone, Debug, Serialize, Hash)]
+#[derive(Clone, Debug, Serialize, Hash, Default)]
 pub struct CollectionRow {
-    collection_id: NonZeroI32,
-    row: NonZeroU32,
+    collection_id: Option<NonZeroI32>,
+    row: Option<NonZeroU32>,
 }
 impl PartialOrd for CollectionRow {
     #[inline(always)]
@@ -36,14 +36,17 @@ impl Eq for CollectionRow {}
 
 impl CollectionRow {
     pub fn new(collection_id: NonZeroI32, row: NonZeroU32) -> Self {
-        Self { collection_id, row }
+        Self {
+            collection_id: Some(collection_id),
+            row: Some(row),
+        }
     }
 
     pub fn collection_id(&self) -> NonZeroI32 {
-        self.collection_id
+        self.collection_id.unwrap()
     }
 
     pub fn row(&self) -> NonZeroU32 {
-        self.row
+        self.row.unwrap()
     }
 }

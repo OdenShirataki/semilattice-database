@@ -1,4 +1,7 @@
-use std::num::NonZeroU32;
+use std::{
+    num::{NonZeroI32, NonZeroU32},
+    ops::Deref,
+};
 
 use semilattice_database::{Activity, Operation, Record, Term};
 
@@ -36,23 +39,24 @@ impl SessionDatabase {
                 .rev()
             {
                 if let (Some(op), Some(collection_id), Some(row)) = (
-                    session_data.operation.value(session_row),
-                    session_data.collection_id.value(session_row),
-                    session_data.row.value(session_row),
+                    session_data.operation.get(session_row),
+                    session_data.collection_id.get(session_row),
+                    session_data.row.get(session_row),
                 ) {
-                    let in_session = collection_id.get() < 0;
+                    let in_session = *collection_id.deref() < 0;
 
-                    let main_collection_id = if in_session {
-                        -*collection_id
+                    let main_collection_id = NonZeroI32::new(if in_session {
+                        -*collection_id.deref()
                     } else {
-                        *collection_id
-                    };
-                    let row = if *row == 0 {
+                        *collection_id.deref()
+                    })
+                    .unwrap();
+                    let row = if *row.deref() == 0 {
                         session_row
                     } else {
-                        unsafe { NonZeroU32::new_unchecked(*row) }
+                        unsafe { NonZeroU32::new_unchecked(*row.deref()) }
                     };
-                    let fields = if *op == SessionOperation::Delete {
+                    let fields = if *op.deref() == SessionOperation::Delete {
                         HashMap::new()
                     } else {
                         session_data
@@ -66,25 +70,33 @@ impl SessionDatabase {
                             .collect()
                     };
                     if let Some(collection) = self.collection_mut(main_collection_id) {
-                        let session_collection_row = CollectionRow::new(*collection_id, row);
-                        match op {
+                        let session_collection_row = CollectionRow::new(
+                            NonZeroI32::new(*collection_id.deref()).unwrap(),
+                            row,
+                        );
+                        match op.deref() {
                             SessionOperation::New | SessionOperation::Update => {
-                                let activity =
-                                    if *session_data.activity.value(session_row).unwrap() == 1 {
-                                        Activity::Active
-                                    } else {
-                                        Activity::Inactive
-                                    };
+                                let activity = if *session_data
+                                    .activity
+                                    .get(session_row)
+                                    .unwrap()
+                                    .deref()
+                                    == 1
+                                {
+                                    Activity::Active
+                                } else {
+                                    Activity::Inactive
+                                };
                                 let term_begin = Term::Overwrite(
-                                    *session_data.term_begin.value(session_row).unwrap(),
+                                    *session_data.term_begin.get(session_row).unwrap().deref(),
                                 );
                                 let term_end = Term::Overwrite(
-                                    *session_data.term_end.value(session_row).unwrap(),
+                                    *session_data.term_end.get(session_row).unwrap().deref(),
                                 );
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
                                     collection
-                                        .update(if *op == SessionOperation::New {
+                                        .update(if *op.deref() == SessionOperation::New {
                                             Operation::New(Record {
                                                 activity,
                                                 term_begin,
@@ -126,11 +138,11 @@ impl SessionDatabase {
                                     .iter_by(|v| v.cmp(&session_row.get()))
                                 {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.value(relation_row),
-                                        session_data.relation.rows.depend.value(relation_row),
+                                        session_data.relation.rows.key.get(relation_row),
+                                        session_data.relation.rows.depend.get(relation_row),
                                     ) {
                                         relation_temporary
-                                            .entry(depend.clone())
+                                            .entry(depend.deref().clone())
                                             .or_insert_with(|| Vec::new())
                                             .push((
                                                 unsafe {
@@ -138,7 +150,10 @@ impl SessionDatabase {
                                                         session_data
                                                             .relation
                                                             .key_names
-                                                            .bytes(NonZeroU32::new(*key).unwrap())
+                                                            .bytes(
+                                                                NonZeroU32::new(*key.deref())
+                                                                    .unwrap(),
+                                                            )
                                                             .unwrap(),
                                                     )
                                                 }

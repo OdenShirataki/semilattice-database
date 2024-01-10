@@ -67,7 +67,7 @@ impl Database {
             .iter_by(|v| v.cmp(target))
             .collect();
         for relation_row in rows.into_iter() {
-            let collection_row = self.relation.index_pend().value(relation_row).cloned();
+            let collection_row = self.relation.index_pend().get(relation_row).cloned();
             if let Some(collection_row) = collection_row {
                 self.delete_recursive(&collection_row).await;
             }

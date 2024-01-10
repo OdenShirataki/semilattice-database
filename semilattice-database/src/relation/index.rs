@@ -1,5 +1,6 @@
 use std::{
     num::{NonZeroI32, NonZeroU32},
+    ops::Deref,
     path::Path,
 };
 
@@ -72,9 +73,9 @@ impl RelationIndex {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes()).get();
         if let Some(row) = self.fragment.pop() {
             futures::join!(
-                self.rows.key.update_with_allocate(row, key_id),
-                self.rows.depend.update_with_allocate(row, depend),
-                self.rows.pend.update_with_allocate(row, pend)
+                self.rows.key.update(row, key_id),
+                self.rows.depend.update(row, depend),
+                self.rows.pend.update(row, pend)
             );
         } else {
             futures::join!(
@@ -127,9 +128,9 @@ impl RelationIndex {
                         .depend
                         .iter_by(|v| v.cmp(depend))
                         .filter_map(|row| {
-                            if let Some(v) = self.rows.pend.value(row) {
+                            if let Some(v) = self.rows.pend.get(row) {
                                 if v.collection_id() == pend_collection_id {
-                                    return Some(v);
+                                    return Some(v.deref());
                                 }
                             }
                             None
@@ -143,11 +144,11 @@ impl RelationIndex {
                             .iter_by(|v| v.cmp(depend))
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
-                                    (self.rows.key.value(row), self.rows.pend.value(row))
+                                    (self.rows.key.get(row), self.rows.pend.get(row))
                                 {
-                                    if *key_row == key.get() {
+                                    if *key_row.deref() == key.get() {
                                         if collection_row.collection_id() == pend_collection_id {
-                                            return Some(collection_row);
+                                            return Some(collection_row.deref());
                                         }
                                     }
                                 }
@@ -163,7 +164,7 @@ impl RelationIndex {
                     self.rows
                         .depend
                         .iter_by(|v| v.cmp(depend))
-                        .filter_map(|row| self.rows.pend.value(row))
+                        .filter_map(|row| self.rows.pend.get(row).map(|v| v.deref()))
                         .collect()
                 },
                 |key| {
@@ -173,9 +174,10 @@ impl RelationIndex {
                             .iter_by(|v| v.cmp(depend))
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
-                                    (self.rows.key.value(row), self.rows.pend.value(row))
+                                    (self.rows.key.get(row), self.rows.pend.get(row))
                                 {
-                                    (*key_row == key.get()).then_some(collection_row)
+                                    (*key_row.deref() == key.get())
+                                        .then_some(collection_row.deref())
                                 } else {
                                     None
                                 }
@@ -195,17 +197,17 @@ impl RelationIndex {
                     .iter_by(|v| v.cmp(pend))
                     .filter_map(|row| {
                         if let (Some(key), Some(collection_row)) =
-                            (self.rows.key.value(row), self.rows.depend.value(row))
+                            (self.rows.key.get(row), self.rows.depend.get(row))
                         {
                             Some(Depend::new(
                                 unsafe {
                                     std::str::from_utf8_unchecked(
                                         self.key_names
-                                            .bytes(NonZeroU32::new(*key).unwrap())
+                                            .bytes(NonZeroU32::new(*key.deref()).unwrap())
                                             .unwrap(),
                                     )
                                 },
-                                collection_row.clone(),
+                                collection_row.deref().clone(),
                             ))
                         } else {
                             None
@@ -222,10 +224,12 @@ impl RelationIndex {
                             .iter_by(|v| v.cmp(pend))
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
-                                    (self.rows.key.value(row), self.rows.depend.value(row))
+                                    (self.rows.key.get(row), self.rows.depend.get(row))
                                 {
-                                    (*key_row == key.get())
-                                        .then_some(Depend::new(key_name, collection_row.clone()))
+                                    (*key_row.deref() == key.get()).then_some(Depend::new(
+                                        key_name,
+                                        collection_row.deref().clone(),
+                                    ))
                                 } else {
                                     None
                                 }
@@ -245,14 +249,14 @@ impl RelationIndex {
     }
 
     pub fn depend(&self, row: NonZeroU32) -> Option<&CollectionRow> {
-        self.rows.depend.value(row)
+        self.rows.depend.get(row).map(|v| v.deref())
     }
 
     pub fn key(&self, row: NonZeroU32) -> &str {
-        self.rows.key.value(row).map_or("", |key_row| unsafe {
+        self.rows.key.get(row).map_or("", |key_row| unsafe {
             std::str::from_utf8_unchecked(
                 self.key_names
-                    .bytes(NonZeroU32::new(*key_row).unwrap())
+                    .bytes(NonZeroU32::new(*key_row.deref()).unwrap())
                     .unwrap(),
             )
         })

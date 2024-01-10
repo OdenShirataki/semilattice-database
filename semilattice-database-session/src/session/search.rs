@@ -260,8 +260,8 @@ impl Session {
                             .iter_by(|v| v.cmp(&pend_row.get()))
                             .filter_map(|relation_row| {
                                 if let (Some(key), Some(depend)) = (
-                                    session_data.relation.rows.key.value(relation_row),
-                                    session_data.relation.rows.depend.value(relation_row),
+                                    session_data.relation.rows.key.get(relation_row),
+                                    session_data.relation.rows.depend.get(relation_row),
                                 ) {
                                     return Some(Depend::new(
                                         unsafe {
@@ -269,11 +269,11 @@ impl Session {
                                                 session_data
                                                     .relation
                                                     .key_names
-                                                    .bytes(NonZeroU32::new(*key).unwrap())
+                                                    .bytes(NonZeroU32::new(*key.deref()).unwrap())
                                                     .unwrap(),
                                             )
                                         },
-                                        depend.clone(),
+                                        depend.deref().clone(),
                                     ));
                                 }
                                 None
@@ -294,11 +294,14 @@ impl Session {
                                 .iter_by(|v| v.cmp(&pend_row.get()))
                                 .filter_map(|relation_row| {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.value(relation_row),
-                                        session_data.relation.rows.depend.value(relation_row),
+                                        session_data.relation.rows.key.get(relation_row),
+                                        session_data.relation.rows.depend.get(relation_row),
                                     ) {
-                                        if *key == key_id.get() {
-                                            return Some(Depend::new(key_name, depend.clone()));
+                                        if *key.deref() == key_id.get() {
+                                            return Some(Depend::new(
+                                                key_name,
+                                                depend.deref().clone(),
+                                            ));
                                         }
                                     }
                                     None

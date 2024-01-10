@@ -1,5 +1,6 @@
 use std::{
     num::{NonZeroI64, NonZeroU32},
+    ops::Deref,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -54,10 +55,10 @@ impl SessionDatabase {
                     futures::join!(
                         session_data
                             .collection_id
-                            .update_with_allocate(session_row, session_collection_id),
+                            .update(session_row, session_collection_id.get()),
                         session_data
                             .operation
-                            .update_with_allocate(session_row, SessionOperation::New),
+                            .update(session_row, SessionOperation::New),
                     );
                     session_data
                         .update(
@@ -165,10 +166,10 @@ impl SessionDatabase {
 
                     let uuid = {
                         if in_session {
-                            session_data
-                                .uuid
-                                .value(*row)
-                                .map_or_else(|| semilattice_database::create_uuid(), |uuid| *uuid)
+                            session_data.uuid.get(*row).map_or_else(
+                                || semilattice_database::create_uuid(),
+                                |uuid| *uuid.deref(),
+                            )
                         } else {
                             if let Some(collection) = self.collection(master_collection_id) {
                                 let uuid = collection.uuid(*row).unwrap_or(0);
@@ -186,10 +187,10 @@ impl SessionDatabase {
                     futures::join!(
                         session_data
                             .collection_id
-                            .update_with_allocate(session_row, collection_id),
+                            .update(session_row, collection_id.get()),
                         session_data
                             .operation
-                            .update_with_allocate(session_row, SessionOperation::Update),
+                            .update(session_row, SessionOperation::Update),
                     );
                     session_data
                         .update(
@@ -282,13 +283,11 @@ impl SessionDatabase {
                     futures::join!(
                         session_data
                             .collection_id
-                            .update_with_allocate(session_row, *collection_id),
-                        session_data
-                            .row
-                            .update_with_allocate(session_row, row.get()),
+                            .update(session_row, collection_id.get()),
+                        session_data.row.update(session_row, row.get()),
                         session_data
                             .operation
-                            .update_with_allocate(session_row, SessionOperation::Delete)
+                            .update(session_row, SessionOperation::Delete)
                     );
                 }
             }

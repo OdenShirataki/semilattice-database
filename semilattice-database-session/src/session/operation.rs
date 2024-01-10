@@ -2,8 +2,9 @@ use std::num::{NonZeroI32, NonZeroU32};
 
 use crate::{CollectionRow, Record};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum SessionOperation {
+    #[default]
     New,
     Update,
     Delete,
