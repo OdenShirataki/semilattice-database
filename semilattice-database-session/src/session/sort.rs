@@ -154,17 +154,18 @@ impl Session {
 }
 
 fn serial(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u32, u32) {
-    let a = if a.get() < 0 {
-        0
-    } else {
-        collection.serial(a.try_into().unwrap())
-    };
-    let b = if b.get() < 0 {
-        0
-    } else {
-        collection.serial(b.try_into().unwrap())
-    };
-    (a, b)
+    (
+        if a.get() < 0 {
+            0
+        } else {
+            collection.serial(a.try_into().unwrap())
+        },
+        if b.get() < 0 {
+            0
+        } else {
+            collection.serial(b.try_into().unwrap())
+        },
+    )
 }
 
 fn term_begin(
@@ -173,17 +174,18 @@ fn term_begin(
     a: NonZeroI64,
     b: NonZeroI64,
 ) -> (u64, u64) {
-    let a = if a.get() < 0 {
-        temporary_collection.get(&a).unwrap().term_begin()
-    } else {
-        collection.term_begin(a.try_into().unwrap()).unwrap_or(0)
-    };
-    let b = if b.get() < 0 {
-        temporary_collection.get(&b).unwrap().term_begin()
-    } else {
-        collection.term_begin(b.try_into().unwrap()).unwrap_or(0)
-    };
-    (a, b)
+    (
+        if a.get() < 0 {
+            temporary_collection.get(&a).unwrap().term_begin()
+        } else {
+            collection.term_begin(a.try_into().unwrap()).unwrap_or(0)
+        },
+        if b.get() < 0 {
+            temporary_collection.get(&b).unwrap().term_begin()
+        } else {
+            collection.term_begin(b.try_into().unwrap()).unwrap_or(0)
+        },
+    )
 }
 
 fn term_end(
@@ -192,31 +194,33 @@ fn term_end(
     a: NonZeroI64,
     b: NonZeroI64,
 ) -> (u64, u64) {
-    let a = if a.get() < 0 {
-        temporary_collection.get(&a).unwrap().term_end()
-    } else {
-        collection.term_end(a.try_into().unwrap()).unwrap_or(0)
-    };
-    let b = if b.get() < 0 {
-        temporary_collection.get(&b).unwrap().term_end()
-    } else {
-        collection.term_end(b.try_into().unwrap()).unwrap_or(0)
-    };
-    (a, b)
+    (
+        if a.get() < 0 {
+            temporary_collection.get(&a).unwrap().term_end()
+        } else {
+            collection.term_end(a.try_into().unwrap()).unwrap_or(0)
+        },
+        if b.get() < 0 {
+            temporary_collection.get(&b).unwrap().term_end()
+        } else {
+            collection.term_end(b.try_into().unwrap()).unwrap_or(0)
+        },
+    )
 }
 
 fn last_updated(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u64, u64) {
-    let a = if a.get() < 0 {
-        0
-    } else {
-        collection.last_updated(a.try_into().unwrap()).unwrap_or(0)
-    };
-    let b = if b.get() < 0 {
-        0
-    } else {
-        collection.last_updated(b.try_into().unwrap()).unwrap_or(0)
-    };
-    (a, b)
+    (
+        if a.get() < 0 {
+            0
+        } else {
+            collection.last_updated(a.try_into().unwrap()).unwrap_or(0)
+        },
+        if b.get() < 0 {
+            0
+        } else {
+            collection.last_updated(b.try_into().unwrap()).unwrap_or(0)
+        },
+    )
 }
 
 fn field<'a>(

@@ -37,17 +37,14 @@ impl SearchResult {
     pub fn sort(&self, database: &Database, orders: &[Order]) -> Vec<NonZeroU32> {
         if let Some(search) = self.search() {
             if let Some(collection) = database.collection(search.collection_id) {
-                if orders.len() > 0 {
+                return if orders.len() > 0 {
                     collection.data().sort(&self.rows, &orders)
                 } else {
                     self.rows.iter().cloned().collect()
-                }
-            } else {
-                vec![]
+                };
             }
-        } else {
-            vec![]
         }
+        vec![]
     }
 }
 
