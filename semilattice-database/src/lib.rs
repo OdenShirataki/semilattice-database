@@ -9,8 +9,8 @@ pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Search, SearchJoin, SearchResult};
 pub use versatile_data::{
-    create_uuid, idx_binary, uuid_string, Activity, CustomSort, DataOption, Field, FileMmap,
-    IdxFile, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
+    create_uuid, idx_binary, uuid_string, Activity, CustomOrderKey, CustomSort, DataOption, Field,
+    FileMmap, IdxFile, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
 };
 
 use std::{collections::BTreeMap, num::NonZeroI32, path::PathBuf};

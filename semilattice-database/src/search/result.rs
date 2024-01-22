@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use futures::future;
 use hashbrown::HashMap;
-use versatile_data::{Order, RowSet};
+use versatile_data::{CustomSort, Order, RowSet};
 
 use crate::{Collection, Condition, Database, RelationIndex, Search};
 
@@ -34,7 +34,7 @@ impl SearchResult {
         &self.join
     }
 
-    pub fn sort(&self, database: &Database, orders: &[Order]) -> Vec<NonZeroU32> {
+    pub fn sort<C: CustomSort>(&self, database: &Database, orders: &[Order<C>]) -> Vec<NonZeroU32> {
         if let Some(search) = self.search() {
             if let Some(collection) = database.collection(search.collection_id) {
                 return if orders.len() > 0 {
