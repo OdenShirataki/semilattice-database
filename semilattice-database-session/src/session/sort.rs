@@ -18,28 +18,28 @@ impl Debug for dyn SessionCustomOrder {
 }
 
 #[derive(Debug)]
-pub enum SessionOrderKey {
+pub enum SessionOrderKey<C: SessionCustomOrder> {
     Serial,
     Row,
     TermBegin,
     TermEnd,
     LastUpdated,
     Field(String),
-    Custom(Box<dyn SessionCustomOrder>),
+    Custom(C),
 }
 
 #[derive(Debug)]
-pub enum SessionOrder {
-    Asc(SessionOrderKey),
-    Desc(SessionOrderKey),
+pub enum SessionOrder<C: SessionCustomOrder> {
+    Asc(SessionOrderKey<C>),
+    Desc(SessionOrderKey<C>),
 }
 
 impl Session {
-    pub fn sort(
+    pub fn sort<C: SessionCustomOrder>(
         &self,
         collection: &Collection,
         mut rows: Vec<NonZeroI64>,
-        orders: &Vec<SessionOrder>,
+        orders: &Vec<SessionOrder<C>>,
     ) -> Vec<NonZeroI64> {
         if orders.len() > 0 {
             let collection_id = collection.id();
