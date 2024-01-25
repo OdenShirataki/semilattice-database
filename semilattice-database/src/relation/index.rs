@@ -73,15 +73,15 @@ impl RelationIndex {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes()).get();
         if let Some(row) = self.fragment.pop() {
             futures::join!(
-                self.rows.key.update(row, key_id),
-                self.rows.depend.update(row, depend),
-                self.rows.pend.update(row, pend)
+                async { self.rows.key.update(row, key_id) },
+                async { self.rows.depend.update(row, depend) },
+                async { self.rows.pend.update(row, pend) }
             );
         } else {
             futures::join!(
-                self.rows.key.insert(key_id),
-                self.rows.depend.insert(depend),
-                self.rows.pend.insert(pend)
+                async { self.rows.key.insert(key_id) },
+                async { self.rows.depend.insert(depend) },
+                async { self.rows.pend.insert(pend) }
             );
         }
     }

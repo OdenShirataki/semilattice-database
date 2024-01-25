@@ -40,11 +40,11 @@ impl SessionData {
         fields: &HashMap<String, Vec<u8>>,
     ) {
         futures::join!(
-            self.row.update(session_row, row),
-            self.activity.update(session_row, *activity as u8),
-            self.term_begin.update(session_row, term_begin),
-            self.term_end.update(session_row, term_end),
-            self.uuid.update(session_row, uuid)
+            async { self.row.update(session_row, row) },
+            async { self.activity.update(session_row, *activity as u8) },
+            async { self.term_begin.update(session_row, term_begin) },
+            async { self.term_end.update(session_row, term_end) },
+            async { self.uuid.update(session_row, uuid) }
         );
 
         for (key, value) in fields.into_iter() {
@@ -62,7 +62,7 @@ impl SessionData {
                 self.fields.get_mut(key).unwrap()
             };
             //TODO: multi thread
-            field.update(session_row, value).await;
+            field.update(session_row, value);
         }
     }
 

@@ -26,7 +26,7 @@ impl SessionDatabase {
     ) -> Vec<CollectionRow> {
         let mut ret = vec![];
         for record in records.into_iter() {
-            let session_row = session_data.sequence.insert(sequence_number).await;
+            let session_row = session_data.sequence.insert(sequence_number);
 
             match record {
                 SessionRecord::New {
@@ -53,12 +53,16 @@ impl SessionDatabase {
                     let uuid = semilattice_database::create_uuid();
 
                     futures::join!(
-                        session_data
-                            .collection_id
-                            .update(session_row, session_collection_id.get()),
-                        session_data
-                            .operation
-                            .update(session_row, SessionOperation::New),
+                        async {
+                            session_data
+                                .collection_id
+                                .update(session_row, session_collection_id.get())
+                        },
+                        async {
+                            session_data
+                                .operation
+                                .update(session_row, SessionOperation::New)
+                        },
                     );
                     session_data
                         .update(
@@ -185,12 +189,16 @@ impl SessionDatabase {
                     };
 
                     futures::join!(
-                        session_data
-                            .collection_id
-                            .update(session_row, collection_id.get()),
-                        session_data
-                            .operation
-                            .update(session_row, SessionOperation::Update),
+                        async {
+                            session_data
+                                .collection_id
+                                .update(session_row, collection_id.get())
+                        },
+                        async {
+                            session_data
+                                .operation
+                                .update(session_row, SessionOperation::Update)
+                        },
                     );
                     session_data
                         .update(
@@ -281,13 +289,17 @@ impl SessionDatabase {
                 }
                 SessionRecord::Delete { collection_id, row } => {
                     futures::join!(
-                        session_data
-                            .collection_id
-                            .update(session_row, collection_id.get()),
-                        session_data.row.update(session_row, row.get()),
-                        session_data
-                            .operation
-                            .update(session_row, SessionOperation::Delete)
+                        async {
+                            session_data
+                                .collection_id
+                                .update(session_row, collection_id.get())
+                        },
+                        async { session_data.row.update(session_row, row.get()) },
+                        async {
+                            session_data
+                                .operation
+                                .update(session_row, SessionOperation::Delete)
+                        }
                     );
                 }
             }

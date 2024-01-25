@@ -50,11 +50,13 @@ impl SessionRelation {
         depend: CollectionRow,
     ) {
         futures::join!(
-            self.rows
-                .key
-                .insert(self.key_names.row_or_insert(relation_key.as_bytes()).get()),
-            self.rows.session_row.insert(session_row.get()),
-            self.rows.depend.insert(depend)
+            async {
+                self.rows
+                    .key
+                    .insert(self.key_names.row_or_insert(relation_key.as_bytes()).get())
+            },
+            async { self.rows.session_row.insert(session_row.get()) },
+            async { self.rows.depend.insert(depend) }
         );
     }
 
@@ -78,9 +80,9 @@ impl SessionRelation {
                 let key = *key.deref();
                 let depend = depend.deref().clone();
                 futures::join!(
-                    self.rows.key.insert(key),
-                    self.rows.session_row.insert(new_session_row.get()),
-                    self.rows.depend.insert(depend.clone()),
+                    async { self.rows.key.insert(key) },
+                    async { self.rows.session_row.insert(new_session_row.get()) },
+                    async { self.rows.depend.insert(depend.clone()) },
                     async {
                         ret.push(Depend::new(
                             unsafe {
@@ -88,7 +90,7 @@ impl SessionRelation {
                                     self.key_names.bytes(NonZeroU32::new(key).unwrap()).unwrap(),
                                 )
                             },
-                            depend,
+                            depend.clone(),
                         ));
                     }
                 );
