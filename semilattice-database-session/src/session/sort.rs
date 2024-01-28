@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, fmt::Debug, num::NonZeroI64};
 
 use hashbrown::HashMap;
+use semilattice_database::FieldName;
 
 use super::TemporaryDataEntity;
 use crate::{idx_binary, Collection, Session};
@@ -24,7 +25,7 @@ pub enum SessionOrderKey<C: SessionCustomOrder> {
     TermBegin,
     TermEnd,
     LastUpdated,
-    Field(String),
+    Field(FieldName),
     Custom(C),
 }
 
@@ -79,8 +80,8 @@ impl Session {
                                 }
                                 SessionOrderKey::Field(field_name) => {
                                     let ord = idx_binary::compare(
-                                        field(tmp, collection, *a, &field_name),
-                                        field(tmp, collection, *b, &field_name),
+                                        field(tmp, collection, *a, field_name),
+                                        field(tmp, collection, *b, field_name),
                                     );
                                     if ord != Ordering::Equal {
                                         return ord;
@@ -129,8 +130,8 @@ impl Session {
                                 }
                                 SessionOrderKey::Field(field_name) => {
                                     let ord = idx_binary::compare(
-                                        field(tmp, collection, *b, &field_name),
-                                        field(tmp, collection, *a, &field_name),
+                                        field(tmp, collection, *b, field_name),
+                                        field(tmp, collection, *a, field_name),
                                     );
                                     if ord != Ordering::Equal {
                                         return ord;
@@ -227,7 +228,7 @@ fn field<'a>(
     temporary_collection: &'a HashMap<NonZeroI64, TemporaryDataEntity>,
     collection: &'a Collection,
     row: NonZeroI64,
-    field_name: &str,
+    field_name: &FieldName,
 ) -> &'a [u8] {
     if row.get() < 0 {
         temporary_collection

@@ -8,7 +8,7 @@ use std::{
     path::PathBuf,
 };
 
-use versatile_data::{Data, DataOption, Operation};
+use versatile_data::{Data, DataOption};
 
 use crate::Database;
 
@@ -89,9 +89,7 @@ impl Database {
                     self.delete_recursive(&CollectionRow::new(collection_id, row))
                         .await;
                     if let Some(collection) = self.collection_mut(collection_id) {
-                        collection
-                            .update(Operation::Delete { row })
-                            .await;
+                        collection.delete(row).await;
                     }
                 }
             }

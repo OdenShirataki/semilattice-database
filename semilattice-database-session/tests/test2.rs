@@ -1,6 +1,7 @@
 #[cfg(test)]
 #[test]
 fn test2() {
+    use semilattice_database::FieldName;
     use semilattice_database_session::*;
 
     let dir = "./sl-test2/";
@@ -11,6 +12,12 @@ fn test2() {
     std::fs::create_dir_all(dir).unwrap();
 
     futures::executor::block_on(async {
+        let field_name = FieldName::from("name");
+        let field_text = FieldName::from("text");
+        let field_image_type = FieldName::from("image_type");
+        let field_image_name = FieldName::from("image_name");
+        let field_image_data = FieldName::from("image_data");
+
         {
             let mut database = SessionDatabase::new(dir.into(), None, 10);
             let collection_bbs = database.collection_id_or_create("bbs");
@@ -19,19 +26,20 @@ fn test2() {
             database
                 .update(
                     &mut sess,
-                    vec![SessionRecord::New {
+                    vec![SessionRecord::Update {
                         collection_id: collection_bbs,
-                        record: Record {
-                            fields: [
-                                ("name".into(), "test".into()),
-                                ("text".into(), "test".into()),
-                                ("image_type".into(), "application/octet-stream".into()),
-                                ("image_name".into(), "".into()),
-                                ("image_data".into(), "".into()),
-                            ]
-                            .into(),
-                            ..Record::default()
-                        },
+                        row: None,
+                        activity: Activity::Active,
+                        term_begin: Default::default(),
+                        term_end: Default::default(),
+                        fields: [
+                            (field_name.clone(), "test".into()),
+                            (field_text.clone(), "test".into()),
+                            (field_image_type.clone(), "application/octet-stream".into()),
+                            (field_image_name.clone(), "".into()),
+                            (field_image_data.clone(), "".into()),
+                        ]
+                        .into(),
                         depends: Depends::Overwrite(vec![]),
                         pends: vec![],
                     }],
@@ -59,23 +67,25 @@ fn test2() {
         {
             let mut database = SessionDatabase::new(dir.into(), None, 10);
             let collection_bbs = database.collection_id_or_create("bbs");
+
             let mut sess = database.session("bbs", None);
             database
                 .update(
                     &mut sess,
-                    vec![SessionRecord::New {
+                    vec![SessionRecord::Update {
                         collection_id: collection_bbs,
-                        record: Record {
-                            fields: [
-                                ("name".into(), "aa".into()),
-                                ("text".into(), "bb".into()),
-                                ("image_type".into(), "image/jpge".into()),
-                                ("image_name".into(), "hoge.jpg".into()),
-                                ("image_data".into(), "awdadadfaefaefawfafd".into()),
-                            ]
-                            .into(),
-                            ..Record::default()
-                        },
+                        row: None,
+                        activity: Activity::Active,
+                        term_begin: Default::default(),
+                        term_end: Default::default(),
+                        fields: [
+                            (field_name, "aa".into()),
+                            (field_text, "bb".into()),
+                            (field_image_type, "image/jpge".into()),
+                            (field_image_name, "hoge.jpg".into()),
+                            (field_image_data, "awdadadfaefaefawfafd".into()),
+                        ]
+                        .into(),
                         depends: Depends::Overwrite(vec![]),
                         pends: vec![],
                     }],

@@ -3,7 +3,7 @@ use std::{
     ops::Deref,
 };
 
-use semilattice_database::{Activity, Operation, Record, Term};
+use semilattice_database::{Activity, Term};
 
 use hashbrown::HashMap;
 
@@ -51,25 +51,28 @@ impl SessionDatabase {
                         *collection_id.deref()
                     })
                     .unwrap();
-                    let row = if *row.deref() == 0 {
-                        session_row
-                    } else {
-                        unsafe { NonZeroU32::new_unchecked(*row.deref()) }
-                    };
-                    let fields = if *op.deref() == SessionOperation::Delete {
-                        HashMap::new()
-                    } else {
-                        session_data
-                            .fields
-                            .iter()
-                            .filter_map(|(key, field_data)| {
-                                field_data
-                                    .bytes(session_row)
-                                    .map(|val| (key.to_owned(), val.to_owned()))
-                            })
-                            .collect()
-                    };
+
                     if let Some(collection) = self.collection_mut(main_collection_id) {
+                        let row = if *row.deref() == 0 {
+                            session_row
+                        } else {
+                            unsafe { NonZeroU32::new_unchecked(*row.deref()) }
+                        };
+
+                        let fields = if *op.deref() == SessionOperation::Delete {
+                            HashMap::new()
+                        } else {
+                            session_data
+                                .fields
+                                .iter()
+                                .filter_map(|(field_name, field_data)| {
+                                    field_data
+                                        .bytes(session_row)
+                                        .map(|val| (field_name.clone(), val.to_owned()))
+                                })
+                                .collect()
+                        };
+
                         let session_collection_row = CollectionRow::new(
                             NonZeroI32::new(*collection_id.deref()).unwrap(),
                             row,
@@ -93,38 +96,27 @@ impl SessionDatabase {
                                 let term_end = Term::Overwrite(
                                     *session_data.term_end.get(session_row).unwrap().deref(),
                                 );
+
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
-                                    collection
-                                        .update(if *op.deref() == SessionOperation::New {
-                                            Operation::New(Record {
-                                                activity,
-                                                term_begin,
-                                                term_end,
-                                                fields,
-                                            })
+                                    if *op.deref() == SessionOperation::New {
+                                        collection
+                                            .insert(activity, term_begin, term_end, fields)
+                                            .await
+                                    } else {
+                                        let row = if in_session {
+                                            let main_collection_row = session_collection_row_map
+                                                .get(&session_collection_row)
+                                                .unwrap();
+                                            main_collection_row.row()
                                         } else {
-                                            //SessionOperation::Update
-                                            Operation::Update {
-                                                row: if in_session {
-                                                    let main_collection_row =
-                                                        session_collection_row_map
-                                                            .get(&session_collection_row)
-                                                            .unwrap();
-                                                    main_collection_row.row()
-                                                } else {
-                                                    row
-                                                },
-                                                record: Record {
-                                                    activity,
-                                                    term_begin,
-                                                    term_end,
-                                                    fields,
-                                                },
-                                            }
-                                        })
-                                        .await
-                                        .unwrap(),
+                                            row
+                                        };
+                                        collection
+                                            .update(row, activity, term_begin, term_end, fields)
+                                            .await;
+                                        row
+                                    },
                                 );
                                 commit_rows.push(collection_row.clone());
                                 self.relation_mut()

@@ -9,12 +9,11 @@ mod temporary_data;
 pub use data::SessionData;
 pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 pub use search::SessionSearchResult;
+use semilattice_database::Fields;
 pub use sort::{SessionCustomOrder, SessionOrder, SessionOrderKey};
 pub use temporary_data::{TemporaryData, TemporaryDataEntity};
 
 use std::{io::Write, path::Path};
-
-use hashbrown::HashMap;
 
 use crate::{CollectionRow, Depend, Field, IdxFile, SessionDatabase};
 
@@ -102,7 +101,7 @@ impl Session {
         let expire = expire_interval_sec.unwrap_or(-1);
         file.write(&expire.to_be_bytes()).unwrap();
 
-        let mut fields = HashMap::new();
+        let mut fields = Fields::new();
         let mut fields_dir = session_dir.to_path_buf();
         fields_dir.push("fields");
         if !fields_dir.exists() {
@@ -114,7 +113,7 @@ impl Session {
             if path.is_dir() {
                 if let Some(fname) = p.file_name().to_str() {
                     let field = Field::new(path, 1);
-                    fields.insert(fname.to_owned(), field);
+                    fields.insert(fname.into(), field);
                 }
             }
         }

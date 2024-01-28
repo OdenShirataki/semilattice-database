@@ -4,7 +4,7 @@ mod update;
 
 pub use semilattice_database::{
     search, Activity, Collection, CollectionRow, Condition, CustomOrderKey, CustomSort, DataOption,
-    Depend, Operation, Order, OrderKey, Record, SearchResult, Term, Uuid,
+    Depend, FieldName, Order, OrderKey, SearchResult, Term, Uuid,
 };
 pub use session::{
     Depends, Pend, Session, SessionCustomOrder, SessionOrder, SessionOrderKey, SessionRecord,
@@ -13,7 +13,7 @@ pub use session::{
 
 use std::{
     io::Read,
-    num::{NonZeroI32, NonZeroI64},
+    num::{NonZeroI32, NonZeroI64, NonZeroU32},
     path::PathBuf,
     time::{self, UNIX_EPOCH},
 };
@@ -238,29 +238,36 @@ impl SessionDatabase {
         pend_row: NonZeroI64,
         session: Option<&Session>,
     ) -> Vec<Depend> {
-        if pend_row.get() < 0 {
-            self.relation()
-                .depends(
-                    key,
-                    &CollectionRow::new(pend_collection_id, (-pend_row).try_into().unwrap()),
-                )
-                .into_iter()
-                .collect()
-        } else if pend_collection_id.get() > 0 {
-            self.relation()
-                .depends(
-                    key,
-                    &CollectionRow::new(pend_collection_id, pend_row.try_into().unwrap()),
-                )
-                .into_iter()
-                .collect()
-        } else {
+        let pend_row = pend_row.get();
+        if pend_row < 0 {
             if let Some(session) = session {
-                if let Some(session_depends) = session.depends(key, pend_row.try_into().unwrap()) {
+                if let Some(session_depends) = session.depends(key, unsafe {
+                    NonZeroU32::new_unchecked((-pend_row) as u32)
+                }) {
                     return session_depends;
                 }
             }
             vec![]
+        } else if pend_collection_id.get() > 0 {
+            self.relation()
+                .depends(
+                    key,
+                    &CollectionRow::new(pend_collection_id, unsafe {
+                        NonZeroU32::new_unchecked(pend_row as u32)
+                    }),
+                )
+                .into_iter()
+                .collect()
+        } else {
+            self.relation()
+                .depends(
+                    key,
+                    &CollectionRow::new(-pend_collection_id, unsafe {
+                        NonZeroU32::new_unchecked(pend_row as u32)
+                    }),
+                )
+                .into_iter()
+                .collect()
         }
     }
 

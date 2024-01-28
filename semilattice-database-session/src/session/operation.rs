@@ -1,6 +1,9 @@
 use std::num::{NonZeroI32, NonZeroU32};
 
-use crate::{CollectionRow, Record};
+use hashbrown::HashMap;
+use semilattice_database::{Activity, FieldName, Term};
+
+use crate::CollectionRow;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum SessionOperation {
@@ -24,16 +27,13 @@ pub struct Pend {
 
 #[derive(Debug)]
 pub enum SessionRecord {
-    New {
-        collection_id: NonZeroI32,
-        record: Record,
-        depends: Depends,
-        pends: Vec<Pend>,
-    },
     Update {
         collection_id: NonZeroI32,
-        row: NonZeroU32,
-        record: Record,
+        row: Option<NonZeroU32>,
+        activity: Activity,
+        term_begin: Term,
+        term_end: Term,
+        fields: HashMap<FieldName, Vec<u8>>,
         depends: Depends,
         pends: Vec<Pend>,
     },

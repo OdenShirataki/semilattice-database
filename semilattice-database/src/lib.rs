@@ -10,7 +10,7 @@ pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Search, SearchJoin, SearchResult};
 pub use versatile_data::{
     create_uuid, idx_binary, uuid_string, Activity, CustomOrderKey, CustomSort, DataOption, Field,
-    FileMmap, IdxFile, Operation, Order, OrderKey, Record, RowSet, Term, Uuid,
+    FieldName, Fields, FileMmap, IdxFile, Order, OrderKey, RowSet, Term, Uuid,
 };
 
 use std::{collections::BTreeMap, num::NonZeroI32, path::PathBuf};
@@ -82,9 +82,7 @@ impl Database {
             self.relation.delete(relation_row).await;
         }
         if let Some(collection) = self.collection_mut(target.collection_id()) {
-            collection
-                .update(Operation::Delete { row: target.row() })
-                .await;
+            collection.delete(target.row()).await;
         }
     }
 }

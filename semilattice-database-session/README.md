@@ -3,7 +3,10 @@
 ## Example
 
 ```rust
+use std::num::NonZeroU32;
+
 use hashbrown::HashMap;
+use semilattice_database::FieldName;
 use semilattice_database_session::*;
 
 let dir = "./sl-test/";
@@ -17,21 +20,25 @@ let mut database = SessionDatabase::new(dir.into(), None, 10);
 
 let collection_admin = database.collection_id_or_create("admin");
 
+let field_id = FieldName::from("id");
+let field_password = FieldName::from("password");
+
 let mut sess = database.session("creatre_account_1st", None);
 futures::executor::block_on(async {
     database
         .update(
             &mut sess,
-            vec![SessionRecord::New {
+            vec![SessionRecord::Update {
                 collection_id: collection_admin,
-                record: Record {
-                    fields: [
-                        ("id".into(), b"test".to_vec()),
-                        ("password".into(), b"test".to_vec()),
-                    ]
-                    .into(),
-                    ..Record::default()
-                },
+                row: None,
+                activity: Activity::Active,
+                term_begin: Default::default(),
+                term_end: Default::default(),
+                fields: [
+                    (field_id.clone(), b"test".to_vec()),
+                    (field_password.clone(), b"test".to_vec()),
+                ]
+                .into(),
                 depends: Depends::Overwrite(vec![]),
                 pends: vec![],
             }],
@@ -44,8 +51,11 @@ futures::executor::block_on(async {
 
     let search = database
         .search(collection_admin)
-        .search_field("id", search::Field::Match(b"test".to_vec()))
-        .search_field("password", search::Field::Match(b"test".to_vec()));
+        .search_field(field_id.clone(), search::Field::Match(b"test".to_vec()))
+        .search_field(
+            field_password.clone(),
+            search::Field::Match(b"test".to_vec()),
+        );
 
     for row in sess
         .result_with(&search.result(&database).await)
@@ -55,12 +65,13 @@ futures::executor::block_on(async {
         database
             .update(
                 &mut sess,
-                vec![SessionRecord::New {
+                vec![SessionRecord::Update {
                     collection_id: collection_login,
-                    record: Record {
-                        fields: HashMap::new(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: HashMap::new(),
                     depends: Depends::Overwrite(vec![(
                         "admin".to_owned(),
                         CollectionRow::new(collection_admin, (*row).try_into().unwrap()),
@@ -70,7 +81,6 @@ futures::executor::block_on(async {
             )
             .await;
     }
-    let sess = database.session("login", None);
     let search = database.search(collection_login);
     for row in sess
         .result_with(&search.result(&database).await)
@@ -98,7 +108,7 @@ futures::executor::block_on(async {
                     println!(
                         "login id : {}",
                         std::str::from_utf8(
-                            collection.field_bytes((*row).try_into().unwrap(), "id")
+                            collection.field_bytes((*row).try_into().unwrap(), &field_id)
                         )
                         .unwrap()
                     );
@@ -110,92 +120,104 @@ futures::executor::block_on(async {
     let collection_person = database.collection_id_or_create("person");
     let collection_history = database.collection_id_or_create("history");
 
+    let field_name = FieldName::from("name");
+    let field_birthday = FieldName::from("birthday");
+
+    let field_date = FieldName::from("date");
+    let field_event = FieldName::from("event");
+
     let mut sess = database.session("test", None);
     database
         .update(
             &mut sess,
             vec![
-                SessionRecord::New {
+                SessionRecord::Update {
                     collection_id: collection_person,
-                    record: Record {
-                        fields: [
-                            ("name".into(), "Joe".into()),
-                            ("birthday".into(), "1972-08-02".into()),
-                        ]
-                        .into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [
+                        (field_name.clone(), "Joe".into()),
+                        (field_birthday.clone(), "1972-08-02".into()),
+                    ]
+                    .into(),
                     depends: Depends::Overwrite(vec![]),
                     pends: vec![Pend {
                         key: "history".to_owned(),
                         records: vec![
-                            SessionRecord::New {
+                            SessionRecord::Update {
                                 collection_id: collection_history,
-                                record: Record {
-                                    fields: [
-                                        ("date".into(), "1972-08-02".into()),
-                                        ("event".into(), "Birth".into()),
-                                    ]
-                                    .into(),
-                                    ..Record::default()
-                                },
+                                row: None,
+                                activity: Activity::Active,
+                                term_begin: Default::default(),
+                                term_end: Default::default(),
+                                fields: [
+                                    (field_date.clone(), "1972-08-02".into()),
+                                    (field_event.clone(), "Birth".into()),
+                                ]
+                                .into(),
                                 depends: Depends::Default,
                                 pends: vec![],
                             },
-                            SessionRecord::New {
+                            SessionRecord::Update {
                                 collection_id: collection_history,
-                                record: Record {
-                                    fields: [
-                                        ("date".into(), "1999-12-31".into()),
-                                        ("event".into(), "Mariage".into()),
-                                    ]
-                                    .into(),
-                                    ..Record::default()
-                                },
+                                row: None,
+                                activity: Activity::Active,
+                                term_begin: Default::default(),
+                                term_end: Default::default(),
+                                fields: [
+                                    (field_date.clone(), "1999-12-31".into()),
+                                    (field_event.clone(), "Mariage".into()),
+                                ]
+                                .into(),
                                 depends: Depends::Default,
                                 pends: vec![],
                             },
                         ],
                     }],
                 },
-                SessionRecord::New {
+                SessionRecord::Update {
                     collection_id: collection_person,
-                    record: Record {
-                        fields: [
-                            ("name".into(), "Tom".into()),
-                            ("birthday".into(), "2000-12-12".into()),
-                        ]
-                        .into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [
+                        (field_name.clone(), "Tom".into()),
+                        (field_birthday.clone(), "2000-12-12".into()),
+                    ]
+                    .into(),
                     depends: Depends::Default,
                     pends: vec![Pend {
                         key: "history".to_owned(),
-                        records: vec![SessionRecord::New {
+                        records: vec![SessionRecord::Update {
                             collection_id: collection_history,
-                            record: Record {
-                                fields: [
-                                    ("date".into(), "2000-12-12".into()),
-                                    ("event".into(), "Birth".into()),
-                                ]
-                                .into(),
-                                ..Record::default()
-                            },
+                            row: None,
+                            activity: Activity::Active,
+                            term_begin: Default::default(),
+                            term_end: Default::default(),
+                            fields: [
+                                (field_date.clone(), "2000-12-12".into()),
+                                (field_event.clone(), "Birth".into()),
+                            ]
+                            .into(),
                             depends: Depends::Default,
                             pends: vec![],
                         }],
                     }],
                 },
-                SessionRecord::New {
+                SessionRecord::Update {
                     collection_id: collection_person,
-                    record: Record {
-                        fields: [
-                            ("name".into(), "Billy".into()),
-                            ("birthday".into(), "1982-03-03".into()),
-                        ]
-                        .into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [
+                        (field_name.clone(), "Billy".into()),
+                        (field_birthday.clone(), "1982-03-03".into()),
+                    ]
+                    .into(),
                     depends: Depends::Default,
                     pends: vec![],
                 },
@@ -214,13 +236,13 @@ futures::executor::block_on(async {
             .await
             .sort(
                 &database,
-                &vec![Order::Asc(OrderKey::Field("birthday".to_owned()))],
+                &vec![Order::Asc(OrderKey::Field(field_birthday.clone()))],
             );
         for i in person_rows {
             println!(
                 "{},{}",
-                std::str::from_utf8(person.field_bytes(i, "name")).unwrap(),
-                std::str::from_utf8(person.field_bytes(i, "birthday")).unwrap()
+                std::str::from_utf8(person.field_bytes(i, &field_name)).unwrap(),
+                std::str::from_utf8(person.field_bytes(i, &field_birthday)).unwrap()
             );
             for h in database
                 .search(collection_history)
@@ -234,8 +256,8 @@ futures::executor::block_on(async {
             {
                 println!(
                     " {} : {}",
-                    std::str::from_utf8(history.field_bytes(*h, "date")).unwrap(),
-                    std::str::from_utf8(history.field_bytes(*h, "event")).unwrap()
+                    std::str::from_utf8(history.field_bytes(*h, &field_date)).unwrap(),
+                    std::str::from_utf8(history.field_bytes(*h, &field_event)).unwrap()
                 );
             }
         }
@@ -246,11 +268,11 @@ futures::executor::block_on(async {
             &mut sess,
             vec![SessionRecord::Update {
                 collection_id: collection_person,
-                row: 1.try_into().unwrap(),
-                record: Record {
-                    fields: [("name".into(), "Renamed Joe".into())].into(),
-                    ..Record::default()
-                },
+                row: NonZeroU32::new(1),
+                activity: Activity::Active,
+                term_begin: Default::default(),
+                term_end: Default::default(),
+                fields: [(field_name.clone(), "Renamed Joe".into())].into(),
                 depends: Depends::Default,
                 pends: vec![],
             }],
@@ -268,31 +290,46 @@ futures::executor::block_on(async {
     {
         println!(
             "session_search : {},{}",
-            std::str::from_utf8(sess.field_bytes(&database, collection_person, *r, "name"))
-                .unwrap(),
-            std::str::from_utf8(sess.field_bytes(&database, collection_person, *r, "birthday"))
-                .unwrap()
+            std::str::from_utf8(sess.field_bytes(
+                &database,
+                collection_person,
+                *r,
+                &field_name
+            ))
+            .unwrap(),
+            std::str::from_utf8(sess.field_bytes(
+                &database,
+                collection_person,
+                *r,
+                &field_birthday
+            ))
+            .unwrap()
         );
     }
     database.commit(&mut sess).await;
 
     let test1 = database.collection_id_or_create("test1");
+
+    let field_num = FieldName::from("num");
+    let field_num_by3 = FieldName::from("num_by3");
+
     let range = 1u32..=10;
     let mut sess = database.session("test", None);
     for i in range.clone() {
         database
             .update(
                 &mut sess,
-                vec![SessionRecord::New {
+                vec![SessionRecord::Update {
                     collection_id: test1,
-                    record: Record {
-                        fields: [
-                            ("num".into(), i.to_string().into()),
-                            ("num_by3".into(), (i * 3).to_string().into()),
-                        ]
-                        .into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [
+                        (field_num.clone(), i.to_string().into()),
+                        (field_num_by3.clone(), (i * 3).to_string().into()),
+                    ]
+                    .into(),
                     depends: Depends::Overwrite(vec![]),
                     pends: vec![],
                 }],
@@ -307,11 +344,11 @@ futures::executor::block_on(async {
             &mut sess,
             vec![SessionRecord::Update {
                 collection_id: test1,
-                row: 3.try_into().unwrap(),
-                record: Record {
-                    fields: HashMap::new(),
-                    ..Record::default()
-                },
+                row: NonZeroU32::new(3),
+                activity: Activity::Active,
+                term_begin: Default::default(),
+                term_end: Default::default(),
+                fields: HashMap::new(),
                 depends: Depends::Overwrite(vec![]),
                 pends: vec![],
             }],
@@ -322,7 +359,7 @@ futures::executor::block_on(async {
     if let Some(t1) = database.collection(test1) {
         let mut sum = 0.0;
         for i in range.clone() {
-            sum += t1.field_num(i.try_into().unwrap(), "num");
+            sum += t1.field_num(i.try_into().unwrap(), &field_num);
             println!(
                 "{},{},{},{},{},{},{},{}",
                 t1.serial(i.try_into().unwrap()),
@@ -336,8 +373,9 @@ futures::executor::block_on(async {
                 t1.last_updated(i.try_into().unwrap()).unwrap_or(0),
                 t1.term_begin(i.try_into().unwrap()).unwrap_or(0),
                 t1.term_end(i.try_into().unwrap()).unwrap_or(0),
-                std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), "num")).unwrap(),
-                std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), "num_by3")).unwrap()
+                std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), &field_num)).unwrap(),
+                std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), &field_num_by3))
+                    .unwrap()
             );
         }
         assert_eq!(sum, 55.0);

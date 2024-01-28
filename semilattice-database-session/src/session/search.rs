@@ -6,7 +6,7 @@ use std::{
 
 use async_recursion::async_recursion;
 use hashbrown::HashMap;
-use semilattice_database::{Collection, Condition, Depend, SearchResult};
+use semilattice_database::{search, Collection, Condition, Depend, FieldName, SearchResult};
 
 use crate::{Session, SessionDatabase};
 
@@ -37,44 +37,46 @@ impl Session {
     ) -> bool {
         match condition {
             Condition::Row(cond) => match cond {
-                semilattice_database::search::Number::In(c) => c.contains(&(row.get() as isize)),
-                semilattice_database::search::Number::Max(c) => row.get() <= *c as i64,
-                semilattice_database::search::Number::Min(c) => row.get() >= *c as i64,
-                semilattice_database::search::Number::Range(c) => c.contains(&(row.get() as isize)),
+                search::Number::In(c) => c.contains(&(row.get() as isize)),
+                search::Number::Max(c) => row.get() <= *c as i64,
+                search::Number::Min(c) => row.get() >= *c as i64,
+                search::Number::Range(c) => c.contains(&(row.get() as isize)),
             },
             Condition::Uuid(uuid) => uuid.contains(&ent.uuid),
             Condition::Activity(activity) => ent.activity == *activity,
             Condition::Term(cond) => match cond {
-                semilattice_database::search::Term::In(c) => {
+                search::Term::In(c) => {
                     ent.term_begin < *c && (ent.term_end == 0 || ent.term_end > *c)
                 }
-                semilattice_database::search::Term::Past(c) => ent.term_end >= *c,
-                semilattice_database::search::Term::Future(c) => ent.term_begin >= *c,
+                search::Term::Past(c) => ent.term_end >= *c,
+                search::Term::Future(c) => ent.term_begin >= *c,
             },
-            Condition::Field(key, cond) => ent.fields.get(key).map_or(false, |f| match cond {
-                semilattice_database::search::Field::Match(v) => f == v,
-                semilattice_database::search::Field::Range(min, max) => min <= f && max >= f,
-                semilattice_database::search::Field::Min(min) => min <= f,
-                semilattice_database::search::Field::Max(max) => max >= f,
-                semilattice_database::search::Field::Forward(v) => {
-                    unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v)
-                }
-                semilattice_database::search::Field::Partial(v) => {
-                    unsafe { std::str::from_utf8_unchecked(f) }.contains(v)
-                }
-                semilattice_database::search::Field::Backward(v) => {
-                    unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v)
-                }
-                semilattice_database::search::Field::ValueForward(v) => {
-                    v.starts_with(unsafe { std::str::from_utf8_unchecked(f) })
-                }
-                semilattice_database::search::Field::ValueBackward(v) => {
-                    v.ends_with(unsafe { std::str::from_utf8_unchecked(f) })
-                }
-                semilattice_database::search::Field::ValuePartial(v) => {
-                    v.contains(unsafe { std::str::from_utf8_unchecked(f) })
-                }
-            }),
+            Condition::Field(field_id, cond) => {
+                ent.fields.get(field_id).map_or(false, |f| match cond {
+                    search::Field::Match(v) => f == v,
+                    search::Field::Range(min, max) => min <= f && max >= f,
+                    search::Field::Min(min) => min <= f,
+                    search::Field::Max(max) => max >= f,
+                    search::Field::Forward(v) => {
+                        unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v)
+                    }
+                    search::Field::Partial(v) => {
+                        unsafe { std::str::from_utf8_unchecked(f) }.contains(v)
+                    }
+                    search::Field::Backward(v) => {
+                        unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v)
+                    }
+                    search::Field::ValueForward(v) => {
+                        v.starts_with(unsafe { std::str::from_utf8_unchecked(f) })
+                    }
+                    search::Field::ValueBackward(v) => {
+                        v.ends_with(unsafe { std::str::from_utf8_unchecked(f) })
+                    }
+                    search::Field::ValuePartial(v) => {
+                        v.contains(unsafe { std::str::from_utf8_unchecked(f) })
+                    }
+                })
+            }
             Condition::Narrow(conditions) => {
                 let mut is_match = true;
                 for c in conditions.into_iter() {
@@ -204,18 +206,18 @@ impl Session {
         database: &'a SessionDatabase,
         collection_id: NonZeroI32,
         row: NonZeroI64,
-        key: &str,
+        field_name: &FieldName,
     ) -> &[u8] {
         if let Some(temporary_collection) = self.temporary_data.get(&collection_id) {
             if let Some(tmp_row) = temporary_collection.get(&row) {
-                if let Some(val) = tmp_row.fields.get(key) {
+                if let Some(val) = tmp_row.fields.get(field_name) {
                     return val;
                 }
             }
         }
         if row.get() > 0 {
             if let Some(collection) = database.collection(collection_id) {
-                return collection.field_bytes(row.try_into().unwrap(), key);
+                return collection.field_bytes(row.try_into().unwrap(), field_name);
             }
         }
         b""
@@ -225,17 +227,17 @@ impl Session {
         &'a self,
         collection: &'a Collection,
         row: NonZeroI64,
-        key: &str,
+        field_name: &FieldName,
     ) -> &[u8] {
         if let Some(temprary_collection) = self.temporary_data.get(&collection.id()) {
             if let Some(temprary_row) = temprary_collection.get(&row) {
-                if let Some(val) = temprary_row.fields.get(key) {
+                if let Some(val) = temprary_row.fields.get(field_name) {
                     return val;
                 }
             }
         }
         if row.get() > 0 {
-            collection.field_bytes(row.try_into().unwrap(), key)
+            collection.field_bytes(row.try_into().unwrap(), field_name)
         } else {
             b""
         }

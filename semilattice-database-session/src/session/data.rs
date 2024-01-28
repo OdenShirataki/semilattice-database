@@ -6,7 +6,7 @@ use std::{
 
 use hashbrown::HashMap;
 
-use semilattice_database::{Activity, CollectionRow, Depend, Field, IdxFile};
+use semilattice_database::{Activity, CollectionRow, Depend, Field, FieldName, Fields, IdxFile};
 
 use super::{
     relation::SessionRelation, sequence::SequenceNumber, SessionOperation, TemporaryData,
@@ -23,7 +23,7 @@ pub struct SessionData {
     pub(crate) term_begin: IdxFile<u64>,
     pub(crate) term_end: IdxFile<u64>,
     pub(crate) uuid: IdxFile<u128>,
-    pub(crate) fields: HashMap<String, Field>,
+    pub(crate) fields: Fields,
     pub(crate) relation: SessionRelation,
 }
 
@@ -37,7 +37,7 @@ impl SessionData {
         term_begin: u64,
         term_end: u64,
         uuid: u128,
-        fields: &HashMap<String, Vec<u8>>,
+        fields: &HashMap<FieldName, Vec<u8>>,
     ) {
         futures::join!(
             async { self.row.update(session_row, row) },
@@ -47,19 +47,20 @@ impl SessionData {
             async { self.uuid.update(session_row, uuid) }
         );
 
-        for (key, value) in fields.into_iter() {
-            let field = if self.fields.contains_key(key) {
-                self.fields.get_mut(key).unwrap()
+        for (field_name, value) in fields.into_iter() {
+            let field = if self.fields.contains_key(field_name) {
+                self.fields.get_mut(field_name).unwrap()
             } else {
                 let mut dir = session_dir.to_path_buf();
                 dir.push("fields");
-                dir.push(key);
+                dir.push(field_name.to_string());
                 std::fs::create_dir_all(&dir).unwrap();
                 if dir.exists() {
                     let field = Field::new(dir, 1);
-                    self.fields.entry(key.into()).or_insert(field);
+                    self.fields.entry(field_name.clone()).or_insert(field)
+                } else {
+                    panic!();
                 }
-                self.fields.get_mut(key).unwrap()
             };
             //TODO: multi thread
             field.update(session_row, value);
@@ -95,7 +96,7 @@ impl SessionData {
         let mut temporary_data = TemporaryData::new();
         let current = self.sequence_number.current();
         if current > 0 {
-            let mut fields_overlaps: HashMap<CollectionRow, HashMap<String, Vec<u8>>> =
+            let mut fields_overlaps: HashMap<CollectionRow, HashMap<FieldName, Vec<u8>>> =
                 HashMap::new();
             for sequence in 1..=current {
                 for session_row in self.sequence.iter_by(|v| v.cmp(&sequence)) {
@@ -148,9 +149,9 @@ impl SessionData {
                                     )
                                 })
                                 .or_insert(HashMap::new());
-                            self.fields.iter().for_each(|(key, val)| {
+                            self.fields.iter().for_each(|(field_name, val)| {
                                 if let Some(v) = val.bytes(session_row) {
-                                    row_fields.insert(key.into(), v.into());
+                                    row_fields.insert(field_name.clone(), v.into());
                                 }
                             });
                             temporary_collection.insert(

@@ -1,6 +1,7 @@
 #[cfg(test)]
 #[test]
 fn test4() {
+    use semilattice_database::FieldName;
     use semilattice_database_session::*;
 
     let dir = "./sl-test4/";
@@ -12,6 +13,8 @@ fn test4() {
 
     let mut database = SessionDatabase::new(dir.into(), None, 10);
     let collection_widget = database.collection_id_or_create("widget");
+    let field_name = FieldName::from("name");
+
     let collection_field = database.collection_id_or_create("field");
     futures::executor::block_on(async {
         {
@@ -19,12 +22,13 @@ fn test4() {
             database
                 .update(
                     &mut sess,
-                    vec![SessionRecord::New {
+                    vec![SessionRecord::Update {
                         collection_id: collection_widget,
-                        record: Record {
-                            fields: [("name".into(), "test".into())].into(),
-                            ..Record::default()
-                        },
+                        row: None,
+                        activity: Activity::Active,
+                        term_begin: Default::default(),
+                        term_end: Default::default(),
+                        fields: [(field_name.clone(), "test".into())].into(),
                         depends: Depends::Overwrite(vec![]),
                         pends: vec![],
                     }],
@@ -35,12 +39,13 @@ fn test4() {
         database
             .update(
                 &mut sess,
-                vec![SessionRecord::New {
+                vec![SessionRecord::Update {
                     collection_id: collection_field,
-                    record: Record {
-                        fields: [("name".into(), "1".into())].into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [(field_name.clone(), "1".into())].into(),
                     depends: Depends::Overwrite(vec![(
                         "field".to_owned(),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
@@ -52,12 +57,13 @@ fn test4() {
         database
             .update(
                 &mut sess,
-                vec![SessionRecord::New {
+                vec![SessionRecord::Update {
                     collection_id: collection_field,
-                    record: Record {
-                        fields: [("name".into(), "2".into())].into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [(field_name.clone(), "2".into())].into(),
                     depends: Depends::Overwrite(vec![(
                         "field".to_owned(),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
@@ -69,12 +75,13 @@ fn test4() {
         database
             .update(
                 &mut sess,
-                vec![SessionRecord::New {
+                vec![SessionRecord::Update {
                     collection_id: collection_field,
-                    record: Record {
-                        fields: [("name".into(), "3".into())].into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [(field_name.clone(), "3".into())].into(),
                     depends: Depends::Overwrite(vec![(
                         "field".to_owned(),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
@@ -89,12 +96,13 @@ fn test4() {
         database
             .update(
                 &mut sess,
-                vec![SessionRecord::New {
+                vec![SessionRecord::Update {
                     collection_id: collection_field,
-                    record: Record {
-                        fields: [("name".into(), "3-r".into())].into(),
-                        ..Record::default()
-                    },
+                    row: None,
+                    activity: Activity::Active,
+                    term_begin: Default::default(),
+                    term_end: Default::default(),
+                    fields: [(field_name.clone(), "3-r".into())].into(),
                     depends: Depends::Overwrite(vec![(
                         "field".to_owned(),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
@@ -119,7 +127,7 @@ fn test4() {
         {
             println!(
                 "session_search : {}",
-                std::str::from_utf8(sess.field_bytes(&database, collection_field, *r, "name"))
+                std::str::from_utf8(sess.field_bytes(&database, collection_field, *r, &field_name))
                     .unwrap()
             );
         }

@@ -3,7 +3,7 @@ use futures::future;
 
 use versatile_data::{
     search::{Field, Number, Term},
-    Activity, Condition as VersatileDataCondition, RowSet,
+    Activity, Condition as VersatileDataCondition, FieldName, RowSet,
 };
 
 use crate::{Collection, CollectionRow, RelationIndex, Search};
@@ -15,7 +15,7 @@ pub enum Condition {
     Row(Number),
     Uuid(Vec<u128>),
     LastUpdated(Number),
-    Field(String, Field),
+    Field(FieldName, Field),
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
     Depend(Option<String>, CollectionRow),
@@ -54,10 +54,10 @@ impl Condition {
                     .result_condition(&VersatileDataCondition::LastUpdated(c))
                     .await
             }
-            Self::Field(key, condition) => {
+            Self::Field(name, condition) => {
                 collection
                     .data()
-                    .result_condition(&VersatileDataCondition::Field(key, condition))
+                    .result_condition(&VersatileDataCondition::Field(name.clone(), condition))
                     .await
             }
             Self::Depend(key, collection_row) => {

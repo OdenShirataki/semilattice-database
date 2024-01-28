@@ -14,7 +14,7 @@ use std::num::NonZeroI32;
 
 use hashbrown::HashMap;
 
-use versatile_data::Activity;
+use versatile_data::{Activity, FieldName};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Search {
@@ -55,8 +55,8 @@ impl Search {
         self
     }
 
-    pub fn search_field(self, field_name: impl Into<String>, condition: Field) -> Self {
-        self.search(Condition::Field(field_name.into(), condition))
+    pub fn search_field(self, field_name: FieldName, condition: Field) -> Self {
+        self.search(Condition::Field(field_name, condition))
     }
 
     pub fn search_row(self, condition: Number) -> Self {
