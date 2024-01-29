@@ -162,10 +162,10 @@ impl SessionDatabase {
                                     if let Some(registered) =
                                         session_collection_row_map.get(&session_collection_row)
                                     {
-                                        self.delete_recursive(registered).await;
+                                        self.delete(registered).await;
                                     }
                                 } else {
-                                    self.delete_recursive(&CollectionRow::new(
+                                    self.delete(&CollectionRow::new(
                                         main_collection_id,
                                         row,
                                     ))

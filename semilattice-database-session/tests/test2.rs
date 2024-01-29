@@ -12,11 +12,11 @@ fn test2() {
     std::fs::create_dir_all(dir).unwrap();
 
     futures::executor::block_on(async {
-        let field_name = FieldName::from("name");
-        let field_text = FieldName::from("text");
-        let field_image_type = FieldName::from("image_type");
-        let field_image_name = FieldName::from("image_name");
-        let field_image_data = FieldName::from("image_data");
+        let field_name = FieldName::new("name".into());
+        let field_text = FieldName::new("text".into());
+        let field_image_type = FieldName::new("image_type".into());
+        let field_image_name = FieldName::new("image_name".into());
+        let field_image_data = FieldName::new("image_data".into());
 
         {
             let mut database = SessionDatabase::new(dir.into(), None, 10);

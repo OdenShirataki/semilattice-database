@@ -9,7 +9,7 @@ mod temporary_data;
 pub use data::SessionData;
 pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 pub use search::SessionSearchResult;
-use semilattice_database::Fields;
+use semilattice_database::{FieldName, Fields};
 pub use sort::{SessionCustomOrder, SessionOrder, SessionOrderKey};
 pub use temporary_data::{TemporaryData, TemporaryDataEntity};
 
@@ -113,7 +113,7 @@ impl Session {
             if path.is_dir() {
                 if let Some(fname) = p.file_name().to_str() {
                     let field = Field::new(path, 1);
-                    fields.insert(fname.into(), field);
+                    fields.insert(FieldName::new(fname.into()), field);
                 }
             }
         }

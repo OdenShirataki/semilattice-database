@@ -19,8 +19,8 @@ fn test() {
         let collection_history_id = database.collection_id_or_create("history");
         let collection_person = database.collection_mut(collection_person_id).unwrap();
 
-        let id_name = FieldName::from("name");
-        let id_birthday = FieldName::from("birthday");
+        let id_name = FieldName::new("name".into());
+        let id_birthday = FieldName::new("birthday".into());
 
         let row = collection_person
             .insert(
@@ -40,8 +40,8 @@ fn test() {
 
         let collection_history = database.collection_mut(collection_history_id).unwrap();
 
-        let id_date = FieldName::from("date");
-        let id_event = FieldName::from("event");
+        let id_date = FieldName::new("date".into());
+        let id_event = FieldName::new("event".into());
 
         let history_row = collection_history
             .insert(

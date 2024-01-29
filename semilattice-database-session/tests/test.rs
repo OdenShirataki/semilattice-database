@@ -18,8 +18,8 @@ fn test() {
 
     let collection_admin = database.collection_id_or_create("admin");
 
-    let field_id = FieldName::from("id");
-    let field_password = FieldName::from("password");
+    let field_id = FieldName::new("id".into());
+    let field_password = FieldName::new("password".into());
 
     let mut sess = database.session("creatre_account_1st", None);
     futures::executor::block_on(async {
@@ -118,11 +118,11 @@ fn test() {
         let collection_person = database.collection_id_or_create("person");
         let collection_history = database.collection_id_or_create("history");
 
-        let field_name = FieldName::from("name");
-        let field_birthday = FieldName::from("birthday");
+        let field_name = FieldName::new("name".into());
+        let field_birthday = FieldName::new("birthday".into());
 
-        let field_date = FieldName::from("date");
-        let field_event = FieldName::from("event");
+        let field_date = FieldName::new("date".into());
+        let field_event = FieldName::new("event".into());
 
         let mut sess = database.session("test", None);
         database
@@ -308,8 +308,8 @@ fn test() {
 
         let test1 = database.collection_id_or_create("test1");
 
-        let field_num = FieldName::from("num");
-        let field_num_by3 = FieldName::from("num_by3");
+        let field_num = FieldName::new("num".into());
+        let field_num_by3 = FieldName::new("num_by3".into());
 
         let range = 1u32..=10;
         let mut sess = database.session("test", None);

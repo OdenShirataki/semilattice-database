@@ -13,7 +13,7 @@ fn test4() {
 
     let mut database = SessionDatabase::new(dir.into(), None, 10);
     let collection_widget = database.collection_id_or_create("widget");
-    let field_name = FieldName::from("name");
+    let field_name = FieldName::new("name".into());
 
     let collection_field = database.collection_id_or_create("field");
     futures::executor::block_on(async {

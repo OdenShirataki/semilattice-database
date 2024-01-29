@@ -86,7 +86,7 @@ impl Database {
             let collection_id = unsafe { NonZeroI32::new_unchecked(collection_id) };
             if let Some(collection) = self.collections.get(&collection_id) {
                 for row in collection.data.all().into_iter() {
-                    self.delete_recursive(&CollectionRow::new(collection_id, row))
+                    self.delete(&CollectionRow::new(collection_id, row))
                         .await;
                     if let Some(collection) = self.collection_mut(collection_id) {
                         collection.delete(row).await;
