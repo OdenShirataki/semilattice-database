@@ -2,6 +2,7 @@ use std::{
     collections::BTreeSet,
     num::{NonZeroI32, NonZeroI64, NonZeroU32},
     ops::Deref,
+    sync::Arc,
 };
 
 use async_recursion::async_recursion;
@@ -16,7 +17,7 @@ use super::{SessionOperation, TemporaryDataEntity};
 pub struct SessionSearchResult {
     collection_id: i32,
     rows: BTreeSet<NonZeroI64>,
-    join: HashMap<String, HashMap<NonZeroI64, SessionSearchResult>>,
+    join: HashMap<Arc<String>, HashMap<NonZeroI64, SessionSearchResult>>,
 }
 
 impl SessionSearchResult {
@@ -24,7 +25,7 @@ impl SessionSearchResult {
         &self.rows
     }
 
-    pub fn join(&self) -> &HashMap<String, HashMap<NonZeroI64, SessionSearchResult>> {
+    pub fn join(&self) -> &HashMap<Arc<String>, HashMap<NonZeroI64, SessionSearchResult>> {
         &self.join
     }
 }
@@ -58,13 +59,13 @@ impl Session {
                     search::Field::Min(min) => min <= f,
                     search::Field::Max(max) => max >= f,
                     search::Field::Forward(v) => {
-                        unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v)
+                        unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v.as_ref())
                     }
                     search::Field::Partial(v) => {
-                        unsafe { std::str::from_utf8_unchecked(f) }.contains(v)
+                        unsafe { std::str::from_utf8_unchecked(f) }.contains(v.as_ref())
                     }
                     search::Field::Backward(v) => {
-                        unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v)
+                        unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v.as_ref())
                     }
                     search::Field::ValueForward(v) => {
                         v.starts_with(unsafe { std::str::from_utf8_unchecked(f) })
@@ -128,8 +129,8 @@ impl Session {
     #[async_recursion(?Send)]
     async fn join(
         &self,
-        join_result: &HashMap<String, HashMap<NonZeroU32, SearchResult>>,
-    ) -> HashMap<String, HashMap<NonZeroI64, SessionSearchResult>> {
+        join_result: &HashMap<Arc<String>, HashMap<NonZeroU32, SearchResult>>,
+    ) -> HashMap<Arc<String>, HashMap<NonZeroI64, SessionSearchResult>> {
         let mut map = HashMap::new();
         for (name, row_join) in join_result {
             let mut map_inner = HashMap::new();
@@ -250,8 +251,8 @@ impl Session {
         self.temporary_data.get(&collection_id)
     }
 
-    pub fn depends(&self, key: Option<&str>, pend_row: NonZeroU32) -> Option<Vec<Depend>> {
-        self.session_data.as_ref().and_then(|session_data| {
+    pub fn depends(&self, key: Option<Arc<String>>, pend_row: NonZeroU32) -> Option<Vec<Depend>> {
+        self.session_data.as_ref().and_then(move |session_data| {
             key.map_or_else(
                 || {
                     Some(
@@ -266,15 +267,20 @@ impl Session {
                                     session_data.relation.rows.depend.get(relation_row),
                                 ) {
                                     return Some(Depend::new(
-                                        unsafe {
-                                            std::str::from_utf8_unchecked(
-                                                session_data
-                                                    .relation
-                                                    .key_names
-                                                    .bytes(NonZeroU32::new(*key.deref()).unwrap())
-                                                    .unwrap(),
-                                            )
-                                        },
+                                        Arc::new(
+                                            unsafe {
+                                                std::str::from_utf8_unchecked(
+                                                    session_data
+                                                        .relation
+                                                        .key_names
+                                                        .bytes(
+                                                            NonZeroU32::new(*key.deref()).unwrap(),
+                                                        )
+                                                        .unwrap(),
+                                                )
+                                            }
+                                            .into(),
+                                        ),
                                         depend.deref().clone(),
                                     ));
                                 }
@@ -301,7 +307,7 @@ impl Session {
                                     ) {
                                         if *key.deref() == key_id.get() {
                                             return Some(Depend::new(
-                                                key_name,
+                                                Arc::clone(&key_name),
                                                 depend.deref().clone(),
                                             ));
                                         }

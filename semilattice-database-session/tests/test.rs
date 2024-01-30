@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[test]
 fn test() {
-    use std::num::NonZeroU32;
+    use std::{num::NonZeroU32, sync::Arc};
 
     use hashbrown::HashMap;
     use semilattice_database::FieldName;
@@ -71,7 +71,7 @@ fn test() {
                         term_end: Default::default(),
                         fields: HashMap::new(),
                         depends: Depends::Overwrite(vec![(
-                            "admin".to_owned(),
+                            Arc::new("admin".into()),
                             CollectionRow::new(collection_admin, (*row).try_into().unwrap()),
                         )]),
                         pends: vec![],
@@ -87,7 +87,7 @@ fn test() {
         {
             println!("depends_with_session {} {}", collection_login, row);
             let depends = database.depends_with_session(
-                Some("admin"),
+                Some(Arc::new("admin".into())),
                 collection_login,
                 (*row).try_into().unwrap(),
                 Some(&sess),
@@ -142,7 +142,7 @@ fn test() {
                         .into(),
                         depends: Depends::Overwrite(vec![]),
                         pends: vec![Pend {
-                            key: "history".to_owned(),
+                            key: Arc::new("history".into()),
                             records: vec![
                                 SessionRecord::Update {
                                     collection_id: collection_history,
@@ -188,7 +188,7 @@ fn test() {
                         .into(),
                         depends: Depends::Default,
                         pends: vec![Pend {
-                            key: "history".to_owned(),
+                            key: Arc::new("history".into()),
                             records: vec![SessionRecord::Update {
                                 collection_id: collection_history,
                                 row: None,
@@ -245,7 +245,7 @@ fn test() {
                 for h in database
                     .search(collection_history)
                     .search(Condition::Depend(
-                        Some("history".to_owned()),
+                        Some(Arc::new("history".into())),
                         CollectionRow::new(collection_person, i),
                     ))
                     .result(&database)

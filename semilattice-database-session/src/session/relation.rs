@@ -1,4 +1,4 @@
-use std::{num::NonZeroU32, ops::Deref, path::Path};
+use std::{num::NonZeroU32, ops::Deref, path::Path, sync::Arc};
 
 use crate::{BinarySet, IdxFile};
 
@@ -85,11 +85,16 @@ impl SessionRelation {
                     async { self.rows.depend.insert(depend.clone()) },
                     async {
                         ret.push(Depend::new(
-                            unsafe {
-                                std::str::from_utf8_unchecked(
-                                    self.key_names.bytes(NonZeroU32::new(key).unwrap()).unwrap(),
-                                )
-                            },
+                            Arc::new(
+                                unsafe {
+                                    std::str::from_utf8_unchecked(
+                                        self.key_names
+                                            .bytes(NonZeroU32::new(key).unwrap())
+                                            .unwrap(),
+                                    )
+                                }
+                                .into(),
+                            ),
                             depend.clone(),
                         ));
                     }

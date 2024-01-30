@@ -15,6 +15,7 @@ use std::{
     io::Read,
     num::{NonZeroI32, NonZeroI64, NonZeroU32},
     path::PathBuf,
+    sync::Arc,
     time::{self, UNIX_EPOCH},
 };
 
@@ -233,7 +234,7 @@ impl SessionDatabase {
 
     pub fn depends_with_session(
         &self,
-        key: Option<&str>,
+        key: Option<Arc<String>>,
         pend_collection_id: NonZeroI32,
         pend_row: NonZeroI64,
         session: Option<&Session>,
@@ -274,7 +275,7 @@ impl SessionDatabase {
     pub async fn register_relations_with_session(
         &mut self,
         depend: &CollectionRow,
-        pends: Vec<(String, CollectionRow)>,
+        pends: Vec<(Arc<String>, CollectionRow)>,
         row_map: &HashMap<CollectionRow, CollectionRow>,
     ) {
         for (key_name, pend) in pends.into_iter() {

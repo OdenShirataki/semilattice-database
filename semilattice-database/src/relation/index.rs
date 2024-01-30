@@ -2,6 +2,7 @@ use std::{
     num::{NonZeroI32, NonZeroU32},
     ops::Deref,
     path::Path,
+    sync::Arc,
 };
 
 use binary_set::BinarySet;
@@ -117,7 +118,7 @@ impl RelationIndex {
 
     pub fn pends(
         &self,
-        key: Option<&str>,
+        key: Option<Arc<String>>,
         depend: &CollectionRow,
         pend_collection_id: Option<NonZeroI32>,
     ) -> Vec<&CollectionRow> {
@@ -189,7 +190,7 @@ impl RelationIndex {
         }
     }
 
-    pub fn depends(&self, key: Option<&str>, pend: &CollectionRow) -> Vec<Depend> {
+    pub fn depends(&self, key: Option<Arc<String>>, pend: &CollectionRow) -> Vec<Depend> {
         key.map_or_else(
             || {
                 self.rows
@@ -200,13 +201,16 @@ impl RelationIndex {
                             (self.rows.key.get(row), self.rows.depend.get(row))
                         {
                             Some(Depend::new(
-                                unsafe {
-                                    std::str::from_utf8_unchecked(
-                                        self.key_names
-                                            .bytes(NonZeroU32::new(*key.deref()).unwrap())
-                                            .unwrap(),
-                                    )
-                                },
+                                Arc::new(
+                                    unsafe {
+                                        std::str::from_utf8_unchecked(
+                                            self.key_names
+                                                .bytes(NonZeroU32::new(*key.deref()).unwrap())
+                                                .unwrap(),
+                                        )
+                                    }
+                                    .into(),
+                                ),
                                 collection_row.deref().clone(),
                             ))
                         } else {
@@ -227,7 +231,7 @@ impl RelationIndex {
                                     (self.rows.key.get(row), self.rows.depend.get(row))
                                 {
                                     (*key_row.deref() == key.get()).then_some(Depend::new(
-                                        key_name,
+                                        Arc::clone(&key_name),
                                         collection_row.deref().clone(),
                                     ))
                                 } else {

@@ -1,6 +1,7 @@
 use std::{
     num::{NonZeroI32, NonZeroU32},
     ops::Deref,
+    sync::Arc,
 };
 
 use semilattice_database::{Activity, Term};
@@ -27,7 +28,7 @@ impl SessionDatabase {
         let mut commit_rows = Vec::new();
 
         let mut session_collection_row_map: HashMap<CollectionRow, CollectionRow> = HashMap::new();
-        let mut relation_temporary: HashMap<CollectionRow, Vec<(String, CollectionRow)>> =
+        let mut relation_temporary: HashMap<CollectionRow, Vec<(Arc<String>, CollectionRow)>> =
             HashMap::new();
 
         for sequence in 1..=session_data.sequence_number.current() {
@@ -137,19 +138,21 @@ impl SessionDatabase {
                                             .entry(depend.deref().clone())
                                             .or_insert_with(|| Vec::new())
                                             .push((
-                                                unsafe {
-                                                    std::str::from_utf8_unchecked(
-                                                        session_data
-                                                            .relation
-                                                            .key_names
-                                                            .bytes(
-                                                                NonZeroU32::new(*key.deref())
-                                                                    .unwrap(),
-                                                            )
-                                                            .unwrap(),
-                                                    )
-                                                }
-                                                .to_owned(),
+                                                Arc::new(
+                                                    unsafe {
+                                                        std::str::from_utf8_unchecked(
+                                                            session_data
+                                                                .relation
+                                                                .key_names
+                                                                .bytes(
+                                                                    NonZeroU32::new(*key.deref())
+                                                                        .unwrap(),
+                                                                )
+                                                                .unwrap(),
+                                                        )
+                                                    }
+                                                    .to_owned(),
+                                                ),
                                                 session_collection_row.clone(),
                                             ));
                                     }
@@ -165,11 +168,8 @@ impl SessionDatabase {
                                         self.delete(registered).await;
                                     }
                                 } else {
-                                    self.delete(&CollectionRow::new(
-                                        main_collection_id,
-                                        row,
-                                    ))
-                                    .await;
+                                    self.delete(&CollectionRow::new(main_collection_id, row))
+                                        .await;
                                 }
                                 session_collection_row_map.remove(&session_collection_row);
                             }

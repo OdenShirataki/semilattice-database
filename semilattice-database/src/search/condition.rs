@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_recursion::async_recursion;
 use futures::future;
 
@@ -18,7 +20,7 @@ pub enum Condition {
     Field(FieldName, Field),
     Narrow(Vec<Condition>),
     Wide(Vec<Condition>),
-    Depend(Option<String>, CollectionRow),
+    Depend(Option<Arc<String>>, CollectionRow),
 }
 impl Condition {
     #[async_recursion(?Send)]
@@ -57,17 +59,13 @@ impl Condition {
             Self::Field(name, condition) => {
                 collection
                     .data()
-                    .result_condition(&VersatileDataCondition::Field(name.clone(), condition))
+                    .result_condition(&VersatileDataCondition::Field(Arc::clone(name), condition))
                     .await
             }
             Self::Depend(key, collection_row) => {
                 let collection_id = collection.id();
                 relation
-                    .pends(
-                        if let Some(key) = key { Some(key) } else { None },
-                        collection_row,
-                        Some(collection_id),
-                    )
+                    .pends(key.clone(), collection_row, Some(collection_id))
                     .into_iter()
                     .map(|r| r.row())
                     .collect()

@@ -2,6 +2,7 @@ use std::{
     num::{NonZeroI64, NonZeroU32},
     ops::Deref,
     path::Path,
+    sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -138,7 +139,8 @@ impl SessionDatabase {
                                                 .relation
                                                 .insert(&key, session_row, depend.clone())
                                                 .await;
-                                            tmp_depends.push(Depend::new(key, depend.clone()));
+                                            tmp_depends
+                                                .push(Depend::new(Arc::new(key), depend.clone()));
                                         }
                                     }
                                 }
@@ -149,7 +151,7 @@ impl SessionDatabase {
                                         .relation
                                         .insert(key, session_row, depend.clone())
                                         .await;
-                                    tmp_depends.push(Depend::new(key, depend.clone()));
+                                    tmp_depends.push(Depend::new(Arc::clone(key), depend.clone()));
                                 }
                             }
                         }
@@ -255,7 +257,7 @@ impl SessionDatabase {
                                             .relation
                                             .insert(key, session_row, depend.clone())
                                             .await;
-                                        tmp.push(Depend::new(key, depend.clone()));
+                                        tmp.push(Depend::new(Arc::clone(key), depend.clone()));
                                     }
                                     tmp
                                 } else {

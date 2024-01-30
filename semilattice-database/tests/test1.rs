@@ -1,6 +1,8 @@
 #[cfg(test)]
 #[test]
 fn test() {
+    use std::sync::Arc;
+
     use semilattice_database::*;
     use versatile_data::FieldName;
 
@@ -56,7 +58,7 @@ fn test() {
             )
             .await;
         pends.push((
-            "history".to_owned(),
+            Arc::new("history".to_owned()),
             CollectionRow::new(collection_history_id, history_row),
         ));
         let history_row = collection_history
@@ -72,7 +74,7 @@ fn test() {
             )
             .await;
         pends.push((
-            "history".to_owned(),
+            Arc::new("history".to_owned()),
             CollectionRow::new(collection_history_id, history_row),
         ));
         database.register_relations(&depend, pends).await;
@@ -94,7 +96,7 @@ fn test() {
                 for h in database
                     .search(collection_history_id)
                     .search(Condition::Depend(
-                        Some("history".to_owned()),
+                        Some(Arc::new("history".into())),
                         CollectionRow::new(collection_person_id, *row),
                     ))
                     .result(&database)

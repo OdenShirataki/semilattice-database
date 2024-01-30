@@ -1,4 +1,7 @@
-use std::num::{NonZeroI32, NonZeroU32};
+use std::{
+    num::{NonZeroI32, NonZeroU32},
+    sync::Arc,
+};
 
 use hashbrown::HashMap;
 use semilattice_database::{Activity, FieldName, Term};
@@ -16,12 +19,12 @@ pub enum SessionOperation {
 #[derive(Debug)]
 pub enum Depends {
     Default,
-    Overwrite(Vec<(String, CollectionRow)>),
+    Overwrite(Vec<(Arc<String>, CollectionRow)>),
 }
 
 #[derive(Debug)]
 pub struct Pend {
-    pub key: String,
+    pub key: Arc<String>,
     pub records: Vec<SessionRecord>,
 }
 

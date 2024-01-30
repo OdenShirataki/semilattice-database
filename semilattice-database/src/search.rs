@@ -10,7 +10,7 @@ pub use versatile_data::search::{Field, Number, Term};
 
 use crate::Database;
 
-use std::num::NonZeroI32;
+use std::{num::NonZeroI32, sync::Arc};
 
 use hashbrown::HashMap;
 
@@ -20,14 +20,14 @@ use versatile_data::{Activity, FieldName};
 pub struct Search {
     collection_id: NonZeroI32,
     conditions: Vec<Condition>,
-    join: HashMap<String, SearchJoin>,
+    join: HashMap<Arc<String>, SearchJoin>,
 }
 
 impl Search {
     pub fn new(
         collection_id: NonZeroI32,
         conditions: Vec<Condition>,
-        join: HashMap<String, SearchJoin>,
+        join: HashMap<Arc<String>, SearchJoin>,
     ) -> Self {
         Self {
             collection_id,

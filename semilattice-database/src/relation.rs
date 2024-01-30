@@ -5,6 +5,7 @@ pub use index::RelationIndex;
 use std::{
     num::{NonZeroI32, NonZeroU32},
     ops::Deref,
+    sync::Arc,
 };
 
 use serde::{ser::SerializeStruct, Serialize};
@@ -13,20 +14,18 @@ use crate::{collection::CollectionRow, Database};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Depend {
-    key: String,
+    key: Arc<String>,
     collection_row: CollectionRow,
 }
 impl Depend {
-    #[inline(always)]
-    pub fn new(key: impl Into<String>, collection_row: CollectionRow) -> Self {
+    pub fn new(key: Arc<String>, collection_row: CollectionRow) -> Self {
         Self {
-            key: key.into(),
+            key,
             collection_row,
         }
     }
 
-    #[inline(always)]
-    pub fn key(&self) -> &str {
+    pub fn key(&self) -> &Arc<String> {
         &self.key
     }
 }
@@ -42,7 +41,7 @@ impl Serialize for Depend {
         S: serde::Serializer,
     {
         let mut state = serializer.serialize_struct("Depend", 3)?;
-        state.serialize_field("key", &self.key)?;
+        state.serialize_field("key", self.key.as_ref())?;
         state.serialize_field("collection_id", &self.collection_row.collection_id())?;
         state.serialize_field("row", &self.collection_row.row())?;
         state.end()
@@ -70,16 +69,17 @@ impl Database {
     pub async fn register_relations(
         &mut self,
         depend: &CollectionRow,
-        pends: Vec<(String, CollectionRow)>,
+        pends: Vec<(Arc<String>, CollectionRow)>,
     ) {
         for (key_name, pend) in pends.into_iter() {
-            self.register_relation(&key_name, depend, pend).await;
+            self.register_relation(key_name.as_str(), depend, pend)
+                .await;
         }
     }
 
     pub fn depends(
         &self,
-        key: Option<&str>,
+        key: Option<Arc<String>>,
         pend_collection_id: NonZeroI32,
         pend_row: NonZeroU32,
     ) -> Vec<Depend> {

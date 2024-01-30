@@ -2,6 +2,7 @@ use std::{
     num::{NonZeroI32, NonZeroI64, NonZeroU32},
     ops::Deref,
     path::Path,
+    sync::Arc,
 };
 
 use hashbrown::HashMap;
@@ -183,19 +184,22 @@ impl SessionData {
                                                     self.relation.rows.depend.get(relation_row),
                                                 ) {
                                                     Some(Depend::new(
-                                                        unsafe {
-                                                            std::str::from_utf8_unchecked(
-                                                                self.relation
-                                                                    .key_names
-                                                                    .bytes(
-                                                                        NonZeroU32::new(
-                                                                            *key.deref(),
+                                                        Arc::new(
+                                                            unsafe {
+                                                                std::str::from_utf8_unchecked(
+                                                                    self.relation
+                                                                        .key_names
+                                                                        .bytes(
+                                                                            NonZeroU32::new(
+                                                                                *key.deref(),
+                                                                            )
+                                                                            .unwrap(),
                                                                         )
                                                                         .unwrap(),
-                                                                    )
-                                                                    .unwrap(),
-                                                            )
-                                                        },
+                                                                )
+                                                            }
+                                                            .into(),
+                                                        ),
                                                         depend.deref().clone(),
                                                     ))
                                                 } else {

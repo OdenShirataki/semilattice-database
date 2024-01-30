@@ -1,4 +1,7 @@
-use std::num::{NonZeroI32, NonZeroU32};
+use std::{
+    num::{NonZeroI32, NonZeroU32},
+    sync::Arc,
+};
 
 use async_recursion::async_recursion;
 use futures::{future, FutureExt};
@@ -12,17 +15,17 @@ use super::SearchResult;
 #[derive(Debug, Clone, PartialEq)]
 pub struct SearchJoin {
     collection_id: NonZeroI32,
-    relation_key: Option<String>,
+    relation_key: Option<Arc<String>>,
     conditions: Vec<Condition>,
-    join: HashMap<String, SearchJoin>,
+    join: HashMap<Arc<String>, SearchJoin>,
 }
 
 impl SearchJoin {
     pub fn new(
         collection_id: NonZeroI32,
         conditions: Vec<Condition>,
-        relation_key: Option<String>,
-        join: HashMap<String, SearchJoin>,
+        relation_key: Option<Arc<String>>,
+        join: HashMap<Arc<String>, SearchJoin>,
     ) -> Self {
         Self {
             collection_id,
@@ -46,7 +49,7 @@ impl SearchJoin {
                     database
                         .relation
                         .pends(
-                            Some(key),
+                            Some(Arc::clone(key)),
                             &CollectionRow::new(parent_collection_id, parent_row),
                             Some(self.collection_id),
                         )
@@ -76,7 +79,7 @@ impl SearchJoin {
 
         let join_nest = future::join_all(self.join.iter().map(|(key, join)| async {
             (
-                key.to_owned(),
+                Arc::clone(key),
                 join.join_result(database, self.collection_id, &rows).await,
             )
         }))

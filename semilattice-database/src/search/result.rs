@@ -1,4 +1,4 @@
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32, sync::Arc};
 
 use futures::future;
 use hashbrown::HashMap;
@@ -10,14 +10,14 @@ use crate::{Collection, Condition, Database, RelationIndex, Search};
 pub struct SearchResult {
     search: Option<Search>,
     rows: RowSet,
-    join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
+    join: HashMap<Arc<String>, HashMap<NonZeroU32, SearchResult>>,
 }
 
 impl SearchResult {
     pub fn new(
         search: Option<Search>,
         rows: RowSet,
-        join: HashMap<String, HashMap<NonZeroU32, SearchResult>>,
+        join: HashMap<Arc<String>, HashMap<NonZeroU32, SearchResult>>,
     ) -> Self {
         Self { search, rows, join }
     }
@@ -30,7 +30,7 @@ impl SearchResult {
         &self.rows
     }
 
-    pub fn join(&self) -> &HashMap<String, HashMap<NonZeroU32, SearchResult>> {
+    pub fn join(&self) -> &HashMap<Arc<String>, HashMap<NonZeroU32, SearchResult>> {
         &self.join
     }
 

@@ -3,6 +3,8 @@
 ## Example
 
 ```rust
+use std::sync::Arc;
+
 use semilattice_database::*;
 use versatile_data::FieldName;
 
@@ -58,7 +60,7 @@ futures::executor::block_on(async {
         )
         .await;
     pends.push((
-        "history".to_owned(),
+        Arc::new("history".to_owned()),
         CollectionRow::new(collection_history_id, history_row),
     ));
     let history_row = collection_history
@@ -74,7 +76,7 @@ futures::executor::block_on(async {
         )
         .await;
     pends.push((
-        "history".to_owned(),
+        Arc::new("history".to_owned()),
         CollectionRow::new(collection_history_id, history_row),
     ));
     database.register_relations(&depend, pends).await;
@@ -96,7 +98,7 @@ futures::executor::block_on(async {
             for h in database
                 .search(collection_history_id)
                 .search(Condition::Depend(
-                    Some("history".to_owned()),
+                    Some(Arc::new("history".into())),
                     CollectionRow::new(collection_person_id, *row),
                 ))
                 .result(&database)

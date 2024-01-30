@@ -1,6 +1,8 @@
 #[cfg(test)]
 #[test]
 fn test4() {
+    use std::sync::Arc;
+
     use semilattice_database::FieldName;
     use semilattice_database_session::*;
 
@@ -47,7 +49,7 @@ fn test4() {
                     term_end: Default::default(),
                     fields: [(field_name.clone(), "1".into())].into(),
                     depends: Depends::Overwrite(vec![(
-                        "field".to_owned(),
+                        Arc::new("field".into()),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
                     )]),
                     pends: vec![],
@@ -65,7 +67,7 @@ fn test4() {
                     term_end: Default::default(),
                     fields: [(field_name.clone(), "2".into())].into(),
                     depends: Depends::Overwrite(vec![(
-                        "field".to_owned(),
+                        Arc::new("field".into()),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
                     )]),
                     pends: vec![],
@@ -83,7 +85,7 @@ fn test4() {
                     term_end: Default::default(),
                     fields: [(field_name.clone(), "3".into())].into(),
                     depends: Depends::Overwrite(vec![(
-                        "field".to_owned(),
+                        Arc::new("field".into()),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
                     )]),
                     pends: vec![],
@@ -104,7 +106,7 @@ fn test4() {
                     term_end: Default::default(),
                     fields: [(field_name.clone(), "3-r".into())].into(),
                     depends: Depends::Overwrite(vec![(
-                        "field".to_owned(),
+                        Arc::new("field".into()),
                         CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
                     )]),
                     pends: vec![],
@@ -116,7 +118,7 @@ fn test4() {
         let search = database
             .search(collection_field)
             .search(semilattice_database::Condition::Depend(
-                Some("field".to_owned()),
+                Some(Arc::new("field".into())),
                 CollectionRow::new(-collection_widget, 1.try_into().unwrap()),
             ))
             .search_activity(Activity::Active);
