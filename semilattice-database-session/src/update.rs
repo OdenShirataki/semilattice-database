@@ -1,6 +1,5 @@
 use std::{
     num::{NonZeroI64, NonZeroU32},
-    ops::Deref,
     path::Path,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -80,7 +79,7 @@ impl SessionDatabase {
                             if in_session {
                                 session_data.uuid.get(*row).map_or_else(
                                     || semilattice_database::create_uuid(),
-                                    |uuid| *uuid.deref(),
+                                    |uuid| **uuid,
                                 )
                             } else {
                                 if let Some(collection) = self.collection(master_collection_id) {

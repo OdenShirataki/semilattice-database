@@ -1,7 +1,6 @@
 use std::{
     collections::BTreeSet,
     num::{NonZeroI32, NonZeroI64, NonZeroU32},
-    ops::Deref,
     sync::Arc,
 };
 
@@ -102,7 +101,7 @@ impl Session {
                 let mut is_match = true;
                 for depend in &ent.depends {
                     is_match = key.as_ref().map_or(true, |key| key == depend.key())
-                        && collection_row == depend.deref();
+                        && collection_row == &**depend;
                     if is_match {
                         break;
                     }
@@ -273,15 +272,13 @@ impl Session {
                                                     session_data
                                                         .relation
                                                         .key_names
-                                                        .bytes(
-                                                            NonZeroU32::new(*key.deref()).unwrap(),
-                                                        )
+                                                        .bytes(NonZeroU32::new(**key).unwrap())
                                                         .unwrap(),
                                                 )
                                             }
                                             .into(),
                                         ),
-                                        depend.deref().clone(),
+                                        (**depend).clone(),
                                     ));
                                 }
                                 None
@@ -305,10 +302,10 @@ impl Session {
                                         session_data.relation.rows.key.get(relation_row),
                                         session_data.relation.rows.depend.get(relation_row),
                                     ) {
-                                        if *key.deref() == key_id.get() {
+                                        if **key == key_id.get() {
                                             return Some(Depend::new(
                                                 Arc::clone(&key_name),
-                                                depend.deref().clone(),
+                                                (**depend).clone(),
                                             ));
                                         }
                                     }

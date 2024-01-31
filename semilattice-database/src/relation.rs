@@ -41,7 +41,7 @@ impl Serialize for Depend {
         S: serde::Serializer,
     {
         let mut state = serializer.serialize_struct("Depend", 3)?;
-        state.serialize_field("key", self.key.as_ref())?;
+        state.serialize_field("key", self.key.as_str())?;
         state.serialize_field("collection_id", &self.collection_row.collection_id())?;
         state.serialize_field("row", &self.collection_row.row())?;
         state.end()

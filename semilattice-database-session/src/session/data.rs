@@ -1,6 +1,5 @@
 use std::{
     num::{NonZeroI32, NonZeroI64, NonZeroU32},
-    ops::Deref,
     path::Path,
     sync::Arc,
 };
@@ -80,12 +79,11 @@ impl SessionData {
                 relation_key,
                 pend_session_row,
                 CollectionRow::new(
-                    NonZeroI32::new(*self.collection_id.get(depend_session_row).unwrap().deref())
-                        .unwrap(),
-                    if *row.deref() == 0 {
+                    NonZeroI32::new(**self.collection_id.get(depend_session_row).unwrap()).unwrap(),
+                    if **row == 0 {
                         depend_session_row
                     } else {
-                        unsafe { NonZeroU32::new_unchecked(*row.deref()) }
+                        unsafe { NonZeroU32::new_unchecked(**row) }
                     },
                 ),
             )
@@ -102,7 +100,7 @@ impl SessionData {
             for sequence in 1..=current {
                 for session_row in self.sequence.iter_by(|v| v.cmp(&sequence)) {
                     if let Some(collection_id) = self.collection_id.get(session_row) {
-                        let collection_id = *collection_id.deref();
+                        let collection_id = **collection_id;
 
                         let in_session = collection_id < 0;
                         let main_collection_id = NonZeroI32::new(if in_session {
@@ -114,7 +112,7 @@ impl SessionData {
                         let temporary_collection = temporary_data
                             .entry(main_collection_id)
                             .or_insert(HashMap::new());
-                        let row = *self.row.get(session_row).unwrap().deref();
+                        let row = **self.row.get(session_row).unwrap();
 
                         let temporary_row = NonZeroI64::new(if row == 0 {
                             -(session_row.get() as i64)
@@ -125,7 +123,7 @@ impl SessionData {
                         })
                         .unwrap();
 
-                        let operation = self.operation.get(session_row).unwrap().deref().clone();
+                        let operation = (**self.operation.get(session_row).unwrap()).clone();
                         if operation == SessionOperation::Delete {
                             temporary_collection.insert(
                                 temporary_row,
@@ -158,19 +156,14 @@ impl SessionData {
                             temporary_collection.insert(
                                 temporary_row,
                                 TemporaryDataEntity {
-                                    activity: if *self.activity.get(session_row).unwrap().deref()
-                                        == 1
-                                    {
+                                    activity: if **self.activity.get(session_row).unwrap() == 1 {
                                         Activity::Active
                                     } else {
                                         Activity::Inactive
                                     },
-                                    term_begin: *self.term_begin.get(session_row).unwrap().deref(),
-                                    term_end: *self.term_end.get(session_row).unwrap().deref(),
-                                    uuid: self
-                                        .uuid
-                                        .get(session_row)
-                                        .map_or(0, |uuid| *uuid.deref()),
+                                    term_begin: **self.term_begin.get(session_row).unwrap(),
+                                    term_end: **self.term_end.get(session_row).unwrap(),
+                                    uuid: self.uuid.get(session_row).map_or(0, |uuid| **uuid),
                                     operation,
                                     fields: row_fields.clone(),
                                     depends: {
@@ -190,17 +183,15 @@ impl SessionData {
                                                                     self.relation
                                                                         .key_names
                                                                         .bytes(
-                                                                            NonZeroU32::new(
-                                                                                *key.deref(),
-                                                                            )
-                                                                            .unwrap(),
+                                                                            NonZeroU32::new(**key)
+                                                                                .unwrap(),
                                                                         )
                                                                         .unwrap(),
                                                                 )
                                                             }
                                                             .into(),
                                                         ),
-                                                        depend.deref().clone(),
+                                                        (**depend).clone(),
                                                     ))
                                                 } else {
                                                     None

@@ -1,6 +1,5 @@
 use std::{
     num::{NonZeroI32, NonZeroU32},
-    ops::Deref,
     sync::Arc,
 };
 
@@ -44,23 +43,23 @@ impl SessionDatabase {
                     session_data.collection_id.get(session_row),
                     session_data.row.get(session_row),
                 ) {
-                    let in_session = *collection_id.deref() < 0;
+                    let in_session = **collection_id < 0;
 
                     let main_collection_id = NonZeroI32::new(if in_session {
-                        -*collection_id.deref()
+                        -**collection_id
                     } else {
-                        *collection_id.deref()
+                        **collection_id
                     })
                     .unwrap();
 
                     if let Some(collection) = self.collection_mut(main_collection_id) {
-                        let row = if *row.deref() == 0 {
+                        let row = if **row == 0 {
                             session_row
                         } else {
-                            unsafe { NonZeroU32::new_unchecked(*row.deref()) }
+                            unsafe { NonZeroU32::new_unchecked(**row) }
                         };
 
-                        let fields = if *op.deref() == SessionOperation::Delete {
+                        let fields = if **op == SessionOperation::Delete {
                             HashMap::new()
                         } else {
                             session_data
@@ -74,33 +73,26 @@ impl SessionDatabase {
                                 .collect()
                         };
 
-                        let session_collection_row = CollectionRow::new(
-                            NonZeroI32::new(*collection_id.deref()).unwrap(),
-                            row,
-                        );
-                        match op.deref() {
+                        let session_collection_row =
+                            CollectionRow::new(NonZeroI32::new(**collection_id).unwrap(), row);
+                        match **op {
                             SessionOperation::New | SessionOperation::Update => {
-                                let activity = if *session_data
-                                    .activity
-                                    .get(session_row)
-                                    .unwrap()
-                                    .deref()
-                                    == 1
-                                {
-                                    Activity::Active
-                                } else {
-                                    Activity::Inactive
-                                };
+                                let activity =
+                                    if **session_data.activity.get(session_row).unwrap() == 1 {
+                                        Activity::Active
+                                    } else {
+                                        Activity::Inactive
+                                    };
                                 let term_begin = Term::Overwrite(
-                                    *session_data.term_begin.get(session_row).unwrap().deref(),
+                                    **session_data.term_begin.get(session_row).unwrap(),
                                 );
                                 let term_end = Term::Overwrite(
-                                    *session_data.term_end.get(session_row).unwrap().deref(),
+                                    **session_data.term_end.get(session_row).unwrap(),
                                 );
 
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
-                                    if *op.deref() == SessionOperation::New {
+                                    if **op == SessionOperation::New {
                                         collection
                                             .insert(activity, term_begin, term_end, fields)
                                             .await
@@ -135,7 +127,7 @@ impl SessionDatabase {
                                         session_data.relation.rows.depend.get(relation_row),
                                     ) {
                                         relation_temporary
-                                            .entry(depend.deref().clone())
+                                            .entry((**depend).clone())
                                             .or_insert_with(|| Vec::new())
                                             .push((
                                                 Arc::new(
@@ -145,8 +137,7 @@ impl SessionDatabase {
                                                                 .relation
                                                                 .key_names
                                                                 .bytes(
-                                                                    NonZeroU32::new(*key.deref())
-                                                                        .unwrap(),
+                                                                    NonZeroU32::new(**key).unwrap(),
                                                                 )
                                                                 .unwrap(),
                                                         )

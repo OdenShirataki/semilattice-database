@@ -1,4 +1,4 @@
-use std::{num::NonZeroU32, ops::Deref, path::Path, sync::Arc};
+use std::{num::NonZeroU32, path::Path, sync::Arc};
 
 use crate::{BinarySet, IdxFile};
 
@@ -77,8 +77,8 @@ impl SessionRelation {
                 self.rows.key.get(session_relation_row),
                 self.rows.depend.get(session_relation_row),
             ) {
-                let key = *key.deref();
-                let depend = depend.deref().clone();
+                let key = **key;
+                let depend = (**depend).clone();
                 futures::join!(
                     async { self.rows.key.insert(key) },
                     async { self.rows.session_row.insert(new_session_row.get()) },
