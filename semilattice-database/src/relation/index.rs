@@ -69,17 +69,22 @@ impl RelationIndex {
         }
     }
 
-    pub async fn insert(&mut self, relation_key: &str, depend: CollectionRow, pend: CollectionRow) {
+    pub async fn insert(
+        &mut self,
+        relation_key: &str,
+        depend: &CollectionRow,
+        pend: &CollectionRow,
+    ) {
         let key_id = self.key_names.row_or_insert(relation_key.as_bytes()).get();
         if let Some(row) = self.fragment.pop() {
             futures::join!(
-                async { self.rows.key.update(row, key_id) },
+                async { self.rows.key.update(row, &key_id) },
                 async { self.rows.depend.update(row, depend) },
                 async { self.rows.pend.update(row, pend) }
             );
         } else {
             futures::join!(
-                async { self.rows.key.insert(key_id) },
+                async { self.rows.key.insert(&key_id) },
                 async { self.rows.depend.insert(depend) },
                 async { self.rows.pend.insert(pend) }
             );
@@ -107,7 +112,7 @@ impl RelationIndex {
         for row in self
             .rows
             .pend
-            .iter_by(|v| v.cmp(collection_row))
+            .iter_by(collection_row)
             .collect::<Vec<_>>()
             .into_iter()
         {
@@ -126,7 +131,7 @@ impl RelationIndex {
                 || {
                     self.rows
                         .depend
-                        .iter_by(|v| v.cmp(depend))
+                        .iter_by(depend)
                         .filter_map(|row| {
                             if let Some(v) = self.rows.pend.get(row) {
                                 if v.collection_id() == pend_collection_id {
@@ -141,7 +146,7 @@ impl RelationIndex {
                     self.key_names.row(key.as_bytes()).map_or(vec![], |key| {
                         self.rows
                             .depend
-                            .iter_by(|v| v.cmp(depend))
+                            .iter_by(depend)
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
                                     (self.rows.key.get(row), self.rows.pend.get(row))
@@ -163,7 +168,7 @@ impl RelationIndex {
                 || {
                     self.rows
                         .depend
-                        .iter_by(|v| v.cmp(depend))
+                        .iter_by(depend)
                         .filter_map(|row| self.rows.pend.get(row).map(|v| &**v))
                         .collect()
                 },
@@ -171,7 +176,7 @@ impl RelationIndex {
                     self.key_names.row(key.as_bytes()).map_or(vec![], |key| {
                         self.rows
                             .depend
-                            .iter_by(|v| v.cmp(depend))
+                            .iter_by(depend)
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
                                     (self.rows.key.get(row), self.rows.pend.get(row))
@@ -193,7 +198,7 @@ impl RelationIndex {
             || {
                 self.rows
                     .pend
-                    .iter_by(|v| v.cmp(pend))
+                    .iter_by(pend)
                     .filter_map(|row| {
                         if let (Some(key), Some(collection_row)) =
                             (self.rows.key.get(row), self.rows.depend.get(row))
@@ -223,7 +228,7 @@ impl RelationIndex {
                     .map_or(vec![], |key| {
                         self.rows
                             .pend
-                            .iter_by(|v| v.cmp(pend))
+                            .iter_by(pend)
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
                                     (self.rows.key.get(row), self.rows.depend.get(row))

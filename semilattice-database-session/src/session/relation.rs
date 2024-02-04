@@ -47,15 +47,15 @@ impl SessionRelation {
         &mut self,
         relation_key: &str,
         session_row: NonZeroU32,
-        depend: CollectionRow,
+        depend: &CollectionRow,
     ) {
         futures::join!(
             async {
                 self.rows
                     .key
-                    .insert(self.key_names.row_or_insert(relation_key.as_bytes()).get())
+                    .insert(&self.key_names.row_or_insert(relation_key.as_bytes()).get())
             },
-            async { self.rows.session_row.insert(session_row.get()) },
+            async { self.rows.session_row.insert(&session_row.get()) },
             async { self.rows.depend.insert(depend) }
         );
     }
@@ -69,7 +69,7 @@ impl SessionRelation {
         for session_relation_row in self
             .rows
             .session_row
-            .iter_by(|v| v.cmp(&session_row.get()))
+            .iter_by(&session_row.get())
             .collect::<Vec<_>>()
             .into_iter()
         {
@@ -80,9 +80,9 @@ impl SessionRelation {
                 let key = **key;
                 let depend = (**depend).clone();
                 futures::join!(
-                    async { self.rows.key.insert(key) },
-                    async { self.rows.session_row.insert(new_session_row.get()) },
-                    async { self.rows.depend.insert(depend.clone()) },
+                    async { self.rows.key.insert(&key) },
+                    async { self.rows.session_row.insert(&new_session_row.get()) },
+                    async { self.rows.depend.insert(&depend) },
                     async {
                         ret.push(Depend::new(
                             Arc::new(
@@ -109,7 +109,7 @@ impl SessionRelation {
         for relation_row in self
             .rows
             .session_row
-            .iter_by(|v| v.cmp(&session_row.get()))
+            .iter_by(&session_row.get())
             .collect::<Vec<_>>()
             .into_iter()
         {

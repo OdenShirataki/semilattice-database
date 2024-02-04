@@ -33,7 +33,7 @@ impl SessionDatabase {
         for sequence in 1..=session_data.sequence_number.current() {
             for session_row in session_data
                 .sequence
-                .iter_by(|v| v.cmp(&sequence))
+                .iter_by(&sequence)
                 .collect::<Vec<_>>()
                 .into_iter()
                 .rev()
@@ -120,7 +120,7 @@ impl SessionDatabase {
                                     .relation
                                     .rows
                                     .session_row
-                                    .iter_by(|v| v.cmp(&session_row.get()))
+                                    .iter_by(&session_row.get())
                                 {
                                     if let (Some(key), Some(depend)) = (
                                         session_data.relation.rows.key.get(relation_row),

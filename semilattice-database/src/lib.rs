@@ -61,11 +61,7 @@ impl Database {
 
     #[async_recursion(?Send)]
     pub async fn delete(&mut self, target: &CollectionRow) {
-        let rows: Vec<_> = self
-            .relation
-            .index_depend()
-            .iter_by(|v| v.cmp(target))
-            .collect();
+        let rows: Vec<_> = self.relation.index_depend().iter_by(target).collect();
         for relation_row in rows.into_iter() {
             let collection_row = self.relation.index_pend().get(relation_row).cloned();
             if let Some(collection_row) = collection_row {
@@ -75,7 +71,7 @@ impl Database {
         for relation_row in self
             .relation
             .index_pend()
-            .iter_by(|v| v.cmp(target))
+            .iter_by(target)
             .collect::<Vec<_>>()
             .into_iter()
         {

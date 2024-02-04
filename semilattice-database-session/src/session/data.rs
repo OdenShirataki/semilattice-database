@@ -32,16 +32,16 @@ impl SessionData {
         &mut self,
         session_dir: &Path,
         session_row: NonZeroU32,
-        row: u32,
+        row: &u32,
         activity: &Activity,
-        term_begin: u64,
-        term_end: u64,
-        uuid: u128,
+        term_begin: &u64,
+        term_end: &u64,
+        uuid: &u128,
         fields: &HashMap<FieldName, Vec<u8>>,
     ) {
         futures::join!(
             async { self.row.update(session_row, row) },
-            async { self.activity.update(session_row, *activity as u8) },
+            async { self.activity.update(session_row, &(*activity as u8)) },
             async { self.term_begin.update(session_row, term_begin) },
             async { self.term_end.update(session_row, term_end) },
             async { self.uuid.update(session_row, uuid) }
@@ -78,7 +78,7 @@ impl SessionData {
             .insert(
                 relation_key,
                 pend_session_row,
-                CollectionRow::new(
+                &CollectionRow::new(
                     NonZeroI32::new(**self.collection_id.get(depend_session_row).unwrap()).unwrap(),
                     if **row == 0 {
                         depend_session_row
@@ -98,7 +98,7 @@ impl SessionData {
             let mut fields_overlaps: HashMap<CollectionRow, HashMap<FieldName, Vec<u8>>> =
                 HashMap::new();
             for sequence in 1..=current {
-                for session_row in self.sequence.iter_by(|v| v.cmp(&sequence)) {
+                for session_row in self.sequence.iter_by(&sequence) {
                     if let Some(collection_id) = self.collection_id.get(session_row) {
                         let collection_id = **collection_id;
 
@@ -170,7 +170,7 @@ impl SessionData {
                                         self.relation
                                             .rows
                                             .session_row
-                                            .iter_by(|v| v.cmp(&session_row.get()))
+                                            .iter_by(&session_row.get())
                                             .filter_map(|relation_row| {
                                                 if let (Some(key), Some(depend)) = (
                                                     self.relation.rows.key.get(relation_row),

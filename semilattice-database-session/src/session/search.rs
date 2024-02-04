@@ -259,7 +259,7 @@ impl Session {
                             .relation
                             .rows
                             .session_row
-                            .iter_by(|v| v.cmp(&pend_row.get()))
+                            .iter_by(&pend_row.get())
                             .filter_map(|relation_row| {
                                 if let (Some(key), Some(depend)) = (
                                     session_data.relation.rows.key.get(relation_row),
@@ -296,7 +296,7 @@ impl Session {
                                 .relation
                                 .rows
                                 .session_row
-                                .iter_by(|v| v.cmp(&pend_row.get()))
+                                .iter_by(&pend_row.get())
                                 .filter_map(|relation_row| {
                                     if let (Some(key), Some(depend)) = (
                                         session_data.relation.rows.key.get(relation_row),

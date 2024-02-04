@@ -61,9 +61,9 @@ impl Database {
         &mut self,
         key_name: &str,
         depend: &CollectionRow,
-        pend: CollectionRow,
+        pend: &CollectionRow,
     ) {
-        self.relation.insert(key_name, depend.clone(), pend).await
+        self.relation.insert(key_name, depend, pend).await
     }
 
     pub async fn register_relations(
@@ -71,7 +71,7 @@ impl Database {
         depend: &CollectionRow,
         pends: Vec<(Arc<String>, CollectionRow)>,
     ) {
-        for (key_name, pend) in pends.into_iter() {
+        for (key_name, pend) in pends.iter() {
             self.register_relation(key_name.as_str(), depend, pend)
                 .await;
         }

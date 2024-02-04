@@ -20,7 +20,7 @@ impl SessionDatabase {
         session_data: &mut SessionData,
         temporary_data: &mut TemporaryData,
         session_dir: &Path,
-        sequence_number: usize,
+        sequence_number: &usize,
         records: &Vec<SessionRecord>,
         depend_by_pend: Option<(&'async_recursion str, NonZeroU32)>,
     ) -> Vec<CollectionRow> {
@@ -99,23 +99,23 @@ impl SessionDatabase {
                             async {
                                 session_data
                                     .collection_id
-                                    .update(session_row, collection_id.get())
+                                    .update(session_row, &collection_id.get())
                             },
                             async {
                                 session_data
                                     .operation
-                                    .update(session_row, SessionOperation::Update)
+                                    .update(session_row, &SessionOperation::Update)
                             },
                         );
                         session_data
                             .update(
                                 session_dir,
                                 session_row,
-                                row.get(),
+                                &row.get(),
                                 activity,
-                                term_begin,
-                                term_end,
-                                uuid,
+                                &term_begin,
+                                &term_end,
+                                &uuid,
                                 fields,
                             )
                             .await;
@@ -129,14 +129,16 @@ impl SessionDatabase {
                                         .from_session_row(*row, session_row)
                                         .await;
                                 } else {
-                                    for i in self.relation().index_pend().iter_by(|v| {
-                                        v.cmp(&CollectionRow::new(collection_id, *row))
-                                    }) {
+                                    for i in self
+                                        .relation()
+                                        .index_pend()
+                                        .iter_by(&CollectionRow::new(collection_id, *row))
+                                    {
                                         if let Some(depend) = self.relation().depend(i) {
                                             let key = self.relation().key(i).to_owned();
                                             session_data
                                                 .relation
-                                                .insert(&key, session_row, depend.clone())
+                                                .insert(&key, session_row, depend)
                                                 .await;
                                             tmp_depends
                                                 .push(Depend::new(Arc::new(key), depend.clone()));
@@ -146,10 +148,7 @@ impl SessionDatabase {
                             }
                             Depends::Overwrite(depends) => {
                                 for (key, depend) in depends.into_iter() {
-                                    session_data
-                                        .relation
-                                        .insert(key, session_row, depend.clone())
-                                        .await;
+                                    session_data.relation.insert(key, session_row, depend).await;
                                     tmp_depends.push(Depend::new(Arc::clone(key), depend.clone()));
                                 }
                             }
@@ -213,23 +212,23 @@ impl SessionDatabase {
                             async {
                                 session_data
                                     .collection_id
-                                    .update(session_row, session_collection_id.get())
+                                    .update(session_row, &session_collection_id.get())
                             },
                             async {
                                 session_data
                                     .operation
-                                    .update(session_row, SessionOperation::New)
+                                    .update(session_row, &SessionOperation::New)
                             },
                         );
                         session_data
                             .update(
                                 session_dir,
                                 session_row,
-                                0,
+                                &0,
                                 activity,
-                                term_begin,
-                                term_end,
-                                uuid,
+                                &term_begin,
+                                &term_end,
+                                &uuid,
                                 fields,
                             )
                             .await;
@@ -254,7 +253,7 @@ impl SessionDatabase {
                                     for (key, depend) in depends.into_iter() {
                                         session_data
                                             .relation
-                                            .insert(key, session_row, depend.clone())
+                                            .insert(key, session_row, depend)
                                             .await;
                                         tmp.push(Depend::new(Arc::clone(key), depend.clone()));
                                     }
@@ -288,13 +287,13 @@ impl SessionDatabase {
                         async {
                             session_data
                                 .collection_id
-                                .update(session_row, collection_id.get())
+                                .update(session_row, &collection_id.get())
                         },
-                        async { session_data.row.update(session_row, row.get()) },
+                        async { session_data.row.update(session_row, &row.get()) },
                         async {
                             session_data
                                 .operation
-                                .update(session_row, SessionOperation::Delete)
+                                .update(session_row, &SessionOperation::Delete)
                         }
                     );
                 }

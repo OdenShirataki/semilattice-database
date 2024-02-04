@@ -174,7 +174,7 @@ impl SessionDatabase {
                 for row in ((current + 1)..=max).rev() {
                     for session_row in session_data
                         .sequence
-                        .iter_by(|v| v.cmp(&row))
+                        .iter_by(&row)
                         .collect::<Vec<_>>()
                         .into_iter()
                     {
@@ -222,7 +222,7 @@ impl SessionDatabase {
                     session_data,
                     &mut session.temporary_data,
                     &session_dir,
-                    sequence,
+                    &sequence,
                     &records,
                     None,
                 )
@@ -278,11 +278,10 @@ impl SessionDatabase {
         pends: Vec<(Arc<String>, CollectionRow)>,
         row_map: &HashMap<CollectionRow, CollectionRow>,
     ) {
-        for (key_name, pend) in pends.into_iter() {
+        for (key_name, pend) in pends.iter() {
             if pend.collection_id().get() < 0 {
-                if let Some(pend) = row_map.get(&pend) {
-                    self.register_relation(&key_name, depend, pend.clone())
-                        .await;
+                if let Some(pend) = row_map.get(pend) {
+                    self.register_relation(&key_name, depend, pend).await;
                 }
             } else {
                 self.register_relation(&key_name, depend, pend).await;
