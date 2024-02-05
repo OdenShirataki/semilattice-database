@@ -6,7 +6,9 @@ use std::{
 
 use hashbrown::HashMap;
 
-use semilattice_database::{Activity, CollectionRow, Depend, Field, FieldName, Fields, IdxFile};
+use semilattice_database::{
+    idx_binary::AvltrieeUpdate, Activity, CollectionRow, Depend, Field, FieldName, Fields, IdxFile,
+};
 
 use super::{
     relation::SessionRelation, sequence::SequenceNumber, SessionOperation, TemporaryData,

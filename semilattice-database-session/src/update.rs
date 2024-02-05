@@ -7,6 +7,7 @@ use std::{
 
 use async_recursion::async_recursion;
 use hashbrown::HashMap;
+use semilattice_database::idx_binary::AvltrieeUpdate;
 
 use crate::{
     session::{Depends, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity},

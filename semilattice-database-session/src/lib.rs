@@ -20,7 +20,10 @@ use std::{
 };
 
 use hashbrown::HashMap;
-use semilattice_database::{idx_binary, BinarySet, Database, Field, FileMmap, IdxFile};
+use semilattice_database::{
+    idx_binary::{self, AvltrieeUpdate},
+    BinarySet, Database, Field, FileMmap, IdxFile,
+};
 use session::SessionInfo;
 
 pub struct SessionDatabase {

@@ -5,7 +5,7 @@ use std::{
 };
 
 use binary_set::BinarySet;
-use versatile_data::{IdxFile, RowFragment};
+use versatile_data::{idx_binary::AvltrieeUpdate, IdxFile, RowFragment};
 
 use crate::{CollectionRow, Depend};
 

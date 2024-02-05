@@ -1,5 +1,7 @@
 use std::{num::NonZeroU32, path::Path, sync::Arc};
 
+use semilattice_database::idx_binary::AvltrieeUpdate;
+
 use crate::{BinarySet, IdxFile};
 
 use super::{CollectionRow, Depend};
