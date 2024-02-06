@@ -6,7 +6,9 @@ use std::{
 
 use async_recursion::async_recursion;
 use hashbrown::HashMap;
-use semilattice_database::{search, Collection, Condition, Depend, FieldName, SearchResult};
+use semilattice_database::{
+    idx_binary::AvltrieeSearch, search, Collection, Condition, Depend, FieldName, SearchResult,
+};
 
 use crate::{Session, SessionDatabase};
 
@@ -272,7 +274,7 @@ impl Session {
                                                     session_data
                                                         .relation
                                                         .key_names
-                                                        .bytes(NonZeroU32::new(**key).unwrap())
+                                                        .value(NonZeroU32::new(**key).unwrap())
                                                         .unwrap(),
                                                 )
                                             }

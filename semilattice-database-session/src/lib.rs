@@ -22,7 +22,7 @@ use std::{
 use hashbrown::HashMap;
 use semilattice_database::{
     idx_binary::{self, AvltrieeUpdate},
-    BinarySet, Database, Field, FileMmap, IdxFile,
+    Database, Field, FileMmap, IdxFile,
 };
 use session::SessionInfo;
 

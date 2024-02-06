@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use semilattice_database::{Activity, Term};
+use semilattice_database::{idx_binary::AvltrieeSearch, Activity, Term};
 
 use hashbrown::HashMap;
 
@@ -67,7 +67,7 @@ impl SessionDatabase {
                                 .iter()
                                 .filter_map(|(field_name, field_data)| {
                                     field_data
-                                        .bytes(session_row)
+                                        .value(session_row)
                                         .map(|val| (field_name.clone(), val.to_owned()))
                                 })
                                 .collect()
@@ -136,7 +136,7 @@ impl SessionDatabase {
                                                             session_data
                                                                 .relation
                                                                 .key_names
-                                                                .bytes(
+                                                                .value(
                                                                     NonZeroU32::new(**key).unwrap(),
                                                                 )
                                                                 .unwrap(),

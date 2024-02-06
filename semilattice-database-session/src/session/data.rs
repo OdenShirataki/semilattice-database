@@ -7,7 +7,8 @@ use std::{
 use hashbrown::HashMap;
 
 use semilattice_database::{
-    idx_binary::AvltrieeUpdate, Activity, CollectionRow, Depend, Field, FieldName, Fields, IdxFile,
+    idx_binary::{AvltrieeSearch, AvltrieeUpdate},
+    Activity, CollectionRow, Depend, Field, FieldName, Fields, IdxFile,
 };
 
 use super::{
@@ -151,7 +152,7 @@ impl SessionData {
                                 })
                                 .or_insert(HashMap::new());
                             self.fields.iter().for_each(|(field_name, val)| {
-                                if let Some(v) = val.bytes(session_row) {
+                                if let Some(v) = val.value(session_row) {
                                     row_fields.insert(field_name.clone(), v.into());
                                 }
                             });
@@ -184,7 +185,7 @@ impl SessionData {
                                                                 std::str::from_utf8_unchecked(
                                                                     self.relation
                                                                         .key_names
-                                                                        .bytes(
+                                                                        .value(
                                                                             NonZeroU32::new(**key)
                                                                                 .unwrap(),
                                                                         )

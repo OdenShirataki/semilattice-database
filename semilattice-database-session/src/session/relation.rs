@@ -1,8 +1,8 @@
 use std::{num::NonZeroU32, path::Path, sync::Arc};
 
-use semilattice_database::idx_binary::AvltrieeUpdate;
+use semilattice_database::idx_binary::{AvltrieeSearch, AvltrieeUpdate, IdxBinary};
 
-use crate::{BinarySet, IdxFile};
+use crate::IdxFile;
 
 use super::{CollectionRow, Depend};
 
@@ -12,7 +12,7 @@ pub struct SessionRelationRows {
     pub(crate) depend: IdxFile<CollectionRow>,
 }
 pub struct SessionRelation {
-    pub(crate) key_names: BinarySet,
+    pub(crate) key_names: IdxBinary,
     pub(crate) rows: SessionRelationRows,
 }
 impl SessionRelation {
@@ -36,7 +36,7 @@ impl SessionRelation {
         path_depend.push("depend.i");
 
         Self {
-            key_names: BinarySet::new(path_key_name, 1),
+            key_names: IdxBinary::new_ext(path_key_name, 1),
             rows: SessionRelationRows {
                 key: IdxFile::new(path_key, relation_allocation_lot),
                 session_row: IdxFile::new(path_session_row, relation_allocation_lot),
@@ -91,7 +91,7 @@ impl SessionRelation {
                                 unsafe {
                                     std::str::from_utf8_unchecked(
                                         self.key_names
-                                            .bytes(NonZeroU32::new(key).unwrap())
+                                            .value(NonZeroU32::new(key).unwrap())
                                             .unwrap(),
                                     )
                                 }

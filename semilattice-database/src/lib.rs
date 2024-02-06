@@ -4,7 +4,6 @@ mod collection;
 mod relation;
 
 use async_recursion::async_recursion;
-pub use binary_set::BinarySet;
 pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Search, SearchJoin, SearchResult};

@@ -4,8 +4,10 @@ use std::{
     sync::Arc,
 };
 
-use binary_set::BinarySet;
-use versatile_data::{idx_binary::AvltrieeUpdate, IdxFile, RowFragment};
+use versatile_data::{
+    idx_binary::{AvltrieeSearch, AvltrieeUpdate},
+    IdxBinary, IdxFile, RowFragment,
+};
 
 use crate::{CollectionRow, Depend};
 
@@ -16,7 +18,7 @@ struct RelationIndexRows {
 }
 pub struct RelationIndex {
     fragment: RowFragment,
-    key_names: BinarySet,
+    key_names: IdxBinary,
     rows: RelationIndexRows,
 }
 impl RelationIndex {
@@ -27,7 +29,7 @@ impl RelationIndex {
             std::fs::create_dir_all(&dir).unwrap();
         }
         Self {
-            key_names: BinarySet::new(
+            key_names: IdxBinary::new_ext(
                 {
                     let mut path = dir.clone();
                     path.push("key_name");
@@ -208,7 +210,7 @@ impl RelationIndex {
                                     unsafe {
                                         std::str::from_utf8_unchecked(
                                             self.key_names
-                                                .bytes(NonZeroU32::new(**key).unwrap())
+                                                .value(NonZeroU32::new(**key).unwrap())
                                                 .unwrap(),
                                         )
                                     }
@@ -263,7 +265,7 @@ impl RelationIndex {
         self.rows.key.get(row).map_or("", |key_row| unsafe {
             std::str::from_utf8_unchecked(
                 self.key_names
-                    .bytes(NonZeroU32::new(**key_row).unwrap())
+                    .value(NonZeroU32::new(**key_row).unwrap())
                     .unwrap(),
             )
         })
