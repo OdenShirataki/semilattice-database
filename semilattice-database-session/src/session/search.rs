@@ -264,8 +264,8 @@ impl Session {
                             .iter_by(&pend_row.get())
                             .filter_map(|relation_row| {
                                 if let (Some(key), Some(depend)) = (
-                                    session_data.relation.rows.key.get(relation_row),
-                                    session_data.relation.rows.depend.get(relation_row),
+                                    session_data.relation.rows.key.value(relation_row),
+                                    session_data.relation.rows.depend.value(relation_row),
                                 ) {
                                     return Some(Depend::new(
                                         Arc::new(
@@ -274,13 +274,13 @@ impl Session {
                                                     session_data
                                                         .relation
                                                         .key_names
-                                                        .value(NonZeroU32::new(**key).unwrap())
+                                                        .value(NonZeroU32::new(*key).unwrap())
                                                         .unwrap(),
                                                 )
                                             }
                                             .into(),
                                         ),
-                                        (**depend).clone(),
+                                        depend.clone(),
                                     ));
                                 }
                                 None
@@ -301,13 +301,13 @@ impl Session {
                                 .iter_by(&pend_row.get())
                                 .filter_map(|relation_row| {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.get(relation_row),
-                                        session_data.relation.rows.depend.get(relation_row),
+                                        session_data.relation.rows.key.value(relation_row),
+                                        session_data.relation.rows.depend.value(relation_row),
                                     ) {
-                                        if **key == key_id.get() {
+                                        if *key == key_id.get() {
                                             return Some(Depend::new(
                                                 Arc::clone(&key_name),
-                                                (**depend).clone(),
+                                                depend.clone(),
                                             ));
                                         }
                                     }

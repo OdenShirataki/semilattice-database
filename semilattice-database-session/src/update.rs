@@ -7,7 +7,7 @@ use std::{
 
 use async_recursion::async_recursion;
 use hashbrown::HashMap;
-use semilattice_database::idx_binary::AvltrieeUpdate;
+use semilattice_database::idx_binary::{AvltrieeSearch, AvltrieeUpdate};
 
 use crate::{
     session::{Depends, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity},
@@ -55,8 +55,9 @@ impl SessionDatabase {
                             Term::Overwrite(term_begin) => term_begin,
                             Term::Default => (!in_session)
                                 .then(|| {
-                                    self.collection(master_collection_id)
-                                        .map(|collection| collection.term_begin(*row).unwrap_or(0))
+                                    self.collection(master_collection_id).map(|collection| {
+                                        *collection.term_begin(*row).unwrap_or(&0)
+                                    })
                                 })
                                 .and_then(|v| v)
                                 .unwrap_or_else(|| {
@@ -78,13 +79,13 @@ impl SessionDatabase {
 
                         let uuid = {
                             if in_session {
-                                session_data.uuid.get(*row).map_or_else(
+                                session_data.uuid.value(*row).map_or_else(
                                     || semilattice_database::create_uuid(),
-                                    |uuid| **uuid,
+                                    |uuid| *uuid,
                                 )
                             } else {
                                 if let Some(collection) = self.collection(master_collection_id) {
-                                    let uuid = collection.uuid(*row).unwrap_or(0);
+                                    let uuid = *collection.uuid(*row).unwrap_or(&0);
                                     if uuid == 0 {
                                         semilattice_database::create_uuid()
                                     } else {

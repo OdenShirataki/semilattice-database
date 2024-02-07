@@ -76,17 +76,20 @@ impl SessionData {
         relation_key: &str,
         depend_session_row: NonZeroU32,
     ) {
-        let row = self.row.get(depend_session_row).unwrap();
+        let row = *unsafe { self.row.value_unchecked(depend_session_row) };
         self.relation
             .insert(
                 relation_key,
                 pend_session_row,
                 &CollectionRow::new(
-                    NonZeroI32::new(**self.collection_id.get(depend_session_row).unwrap()).unwrap(),
-                    if **row == 0 {
+                    NonZeroI32::new(*unsafe {
+                        self.collection_id.value_unchecked(depend_session_row)
+                    })
+                    .unwrap(),
+                    if row == 0 {
                         depend_session_row
                     } else {
-                        unsafe { NonZeroU32::new_unchecked(**row) }
+                        unsafe { NonZeroU32::new_unchecked(row) }
                     },
                 ),
             )
@@ -102,9 +105,7 @@ impl SessionData {
                 HashMap::new();
             for sequence in 1..=current {
                 for session_row in self.sequence.iter_by(&sequence) {
-                    if let Some(collection_id) = self.collection_id.get(session_row) {
-                        let collection_id = **collection_id;
-
+                    if let Some(collection_id) = self.collection_id.value(session_row).cloned() {
                         let in_session = collection_id < 0;
                         let main_collection_id = NonZeroI32::new(if in_session {
                             -collection_id
@@ -115,7 +116,7 @@ impl SessionData {
                         let temporary_collection = temporary_data
                             .entry(main_collection_id)
                             .or_insert(HashMap::new());
-                        let row = **self.row.get(session_row).unwrap();
+                        let row = *unsafe { self.row.value_unchecked(session_row) };
 
                         let temporary_row = NonZeroI64::new(if row == 0 {
                             -(session_row.get() as i64)
@@ -126,7 +127,8 @@ impl SessionData {
                         })
                         .unwrap();
 
-                        let operation = (**self.operation.get(session_row).unwrap()).clone();
+                        let operation =
+                            unsafe { self.operation.value_unchecked(session_row) }.clone();
                         if operation == SessionOperation::Delete {
                             temporary_collection.insert(
                                 temporary_row,
@@ -159,14 +161,21 @@ impl SessionData {
                             temporary_collection.insert(
                                 temporary_row,
                                 TemporaryDataEntity {
-                                    activity: if **self.activity.get(session_row).unwrap() == 1 {
+                                    activity: if *unsafe {
+                                        self.activity.value_unchecked(session_row)
+                                    } == 1
+                                    {
                                         Activity::Active
                                     } else {
                                         Activity::Inactive
                                     },
-                                    term_begin: **self.term_begin.get(session_row).unwrap(),
-                                    term_end: **self.term_end.get(session_row).unwrap(),
-                                    uuid: self.uuid.get(session_row).map_or(0, |uuid| **uuid),
+                                    term_begin: *unsafe {
+                                        self.term_begin.value_unchecked(session_row)
+                                    },
+                                    term_end: *unsafe {
+                                        self.term_end.value_unchecked(session_row)
+                                    },
+                                    uuid: *self.uuid.value(session_row).unwrap_or(&0),
                                     operation,
                                     fields: row_fields.clone(),
                                     depends: {
@@ -176,8 +185,8 @@ impl SessionData {
                                             .iter_by(&session_row.get())
                                             .filter_map(|relation_row| {
                                                 if let (Some(key), Some(depend)) = (
-                                                    self.relation.rows.key.get(relation_row),
-                                                    self.relation.rows.depend.get(relation_row),
+                                                    self.relation.rows.key.value(relation_row),
+                                                    self.relation.rows.depend.value(relation_row),
                                                 ) {
                                                     Some(Depend::new(
                                                         Arc::new(
@@ -186,7 +195,7 @@ impl SessionData {
                                                                     self.relation
                                                                         .key_names
                                                                         .value(
-                                                                            NonZeroU32::new(**key)
+                                                                            NonZeroU32::new(*key)
                                                                                 .unwrap(),
                                                                         )
                                                                         .unwrap(),
@@ -194,7 +203,7 @@ impl SessionData {
                                                             }
                                                             .into(),
                                                         ),
-                                                        (**depend).clone(),
+                                                        depend.clone(),
                                                     ))
                                                 } else {
                                                     None

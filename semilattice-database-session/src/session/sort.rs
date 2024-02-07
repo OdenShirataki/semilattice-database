@@ -159,12 +159,12 @@ fn serial(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u32, u32) {
         if a.get() < 0 {
             0
         } else {
-            collection.serial(a.try_into().unwrap())
+            *collection.serial(a.try_into().unwrap())
         },
         if b.get() < 0 {
             0
         } else {
-            collection.serial(b.try_into().unwrap())
+            *collection.serial(b.try_into().unwrap())
         },
     )
 }
@@ -179,12 +179,12 @@ fn term_begin(
         if a.get() < 0 {
             temporary_collection.get(&a).unwrap().term_begin()
         } else {
-            collection.term_begin(a.try_into().unwrap()).unwrap_or(0)
+            *collection.term_begin(a.try_into().unwrap()).unwrap_or(&0)
         },
         if b.get() < 0 {
             temporary_collection.get(&b).unwrap().term_begin()
         } else {
-            collection.term_begin(b.try_into().unwrap()).unwrap_or(0)
+            *collection.term_begin(b.try_into().unwrap()).unwrap_or(&0)
         },
     )
 }
@@ -199,12 +199,12 @@ fn term_end(
         if a.get() < 0 {
             temporary_collection.get(&a).unwrap().term_end()
         } else {
-            collection.term_end(a.try_into().unwrap()).unwrap_or(0)
+            *collection.term_end(a.try_into().unwrap()).unwrap_or(&0)
         },
         if b.get() < 0 {
             temporary_collection.get(&b).unwrap().term_end()
         } else {
-            collection.term_end(b.try_into().unwrap()).unwrap_or(0)
+            *collection.term_end(b.try_into().unwrap()).unwrap_or(&0)
         },
     )
 }
@@ -214,12 +214,12 @@ fn last_updated(collection: &Collection, a: NonZeroI64, b: NonZeroI64) -> (u64, 
         if a.get() < 0 {
             0
         } else {
-            collection.last_updated(a.try_into().unwrap()).unwrap_or(0)
+            *collection.last_updated(a.try_into().unwrap()).unwrap_or(&0)
         },
         if b.get() < 0 {
             0
         } else {
-            collection.last_updated(b.try_into().unwrap()).unwrap_or(0)
+            *collection.last_updated(b.try_into().unwrap()).unwrap_or(&0)
         },
     )
 }

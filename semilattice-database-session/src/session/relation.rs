@@ -76,11 +76,9 @@ impl SessionRelation {
             .into_iter()
         {
             if let (Some(key), Some(depend)) = (
-                self.rows.key.get(session_relation_row),
-                self.rows.depend.get(session_relation_row),
+                self.rows.key.value(session_relation_row).cloned(),
+                self.rows.depend.value(session_relation_row).cloned(),
             ) {
-                let key = **key;
-                let depend = (**depend).clone();
                 futures::join!(
                     async { self.rows.key.insert(&key) },
                     async { self.rows.session_row.insert(&new_session_row.get()) },

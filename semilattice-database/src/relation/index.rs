@@ -135,9 +135,9 @@ impl RelationIndex {
                         .depend
                         .iter_by(depend)
                         .filter_map(|row| {
-                            if let Some(v) = self.rows.pend.get(row) {
+                            if let Some(v) = self.rows.pend.value(row) {
                                 if v.collection_id() == pend_collection_id {
-                                    return Some(&**v);
+                                    return Some(v);
                                 }
                             }
                             None
@@ -151,11 +151,11 @@ impl RelationIndex {
                             .iter_by(depend)
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
-                                    (self.rows.key.get(row), self.rows.pend.get(row))
+                                    (self.rows.key.value(row), self.rows.pend.value(row))
                                 {
-                                    if **key_row == key.get() {
+                                    if *key_row == key.get() {
                                         if collection_row.collection_id() == pend_collection_id {
-                                            return Some(&**collection_row);
+                                            return Some(collection_row);
                                         }
                                     }
                                 }
@@ -171,7 +171,7 @@ impl RelationIndex {
                     self.rows
                         .depend
                         .iter_by(depend)
-                        .filter_map(|row| self.rows.pend.get(row).map(|v| &**v))
+                        .filter_map(|row| self.rows.pend.value(row))
                         .collect()
                 },
                 |key| {
@@ -181,9 +181,9 @@ impl RelationIndex {
                             .iter_by(depend)
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
-                                    (self.rows.key.get(row), self.rows.pend.get(row))
+                                    (self.rows.key.value(row), self.rows.pend.value(row))
                                 {
-                                    (**key_row == key.get()).then_some(&**collection_row)
+                                    (*key_row == key.get()).then_some(collection_row)
                                 } else {
                                     None
                                 }
@@ -203,20 +203,20 @@ impl RelationIndex {
                     .iter_by(pend)
                     .filter_map(|row| {
                         if let (Some(key), Some(collection_row)) =
-                            (self.rows.key.get(row), self.rows.depend.get(row))
+                            (self.rows.key.value(row), self.rows.depend.value(row))
                         {
                             Some(Depend::new(
                                 Arc::new(
                                     unsafe {
                                         std::str::from_utf8_unchecked(
                                             self.key_names
-                                                .value(NonZeroU32::new(**key).unwrap())
+                                                .value(NonZeroU32::new(*key).unwrap())
                                                 .unwrap(),
                                         )
                                     }
                                     .into(),
                                 ),
-                                (**collection_row).clone(),
+                                collection_row.clone(),
                             ))
                         } else {
                             None
@@ -233,11 +233,11 @@ impl RelationIndex {
                             .iter_by(pend)
                             .filter_map(|row| {
                                 if let (Some(key_row), Some(collection_row)) =
-                                    (self.rows.key.get(row), self.rows.depend.get(row))
+                                    (self.rows.key.value(row), self.rows.depend.value(row))
                                 {
-                                    (**key_row == key.get()).then_some(Depend::new(
+                                    (*key_row == key.get()).then_some(Depend::new(
                                         Arc::clone(&key_name),
-                                        (**collection_row).clone(),
+                                        collection_row.clone(),
                                     ))
                                 } else {
                                     None
@@ -258,14 +258,14 @@ impl RelationIndex {
     }
 
     pub fn depend(&self, row: NonZeroU32) -> Option<&CollectionRow> {
-        self.rows.depend.get(row).map(|v| &**v)
+        self.rows.depend.value(row)
     }
 
     pub fn key(&self, row: NonZeroU32) -> &str {
-        self.rows.key.get(row).map_or("", |key_row| unsafe {
+        self.rows.key.value(row).map_or("", |key_row| unsafe {
             std::str::from_utf8_unchecked(
                 self.key_names
-                    .value(NonZeroU32::new(**key_row).unwrap())
+                    .value(NonZeroU32::new(*key_row).unwrap())
                     .unwrap(),
             )
         })

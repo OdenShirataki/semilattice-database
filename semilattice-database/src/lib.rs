@@ -7,6 +7,7 @@ use async_recursion::async_recursion;
 pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Search, SearchJoin, SearchResult};
+use versatile_data::idx_binary::AvltrieeSearch;
 pub use versatile_data::{
     create_uuid, idx_binary, uuid_string, Activity, CustomOrderKey, CustomSort, DataOption, Field,
     FieldName, Fields, FileMmap, IdxFile, Order, OrderKey, RowSet, Term, Uuid,
@@ -62,8 +63,7 @@ impl Database {
     pub async fn delete(&mut self, target: &CollectionRow) {
         let rows: Vec<_> = self.relation.index_depend().iter_by(target).collect();
         for relation_row in rows.into_iter() {
-            let collection_row = self.relation.index_pend().get(relation_row).cloned();
-            if let Some(collection_row) = collection_row {
+            if let Some(collection_row) = self.relation.index_pend().value(relation_row).cloned() {
                 self.delete(&collection_row).await;
             }
         }

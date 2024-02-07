@@ -39,27 +39,27 @@ impl SessionDatabase {
                 .rev()
             {
                 if let (Some(op), Some(collection_id), Some(row)) = (
-                    session_data.operation.get(session_row),
-                    session_data.collection_id.get(session_row),
-                    session_data.row.get(session_row),
+                    session_data.operation.value(session_row).cloned(),
+                    session_data.collection_id.value(session_row).cloned(),
+                    session_data.row.value(session_row).cloned(),
                 ) {
-                    let in_session = **collection_id < 0;
+                    let in_session = collection_id < 0;
 
                     let main_collection_id = NonZeroI32::new(if in_session {
-                        -**collection_id
+                        -collection_id
                     } else {
-                        **collection_id
+                        collection_id
                     })
                     .unwrap();
 
                     if let Some(collection) = self.collection_mut(main_collection_id) {
-                        let row = if **row == 0 {
+                        let row = if row == 0 {
                             session_row
                         } else {
-                            unsafe { NonZeroU32::new_unchecked(**row) }
+                            unsafe { NonZeroU32::new_unchecked(row) }
                         };
 
-                        let fields = if **op == SessionOperation::Delete {
+                        let fields = if op == SessionOperation::Delete {
                             HashMap::new()
                         } else {
                             session_data
@@ -74,25 +74,27 @@ impl SessionDatabase {
                         };
 
                         let session_collection_row =
-                            CollectionRow::new(NonZeroI32::new(**collection_id).unwrap(), row);
-                        match **op {
+                            CollectionRow::new(NonZeroI32::new(collection_id).unwrap(), row);
+                        match op {
                             SessionOperation::New | SessionOperation::Update => {
-                                let activity =
-                                    if **session_data.activity.get(session_row).unwrap() == 1 {
-                                        Activity::Active
-                                    } else {
-                                        Activity::Inactive
-                                    };
-                                let term_begin = Term::Overwrite(
-                                    **session_data.term_begin.get(session_row).unwrap(),
-                                );
-                                let term_end = Term::Overwrite(
-                                    **session_data.term_end.get(session_row).unwrap(),
-                                );
+                                let activity = if *unsafe {
+                                    session_data.activity.value_unchecked(session_row)
+                                } == 1
+                                {
+                                    Activity::Active
+                                } else {
+                                    Activity::Inactive
+                                };
+                                let term_begin = Term::Overwrite(*unsafe {
+                                    session_data.term_begin.value_unchecked(session_row)
+                                });
+                                let term_end = Term::Overwrite(*unsafe {
+                                    session_data.term_end.value_unchecked(session_row)
+                                });
 
                                 let collection_row = CollectionRow::new(
                                     main_collection_id,
-                                    if **op == SessionOperation::New {
+                                    if op == SessionOperation::New {
                                         collection
                                             .insert(activity, term_begin, term_end, fields)
                                             .await
@@ -123,11 +125,11 @@ impl SessionDatabase {
                                     .iter_by(&session_row.get())
                                 {
                                     if let (Some(key), Some(depend)) = (
-                                        session_data.relation.rows.key.get(relation_row),
-                                        session_data.relation.rows.depend.get(relation_row),
+                                        session_data.relation.rows.key.value(relation_row),
+                                        session_data.relation.rows.depend.value(relation_row),
                                     ) {
                                         relation_temporary
-                                            .entry((**depend).clone())
+                                            .entry(depend.clone())
                                             .or_insert_with(|| Vec::new())
                                             .push((
                                                 Arc::new(
@@ -137,7 +139,7 @@ impl SessionDatabase {
                                                                 .relation
                                                                 .key_names
                                                                 .value(
-                                                                    NonZeroU32::new(**key).unwrap(),
+                                                                    NonZeroU32::new(*key).unwrap(),
                                                                 )
                                                                 .unwrap(),
                                                         )
