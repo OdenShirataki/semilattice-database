@@ -1,6 +1,6 @@
 [package]
 name = "semilattice-database"
-version = "0.109.0"
+version = "0.110.0"
 edition = "2021"
 
 authors = ["Oden Shirataki <oden.srtk@gmail.com>"]
@@ -22,7 +22,7 @@ async-recursion.workspace = true
 parking_lot = "0.12.1"
 toml = "0.8.8"
 
-versatile-data = { version = "0.115.0" }
+versatile-data = { version = "0.116.0" }
 
 [dev-dependencies]
 rand = "0.8.5"

@@ -1,10 +1,13 @@
 use std::{cmp::Ordering, fmt::Debug, num::NonZeroI64};
 
 use hashbrown::HashMap;
-use semilattice_database::FieldName;
+use semilattice_database::{
+    idx_binary::{AvltrieeSearch, IdxBinary},
+    FieldName,
+};
 
 use super::TemporaryDataEntity;
-use crate::{idx_binary, Collection, Session};
+use crate::{Collection, Session};
 
 pub trait SessionCustomOrder {
     fn compare(&self, a: NonZeroI64, b: NonZeroI64) -> Ordering;
@@ -79,7 +82,7 @@ impl Session {
                                     }
                                 }
                                 SessionOrderKey::Field(field_name) => {
-                                    let ord = idx_binary::compare(
+                                    let ord = IdxBinary::cmp(
                                         field(tmp, collection, *a, field_name),
                                         field(tmp, collection, *b, field_name),
                                     );
@@ -129,7 +132,7 @@ impl Session {
                                     }
                                 }
                                 SessionOrderKey::Field(field_name) => {
-                                    let ord = idx_binary::compare(
+                                    let ord = IdxBinary::cmp(
                                         field(tmp, collection, *b, field_name),
                                         field(tmp, collection, *a, field_name),
                                     );
