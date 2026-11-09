@@ -87,7 +87,7 @@ fn test() {
                 .search(collection_person_id)
                 .result(&database)
                 .await;
-            for row in result.rows().into_iter() {
+            for row in result.rows().iter() {
                 println!(
                     "{},{}",
                     std::str::from_utf8(person.field_bytes(*row, &id_name)).unwrap(),
@@ -102,7 +102,7 @@ fn test() {
                     .result(&database)
                     .await
                     .rows()
-                    .into_iter()
+                    .iter()
                 {
                     println!(
                         " {} : {}",

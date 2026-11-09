@@ -9,11 +9,16 @@ mod temporary_data;
 pub use data::SessionData;
 pub use operation::{Depends, Pend, SessionOperation, SessionRecord};
 pub use search::SessionSearchResult;
-use semilattice_database::{FieldName, Fields};
-pub use sort::{SessionCustomOrder, SessionOrder, SessionOrderKey};
-pub use temporary_data::{TemporaryData, TemporaryDataEntity};
+pub use sort::{SessionCustomCmp, SessionCustomOrder, SessionOrder, SessionOrderKey};
+pub use temporary_data::{TemporaryData, TemporaryDataEntity, TemporaryDataRow};
 
-use std::{io::Write, path::Path};
+use semilattice_database::{Collection, FieldName, Fields};
+
+use std::{
+    io::Write,
+    num::{NonZeroI64, NonZeroU32},
+    path::Path,
+};
 
 use crate::{CollectionRow, Depend, Field, IdxFile, SessionDatabase};
 
@@ -25,21 +30,9 @@ use self::sequence::SequenceCursor;
 
 #[derive(Serialize)]
 pub struct SessionInfo {
-    pub(super) name: String,
-    pub(super) access_at: u64,
-    pub(super) expire: i64,
-}
-
-impl SessionInfo {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-    pub fn access_at(&self) -> u64 {
-        self.access_at
-    }
-    pub fn expire(&self) -> i64 {
-        self.expire
-    }
+    pub(crate) name: String,
+    pub(crate) access_at: u64,
+    pub(crate) expire: i64,
 }
 
 pub struct Session {
@@ -54,8 +47,8 @@ impl Session {
         expire_interval_sec: Option<i64>,
     ) -> Self {
         let mut name: String = name.into();
-        assert!(name != "");
-        if name == "" {
+        assert!(!name.is_empty());
+        if name.is_empty() {
             name = "untitiled".to_owned();
         }
         let session_dir = main_database.session_dir(&name);
@@ -96,18 +89,19 @@ impl Session {
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
+            .truncate(true)
             .open(access)
             .unwrap();
         let expire = expire_interval_sec.unwrap_or(-1);
-        file.write(&expire.to_be_bytes()).unwrap();
+        file.write_all(&expire.to_be_bytes()).unwrap();
 
         let mut fields = Fields::new();
         let mut fields_dir = session_dir.to_path_buf();
         fields_dir.push("fields");
         if !fields_dir.exists() {
-            std::fs::create_dir_all(&fields_dir.to_owned()).unwrap();
+            std::fs::create_dir_all(&fields_dir).unwrap();
         }
-        for p in fields_dir.read_dir().unwrap().into_iter() {
+        for p in fields_dir.read_dir().unwrap() {
             let p = p.unwrap();
             let path = p.path();
             if path.is_dir() {
@@ -190,6 +184,77 @@ impl Session {
             ),
             fields,
             relation: SessionRelation::new(session_dir, 1),
+        }
+    }
+
+    /// Converts a row of the main data to [NonZeroU32].
+    /// Returns None for rows of the session (negative rows) and out of range rows.
+    fn data_row(row: NonZeroI64) -> Option<NonZeroU32> {
+        u32::try_from(row.get()).ok().and_then(NonZeroU32::new)
+    }
+
+    /// Returns the serial number of the row, or 0 if the row is a session row or does not exist.
+    pub fn serial(collection: &Collection, row: NonZeroI64) -> u32 {
+        Self::data_row(row)
+            .and_then(|row| collection.serial(row))
+            .copied()
+            .unwrap_or(0)
+    }
+
+    /// Returns term_begin of the row, or 0 if it does not exist.
+    pub fn term_begin(
+        temporary_collection: &TemporaryDataRow,
+        collection: &Collection,
+        row: NonZeroI64,
+    ) -> u64 {
+        if row.get() < 0 {
+            temporary_collection.get(&row).map_or(0, |e| e.term_begin())
+        } else {
+            Self::data_row(row)
+                .and_then(|row| collection.term_begin(row))
+                .copied()
+                .unwrap_or(0)
+        }
+    }
+
+    /// Returns term_end of the row, or 0 if it does not exist.
+    pub fn term_end(
+        temporary_collection: &TemporaryDataRow,
+        collection: &Collection,
+        row: NonZeroI64,
+    ) -> u64 {
+        if row.get() < 0 {
+            temporary_collection.get(&row).map_or(0, |e| e.term_end())
+        } else {
+            Self::data_row(row)
+                .and_then(|row| collection.term_end(row))
+                .copied()
+                .unwrap_or(0)
+        }
+    }
+
+    /// Returns last_updated of the row, or 0 if the row is a session row or does not exist.
+    pub fn last_updated(collection: &Collection, row: NonZeroI64) -> u64 {
+        Self::data_row(row)
+            .and_then(|row| collection.last_updated(row))
+            .copied()
+            .unwrap_or(0)
+    }
+
+    /// Returns the field value of the row, or an empty slice if it does not exist.
+    pub fn field<'a>(
+        temporary_collection: &'a TemporaryDataRow,
+        collection: &'a Collection,
+        row: NonZeroI64,
+        field_name: &FieldName,
+    ) -> &'a [u8] {
+        if row.get() < 0 {
+            temporary_collection
+                .get(&row)
+                .and_then(|e| e.fields().get(field_name))
+                .map_or(b"", |v| v)
+        } else {
+            Self::data_row(row).map_or(b"", |row| collection.field_bytes(row, field_name))
         }
     }
 }

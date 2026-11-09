@@ -1,14 +1,18 @@
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
+
 mod commit;
 mod session;
 mod update;
 
 pub use semilattice_database::{
-    search, Activity, Collection, CollectionRow, Condition, CustomOrderKey, CustomSort, DataOption,
-    Depend, FieldName, Order, OrderKey, SearchResult, Term, Uuid,
+    Activity, Collection, CollectionRow, Condition, CustomOrderKey, CustomSort, DataOption, Depend,
+    FieldName, Order, OrderKey, SearchResult, Term, Uuid, search,
 };
 pub use session::{
-    Depends, Pend, Session, SessionCustomOrder, SessionOrder, SessionOrderKey, SessionRecord,
-    SessionSearchResult,
+    Depends, Pend, Session, SessionCustomCmp, SessionCustomOrder, SessionOrder, SessionOrderKey,
+    SessionRecord, SessionSearchResult,
 };
 
 use std::{
@@ -20,7 +24,7 @@ use std::{
 };
 
 use hashbrown::HashMap;
-use semilattice_database::{idx_binary::AvltrieeUpdate, Database, Field, FileMmap, IdxFile};
+use semilattice_database::{Database, Field, FileMmap, IdxFile, idx_binary::AvltrieeUpdate};
 use session::SessionInfo;
 
 pub struct SessionDatabase {
@@ -71,10 +75,13 @@ impl SessionDatabase {
                             if let Ok(md) = expire_file.metadata() {
                                 if let Ok(m) = md.modified() {
                                     access_at = m.duration_since(UNIX_EPOCH).unwrap().as_secs();
-                                    let mut file = std::fs::File::open(expire_file).unwrap();
                                     let mut buf = [0u8; 8];
-                                    file.read(&mut buf).unwrap();
-                                    expire = i64::from_be_bytes(buf);
+                                    if std::fs::File::open(expire_file)
+                                        .and_then(|mut file| file.read_exact(&mut buf))
+                                        .is_ok()
+                                    {
+                                        expire = i64::from_be_bytes(buf);
+                                    }
                                 }
                             }
                         }
@@ -122,7 +129,7 @@ impl SessionDatabase {
         dir
     }
     fn delete_dir(dir: PathBuf) {
-        for d in dir.read_dir().unwrap().into_iter() {
+        for d in dir.read_dir().unwrap() {
             let d = d.unwrap();
             if d.file_type().unwrap().is_dir() {
                 let dir = d.path();
@@ -164,7 +171,7 @@ impl SessionDatabase {
     ) -> Vec<CollectionRow> {
         let mut ret = vec![];
         let session_dir = self.session_dir(session.name());
-        if let None = session.session_data {
+        if session.session_data.is_none() {
             self.init_session(session, None);
         }
         if let Some(ref mut session_data) = session.session_data {
@@ -240,35 +247,27 @@ impl SessionDatabase {
         session: Option<&Session>,
     ) -> Vec<Depend> {
         let pend_row = pend_row.get();
+        // rows out of the range of u32 do not exist.
+        let to_row = |row: i64| u32::try_from(row).ok().and_then(NonZeroU32::new);
         if pend_row < 0 {
-            if let Some(session) = session {
-                if let Some(session_depends) = session.depends(key, unsafe {
-                    NonZeroU32::new_unchecked((-pend_row) as u32)
-                }) {
+            if let (Some(session), Some(row)) = (session, pend_row.checked_neg().and_then(to_row)) {
+                if let Some(session_depends) = session.depends(key, row) {
                     return session_depends;
                 }
             }
             vec![]
-        } else if pend_collection_id.get() > 0 {
+        } else if let Some(row) = to_row(pend_row) {
+            let collection_id = if pend_collection_id.get() > 0 {
+                pend_collection_id
+            } else {
+                -pend_collection_id
+            };
             self.relation()
-                .depends(
-                    key,
-                    &CollectionRow::new(pend_collection_id, unsafe {
-                        NonZeroU32::new_unchecked(pend_row as u32)
-                    }),
-                )
+                .depends(key, &CollectionRow::new(collection_id, row))
                 .into_iter()
                 .collect()
         } else {
-            self.relation()
-                .depends(
-                    key,
-                    &CollectionRow::new(-pend_collection_id, unsafe {
-                        NonZeroU32::new_unchecked(pend_row as u32)
-                    }),
-                )
-                .into_iter()
-                .collect()
+            vec![]
         }
     }
 
@@ -281,10 +280,10 @@ impl SessionDatabase {
         for (key_name, pend) in pends.iter() {
             if pend.collection_id().get() < 0 {
                 if let Some(pend) = row_map.get(pend) {
-                    self.register_relation(&key_name, depend, pend).await;
+                    self.register_relation(key_name, depend, pend).await;
                 }
             } else {
-                self.register_relation(&key_name, depend, pend).await;
+                self.register_relation(key_name, depend, pend).await;
             }
         }
     }

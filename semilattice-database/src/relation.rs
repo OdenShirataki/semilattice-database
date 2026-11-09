@@ -8,9 +8,9 @@ use std::{
     sync::Arc,
 };
 
-use serde::{ser::SerializeStruct, Serialize};
+use serde::{Serialize, ser::SerializeStruct};
 
-use crate::{collection::CollectionRow, Database};
+use crate::{Database, collection::CollectionRow};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Depend {

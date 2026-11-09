@@ -7,13 +7,13 @@ use std::{
 use hashbrown::HashMap;
 
 use semilattice_database::{
-    idx_binary::{AvltrieeSearch, AvltrieeUpdate},
     Activity, CollectionRow, Depend, Field, FieldName, Fields, IdxFile,
+    idx_binary::{AvltrieeSearch, AvltrieeUpdate},
 };
 
 use super::{
-    relation::SessionRelation, sequence::SequenceNumber, SessionOperation, TemporaryData,
-    TemporaryDataEntity,
+    SessionOperation, TemporaryData, TemporaryDataEntity, relation::SessionRelation,
+    sequence::SequenceNumber,
 };
 
 pub struct SessionData {
@@ -31,6 +31,7 @@ pub struct SessionData {
 }
 
 impl SessionData {
+    #[allow(clippy::too_many_arguments)]
     pub async fn update(
         &mut self,
         session_dir: &Path,
@@ -113,9 +114,8 @@ impl SessionData {
                             collection_id
                         })
                         .unwrap();
-                        let temporary_collection = temporary_data
-                            .entry(main_collection_id)
-                            .or_insert(HashMap::new());
+                        let temporary_collection =
+                            temporary_data.entry(main_collection_id).or_default();
                         let row = *unsafe { self.row.value_unchecked(session_row) };
 
                         let temporary_row = NonZeroI64::new(if row == 0 {

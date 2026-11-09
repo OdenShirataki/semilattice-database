@@ -362,7 +362,7 @@ futures::executor::block_on(async {
             sum += t1.field_num(i.try_into().unwrap(), &field_num);
             println!(
                 "{},{},{},{},{},{},{},{}",
-                t1.serial(i.try_into().unwrap()),
+                t1.serial(i.try_into().unwrap()).unwrap(),
                 if let Some(Activity::Active) = t1.activity(i.try_into().unwrap()) {
                     "Active"
                 } else {
@@ -370,9 +370,9 @@ futures::executor::block_on(async {
                 },
                 t1.uuid_string(i.try_into().unwrap())
                     .unwrap_or("".to_string()),
-                t1.last_updated(i.try_into().unwrap()).unwrap_or(0),
-                t1.term_begin(i.try_into().unwrap()).unwrap_or(0),
-                t1.term_end(i.try_into().unwrap()).unwrap_or(0),
+                t1.last_updated(i.try_into().unwrap()).unwrap_or(&0),
+                t1.term_begin(i.try_into().unwrap()).unwrap_or(&0),
+                t1.term_end(i.try_into().unwrap()).unwrap_or(&0),
                 std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), &field_num)).unwrap(),
                 std::str::from_utf8(t1.field_bytes(i.try_into().unwrap(), &field_num_by3))
                     .unwrap()

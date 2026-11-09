@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use async_recursion::async_recursion;
 use futures::future;
 
 use versatile_data::{
-    search::{Field, Number, Term},
     Activity, Condition as VersatileDataCondition, FieldName, RowSet,
+    search::{Field, Number, Term},
 };
 
 use crate::{Collection, CollectionRow, RelationIndex, Search};
@@ -23,7 +22,6 @@ pub enum Condition {
     Depend(Option<Arc<String>>, CollectionRow),
 }
 impl Condition {
-    #[async_recursion(?Send)]
     pub(crate) async fn result(&self, collection: &Collection, relation: &RelationIndex) -> RowSet {
         match self {
             Self::Activity(c) => {
@@ -71,12 +69,12 @@ impl Condition {
                     .collect()
             }
             Self::Narrow(conditions) => {
-                Search::result_conditions(collection, conditions, relation).await
+                Box::pin(Search::result_conditions(collection, conditions, relation)).await
             }
             Self::Wide(conditions) => future::join_all(
                 conditions
-                    .into_iter()
-                    .map(|c| c.result(collection, relation)),
+                    .iter()
+                    .map(|c| Box::pin(c.result(collection, relation))),
             )
             .await
             .into_iter()

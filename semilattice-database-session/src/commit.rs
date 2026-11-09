@@ -3,13 +3,13 @@ use std::{
     sync::Arc,
 };
 
-use semilattice_database::{idx_binary::AvltrieeSearch, Activity, Term};
+use semilattice_database::{Activity, Term, idx_binary::AvltrieeSearch};
 
 use hashbrown::HashMap;
 
 use crate::{
-    session::{SessionData, SessionOperation},
     CollectionRow, Session, SessionDatabase,
+    session::{SessionData, SessionOperation},
 };
 
 impl SessionDatabase {
@@ -130,7 +130,7 @@ impl SessionDatabase {
                                     ) {
                                         relation_temporary
                                             .entry(depend.clone())
-                                            .or_insert_with(|| Vec::new())
+                                            .or_insert_with(Vec::new)
                                             .push((
                                                 Arc::new(
                                                     unsafe {

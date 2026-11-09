@@ -10,7 +10,7 @@ impl SequenceNumber {
         const INIT_SIZE: u64 = std::mem::size_of::<usize>() as u64 * 2;
 
         let mut filemmap = FileMmap::new(path).unwrap();
-        if filemmap.len() == 0 {
+        if filemmap.is_empty() {
             filemmap.set_len(INIT_SIZE).unwrap();
         }
         Self { filemmap }

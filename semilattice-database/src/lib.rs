@@ -1,16 +1,19 @@
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
+
 pub mod search;
 
 mod collection;
 mod relation;
 
-use async_recursion::async_recursion;
 pub use collection::{Collection, CollectionRow};
 pub use relation::{Depend, RelationIndex};
 pub use search::{Condition, Search, SearchJoin, SearchResult};
 use versatile_data::idx_binary::AvltrieeSearch;
 pub use versatile_data::{
-    create_uuid, idx_binary, uuid_string, Activity, CustomOrderKey, CustomSort, DataOption, Field,
-    FieldName, Fields, FileMmap, IdxFile, Order, OrderKey, RowSet, Term, Uuid,
+    Activity, CustomOrderKey, CustomSort, DataOption, Field, FieldName, Fields, FileMmap, IdxFile,
+    Order, OrderKey, RowSet, Term, Uuid, create_uuid, idx_binary, uuid_string,
 };
 
 use std::{collections::BTreeMap, num::NonZeroI32, path::PathBuf};
@@ -38,7 +41,7 @@ impl Database {
             collections: BTreeMap::new(),
             collections_map: HashMap::new(),
             relation: RelationIndex::new(&dir, relation_allocation_lot),
-            collection_settings: collection_settings.unwrap_or(std::collections::HashMap::new()),
+            collection_settings: collection_settings.unwrap_or_default(),
         };
         if db.collections_dir.exists() {
             let dir = db.collections_dir.read_dir().unwrap();
@@ -47,7 +50,7 @@ impl Database {
                 if d.file_type().unwrap().is_dir() {
                     if let Some(fname) = d.file_name().to_str() {
                         if let Some(pos) = fname.find("_") {
-                            if let Ok(collection_id) = (&fname[..pos]).parse::<NonZeroI32>() {
+                            if let Ok(collection_id) = fname[..pos].parse::<NonZeroI32>() {
                                 let name = &fname[(pos + 1)..];
                                 db.create_collection(collection_id, name, d.path());
                             }
@@ -59,25 +62,38 @@ impl Database {
         db
     }
 
-    #[async_recursion(?Send)]
+    /// Deletes the row and all rows that depend on it, recursively.
+    ///
+    /// Rows to delete are collected first, visiting each row only once, so
+    /// this terminates even if the relations form a cycle.
     pub async fn delete(&mut self, target: &CollectionRow) {
-        let rows: Vec<_> = self.relation.index_depend().iter_by(target).collect();
-        for relation_row in rows.into_iter() {
-            if let Some(collection_row) = self.relation.index_pend().value(relation_row).cloned() {
-                self.delete(&collection_row).await;
+        let mut targets = vec![];
+        let mut visited = hashbrown::HashSet::new();
+        let mut stack = vec![target.clone()];
+        while let Some(current) = stack.pop() {
+            if !visited.insert(current.clone()) {
+                continue;
             }
+            for relation_row in self.relation.index_depend().iter_by(&current) {
+                if let Some(pend) = self.relation.index_pend().value(relation_row) {
+                    stack.push(pend.clone());
+                }
+            }
+            targets.push(current);
         }
-        for relation_row in self
-            .relation
-            .index_pend()
-            .iter_by(target)
-            .collect::<Vec<_>>()
-            .into_iter()
-        {
-            self.relation.delete(relation_row).await;
-        }
-        if let Some(collection) = self.collection_mut(target.collection_id()) {
-            collection.delete(target.row()).await;
+
+        for target in targets {
+            for relation_row in self
+                .relation
+                .index_pend()
+                .iter_by(&target)
+                .collect::<Vec<_>>()
+            {
+                self.relation.delete(relation_row).await;
+            }
+            if let Some(collection) = self.collection_mut(target.collection_id()) {
+                collection.delete(target.row()).await;
+            }
         }
     }
 }

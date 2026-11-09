@@ -53,8 +53,8 @@ impl DerefMut for Collection {
 impl Database {
     pub fn collections(&self) -> Vec<String> {
         self.collections
-            .iter()
-            .map(|(_, x)| x.name().to_owned())
+            .values()
+            .map(|x| x.name().to_owned())
             .collect()
     }
 
@@ -86,8 +86,7 @@ impl Database {
             let collection_id = unsafe { NonZeroI32::new_unchecked(collection_id) };
             if let Some(collection) = self.collections.get(&collection_id) {
                 for row in collection.data.all().into_iter() {
-                    self.delete(&CollectionRow::new(collection_id, row))
-                        .await;
+                    self.delete(&CollectionRow::new(collection_id, row)).await;
                     if let Some(collection) = self.collection_mut(collection_id) {
                         collection.delete(row).await;
                     }
@@ -120,7 +119,7 @@ impl Database {
     fn collection_by_name_or_create(&mut self, name: &str) -> NonZeroI32 {
         let mut max_id = 0;
         if self.collections_dir.exists() {
-            for d in self.collections_dir.read_dir().unwrap().into_iter() {
+            for d in self.collections_dir.read_dir().unwrap() {
                 let d = d.unwrap();
                 if d.file_type().unwrap().is_dir() {
                     if let Some(fname) = d.file_name().to_str() {

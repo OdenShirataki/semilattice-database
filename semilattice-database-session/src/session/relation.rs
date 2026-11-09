@@ -62,6 +62,7 @@ impl SessionRelation {
         );
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub(crate) async fn from_session_row(
         &mut self,
         session_row: NonZeroU32,

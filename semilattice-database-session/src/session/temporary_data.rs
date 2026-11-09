@@ -44,4 +44,6 @@ impl TemporaryDataEntity {
         &self.depends
     }
 }
-pub type TemporaryData = HashMap<NonZeroI32, HashMap<NonZeroI64, TemporaryDataEntity>>;
+
+pub type TemporaryDataRow = HashMap<NonZeroI64, TemporaryDataEntity>;
+pub type TemporaryData = HashMap<NonZeroI32, TemporaryDataRow>;

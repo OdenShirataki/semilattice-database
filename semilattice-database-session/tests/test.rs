@@ -89,7 +89,7 @@ fn test() {
             let depends = database.depends_with_session(
                 Some(Arc::new("admin".into())),
                 collection_login,
-                (*row).try_into().unwrap(),
+                *row,
                 Some(&sess),
             );
             for d in depends {
@@ -234,7 +234,7 @@ fn test() {
                 .await
                 .sort(
                     &database,
-                    &vec![Order::Asc(OrderKey::Field(field_birthday.clone()))],
+                    &[Order::Asc(OrderKey::Field(field_birthday.clone()))],
                 );
             for i in person_rows {
                 println!(
@@ -360,7 +360,7 @@ fn test() {
                 sum += t1.field_num(i.try_into().unwrap(), &field_num);
                 println!(
                     "{},{},{},{},{},{},{},{}",
-                    t1.serial(i.try_into().unwrap()),
+                    t1.serial(i.try_into().unwrap()).unwrap(),
                     if let Some(Activity::Active) = t1.activity(i.try_into().unwrap()) {
                         "Active"
                     } else {

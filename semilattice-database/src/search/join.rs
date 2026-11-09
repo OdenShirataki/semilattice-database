@@ -3,8 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use async_recursion::async_recursion;
-use futures::{future, FutureExt};
+use futures::{FutureExt, future};
 use hashbrown::HashMap;
 use versatile_data::RowSet;
 
@@ -35,7 +34,6 @@ impl SearchJoin {
         }
     }
 
-    #[async_recursion(?Send)]
     async fn join_result_row(
         &self,
         database: &Database,
@@ -60,7 +58,7 @@ impl SearchJoin {
                 .boxed_local(),
             );
         }
-        if self.conditions.len() > 0 {
+        if !self.conditions.is_empty() {
             if let Some(collection) = database.collection(self.collection_id) {
                 futs.push(
                     async {
@@ -96,11 +94,10 @@ impl SearchJoin {
         parent_collection_id: NonZeroI32,
         parent_rows: &RowSet,
     ) -> HashMap<NonZeroU32, SearchResult> {
-        future::join_all(parent_rows.into_iter().map(|parent_row| async {
+        future::join_all(parent_rows.iter().map(|parent_row| async {
             (
                 *parent_row,
-                self.join_result_row(database, parent_collection_id, *parent_row)
-                    .await,
+                Box::pin(self.join_result_row(database, parent_collection_id, *parent_row)).await,
             )
         }))
         .await

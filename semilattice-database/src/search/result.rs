@@ -37,8 +37,8 @@ impl SearchResult {
     pub fn sort<C: CustomSort>(&self, database: &Database, orders: &[Order<C>]) -> Vec<NonZeroU32> {
         if let Some(search) = self.search() {
             if let Some(collection) = database.collection(search.collection_id) {
-                return if orders.len() > 0 {
-                    collection.data().sort(&self.rows, &orders)
+                return if !orders.is_empty() {
+                    collection.data().sort(&self.rows, orders)
                 } else {
                     self.rows.iter().cloned().collect()
                 };
@@ -51,13 +51,16 @@ impl SearchResult {
 impl Search {
     pub(crate) async fn result_conditions(
         collection: &Collection,
-        conditions: &Vec<Condition>,
+        conditions: &[Condition],
         relation: &RelationIndex,
     ) -> RowSet {
+        if conditions.is_empty() {
+            return collection.data().all();
+        }
         let (mut rows, _index, fs) = future::select_all(
             conditions
-                .into_iter()
-                .map(|c| c.result(collection, relation)),
+                .iter()
+                .map(|c| Box::pin(c.result(collection, relation))),
         )
         .await;
         for r in future::join_all(fs).await.into_iter() {
@@ -69,7 +72,7 @@ impl Search {
     pub async fn result(self, database: &Database) -> SearchResult {
         let collection_id = self.collection_id;
         if let Some(collection) = database.collection(collection_id) {
-            let rows = if self.conditions.len() > 0 {
+            let rows = if !self.conditions.is_empty() {
                 Self::result_conditions(collection, &self.conditions, &database.relation).await
             } else {
                 collection.data().all()

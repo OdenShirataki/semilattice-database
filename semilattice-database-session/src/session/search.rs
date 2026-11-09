@@ -4,10 +4,9 @@ use std::{
     sync::Arc,
 };
 
-use async_recursion::async_recursion;
 use hashbrown::HashMap;
 use semilattice_database::{
-    idx_binary::AvltrieeSearch, search, Collection, Condition, Depend, FieldName, SearchResult,
+    Collection, Condition, Depend, FieldName, SearchResult, idx_binary::AvltrieeSearch, search,
 };
 
 use crate::{Session, SessionDatabase};
@@ -54,34 +53,22 @@ impl Session {
                 search::Term::Future(c) => ent.term_begin >= *c,
             },
             Condition::Field(field_id, cond) => {
-                ent.fields.get(field_id).map_or(false, |f| match cond {
+                ent.fields.get(field_id).is_some_and(|f| match cond {
                     search::Field::Match(v) => f == v,
                     search::Field::Range(min, max) => min <= f && max >= f,
                     search::Field::Min(min) => min <= f,
                     search::Field::Max(max) => max >= f,
-                    search::Field::Forward(v) => {
-                        unsafe { std::str::from_utf8_unchecked(f) }.starts_with(v.as_ref())
-                    }
-                    search::Field::Partial(v) => {
-                        unsafe { std::str::from_utf8_unchecked(f) }.contains(v.as_ref())
-                    }
-                    search::Field::Backward(v) => {
-                        unsafe { std::str::from_utf8_unchecked(f) }.ends_with(v.as_ref())
-                    }
-                    search::Field::ValueForward(v) => {
-                        v.starts_with(unsafe { std::str::from_utf8_unchecked(f) })
-                    }
-                    search::Field::ValueBackward(v) => {
-                        v.ends_with(unsafe { std::str::from_utf8_unchecked(f) })
-                    }
-                    search::Field::ValuePartial(v) => {
-                        v.contains(unsafe { std::str::from_utf8_unchecked(f) })
-                    }
+                    search::Field::Forward(v) => f.starts_with(v.as_bytes()),
+                    search::Field::Partial(v) => contains(f, v.as_bytes()),
+                    search::Field::Backward(v) => f.ends_with(v.as_bytes()),
+                    search::Field::ValueForward(v) => v.as_bytes().starts_with(f),
+                    search::Field::ValueBackward(v) => v.as_bytes().ends_with(f),
+                    search::Field::ValuePartial(v) => contains(v.as_bytes(), f),
                 })
             }
             Condition::Narrow(conditions) => {
                 let mut is_match = true;
-                for c in conditions.into_iter() {
+                for c in conditions.iter() {
                     is_match &= Self::temporary_data_match(row, ent, c);
                     if !is_match {
                         break;
@@ -91,7 +78,7 @@ impl Session {
             }
             Condition::Wide(conditions) => {
                 let mut is_match = false;
-                for c in conditions.into_iter() {
+                for c in conditions.iter() {
                     is_match |= Self::temporary_data_match(row, ent, c);
                     if is_match {
                         break;
@@ -102,7 +89,7 @@ impl Session {
             Condition::Depend(key, collection_row) => {
                 let mut is_match = true;
                 for depend in &ent.depends {
-                    is_match = key.as_ref().map_or(true, |key| key == depend.key())
+                    is_match = key.as_ref().is_none_or(|key| key == depend.key())
                         && collection_row == &**depend;
                     if is_match {
                         break;
@@ -115,11 +102,11 @@ impl Session {
     }
 
     fn temprary_data_match_conditions(
-        conditions: &Vec<Condition>,
+        conditions: &[Condition],
         row: NonZeroI64,
         ent: &TemporaryDataEntity,
     ) -> bool {
-        for c in conditions.into_iter() {
+        for c in conditions.iter() {
             if !Self::temporary_data_match(row, ent, c) {
                 return false;
             }
@@ -127,7 +114,6 @@ impl Session {
         true
     }
 
-    #[async_recursion(?Send)]
     async fn join(
         &self,
         join_result: &HashMap<Arc<String>, HashMap<NonZeroU32, SearchResult>>,
@@ -136,7 +122,7 @@ impl Session {
         for (name, row_join) in join_result {
             let mut map_inner = HashMap::new();
             for (row, result) in row_join {
-                let result = self.result_with(result).await;
+                let result = Box::pin(self.result_with(result)).await;
                 map_inner.insert((*row).into(), result);
             }
             map.insert(name.to_owned(), map_inner);
@@ -151,17 +137,17 @@ impl Session {
                 collection_id.get(),
                 if let Some(tmp) = self.temporary_data.get(&collection_id) {
                     let mut rows: BTreeSet<NonZeroI64> = BTreeSet::new();
-                    for row in search_result.rows().into_iter() {
+                    for row in search_result.rows().iter() {
                         let row = NonZeroI64::from(*row);
                         if let Some(ent) = tmp.get(&row) {
-                            if ent.operation != SessionOperation::Delete {
-                                if Self::temprary_data_match_conditions(
+                            if ent.operation != SessionOperation::Delete
+                                && Self::temprary_data_match_conditions(
                                     search.conditions(),
                                     row,
                                     ent,
-                                ) {
-                                    rows.insert(row);
-                                }
+                                )
+                            {
+                                rows.insert(row);
                             }
                         } else {
                             rows.insert(row);
@@ -170,14 +156,14 @@ impl Session {
                     for (row, _) in tmp.into_iter() {
                         if row.get() < 0 {
                             if let Some(ent) = tmp.get(row) {
-                                if ent.operation != SessionOperation::Delete {
-                                    if Self::temprary_data_match_conditions(
+                                if ent.operation != SessionOperation::Delete
+                                    && Self::temprary_data_match_conditions(
                                         search.conditions(),
                                         *row,
                                         ent,
-                                    ) {
-                                        rows.insert(*row);
-                                    }
+                                    )
+                                {
+                                    rows.insert(*row);
                                 }
                             }
                         }
@@ -186,7 +172,7 @@ impl Session {
                 } else {
                     search_result
                         .rows()
-                        .into_iter()
+                        .iter()
                         .map(|x| NonZeroI64::from(*x))
                         .collect()
                 },
@@ -209,7 +195,7 @@ impl Session {
         collection_id: NonZeroI32,
         row: NonZeroI64,
         field_name: &FieldName,
-    ) -> &[u8] {
+    ) -> &'a [u8] {
         if let Some(temporary_collection) = self.temporary_data.get(&collection_id) {
             if let Some(tmp_row) = temporary_collection.get(&row) {
                 if let Some(val) = tmp_row.fields.get(field_name) {
@@ -230,7 +216,7 @@ impl Session {
         collection: &'a Collection,
         row: NonZeroI64,
         field_name: &FieldName,
-    ) -> &[u8] {
+    ) -> &'a [u8] {
         if let Some(temprary_collection) = self.temporary_data.get(&collection.id()) {
             if let Some(temprary_row) = temprary_collection.get(&row) {
                 if let Some(val) = temprary_row.fields.get(field_name) {
@@ -319,4 +305,10 @@ impl Session {
             )
         })
     }
+}
+
+/// Returns true if `needle` appears in `haystack`. Works on bytes, so field
+/// values do not have to be valid UTF-8.
+fn contains(haystack: &[u8], needle: &[u8]) -> bool {
+    needle.is_empty() || haystack.windows(needle.len()).any(|w| w == needle)
 }

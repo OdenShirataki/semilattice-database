@@ -5,28 +5,26 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use async_recursion::async_recursion;
 use hashbrown::HashMap;
 use semilattice_database::idx_binary::{AvltrieeSearch, AvltrieeUpdate};
 
 use crate::{
-    session::{Depends, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity},
     CollectionRow, Depend, SessionDatabase, SessionRecord, Term,
+    session::{Depends, SessionData, SessionOperation, TemporaryData, TemporaryDataEntity},
 };
 
 impl SessionDatabase {
-    #[async_recursion(?Send)]
     pub(super) async fn update_recursive(
         &self,
         session_data: &mut SessionData,
         temporary_data: &mut TemporaryData,
         session_dir: &Path,
         sequence_number: &usize,
-        records: &Vec<SessionRecord>,
-        depend_by_pend: Option<(&'async_recursion str, NonZeroU32)>,
+        records: &[SessionRecord],
+        depend_by_pend: Option<(&str, NonZeroU32)>,
     ) -> Vec<CollectionRow> {
         let mut ret = vec![];
-        for record in records.into_iter() {
+        for record in records.iter() {
             let session_row = session_data.sequence.insert(sequence_number);
 
             match record {
@@ -79,10 +77,10 @@ impl SessionDatabase {
 
                         let uuid = {
                             if in_session {
-                                session_data.uuid.value(*row).map_or_else(
-                                    || semilattice_database::create_uuid(),
-                                    |uuid| *uuid,
-                                )
+                                session_data
+                                    .uuid
+                                    .value(*row)
+                                    .map_or_else(semilattice_database::create_uuid, |uuid| *uuid)
                             } else {
                                 if let Some(collection) = self.collection(master_collection_id) {
                                     let uuid = *collection.uuid(*row).unwrap_or(&0);
@@ -149,7 +147,7 @@ impl SessionDatabase {
                                 }
                             }
                             Depends::Overwrite(depends) => {
-                                for (key, depend) in depends.into_iter() {
+                                for (key, depend) in depends.iter() {
                                     session_data.relation.insert(key, session_row, depend).await;
                                     tmp_depends.push(Depend::new(Arc::clone(key), depend.clone()));
                                 }
@@ -181,15 +179,15 @@ impl SessionDatabase {
                                 .incidentally_depend(session_row, key, depend_session_row)
                                 .await;
                         }
-                        for pend in pends.into_iter() {
-                            self.update_recursive(
+                        for pend in pends.iter() {
+                            Box::pin(self.update_recursive(
                                 session_data,
                                 temporary_data,
                                 session_dir,
                                 sequence_number,
                                 &pend.records,
                                 Some((&pend.key, session_row)),
-                            )
+                            ))
                             .await;
                         }
                     } else {
@@ -252,7 +250,7 @@ impl SessionDatabase {
                                     .collect(),
                                 depends: if let Depends::Overwrite(depends) = depends {
                                     let mut tmp = vec![];
-                                    for (key, depend) in depends.into_iter() {
+                                    for (key, depend) in depends.iter() {
                                         session_data
                                             .relation
                                             .insert(key, session_row, depend)
@@ -271,15 +269,15 @@ impl SessionDatabase {
                                 .incidentally_depend(session_row, key, depend_session_row)
                                 .await;
                         }
-                        for pend in pends.into_iter() {
-                            self.update_recursive(
+                        for pend in pends.iter() {
+                            Box::pin(self.update_recursive(
                                 session_data,
                                 temporary_data,
                                 session_dir,
                                 sequence_number,
                                 &pend.records,
                                 Some((&pend.key, session_row)),
-                            )
+                            ))
                             .await;
                         }
                     }

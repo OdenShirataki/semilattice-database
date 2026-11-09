@@ -5,8 +5,8 @@ use std::{
 };
 
 use versatile_data::{
-    idx_binary::{AvltrieeSearch, AvltrieeUpdate},
     IdxBinary, IdxFile, RowFragment,
+    idx_binary::{AvltrieeSearch, AvltrieeUpdate},
 };
 
 use crate::{CollectionRow, Depend};
@@ -153,10 +153,10 @@ impl RelationIndex {
                                 if let (Some(key_row), Some(collection_row)) =
                                     (self.rows.key.value(row), self.rows.pend.value(row))
                                 {
-                                    if *key_row == key.get() {
-                                        if collection_row.collection_id() == pend_collection_id {
-                                            return Some(collection_row);
-                                        }
+                                    if *key_row == key.get()
+                                        && collection_row.collection_id() == pend_collection_id
+                                    {
+                                        return Some(collection_row);
                                     }
                                 }
                                 None
